@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   ArrowRight,
   Star,
@@ -8,8 +9,9 @@ import {
   Sparkles,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { CATEGORIES, PRODUCTS, REVIEWS } from "../data";
+import { REVIEWS } from "../data";
 import { ProductCard } from "../components/ProductCard";
+import { api } from "../services/api";
 
 export function LandingPage({
   navigate,
@@ -17,8 +19,34 @@ export function LandingPage({
   wishlist,
   onToggleWishlist,
 }) {
-  const featuredProducts = PRODUCTS.filter((p) => p.isBestSeller).slice(0, 4);
-  const newArrivals = PRODUCTS.filter((p) => p.isNew).slice(0, 4);
+  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [prodRes, catRes] = await Promise.all([
+          api.products.listProducts(),
+          api.categories.listCategories(),
+        ]);
+        if (prodRes.success && prodRes.data) {
+          setProducts(prodRes.data);
+        }
+        if (catRes.success && catRes.data) {
+          setCategories(catRes.data);
+        }
+      } catch (err) {
+        console.error("Error loading landing page data:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const featuredProducts = products.filter((p) => p.isBestSeller).slice(0, 4);
+  const newArrivals = products.filter((p) => p.isNew).slice(0, 4);
 
   return (
     <div className="min-h-screen">
@@ -33,7 +61,7 @@ export function LandingPage({
         {/* Decorative blobs */}
         <div
           className="absolute top-0 right-0 w-72 h-72 rounded-full opacity-20 blur-3xl"
-          style={{ background: "#D81B8A" }}
+          style={{ background: "#a61c9b" }}
         />
         <div
           className="absolute bottom-0 left-0 w-56 h-56 rounded-full opacity-15 blur-3xl"
@@ -49,7 +77,7 @@ export function LandingPage({
             >
               <div
                 className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium mb-5"
-                style={{ background: "#FCE4EC", color: "#D81B8A" }}
+                style={{ background: "#fbeaf5", color: "#a61c9b" }}
               >
                 <Sparkles className="w-4 h-4" /> New arrivals every week
               </div>
@@ -58,7 +86,7 @@ export function LandingPage({
                 style={{ fontFamily: "Poppins, sans-serif", color: "#1a1a2e" }}
               >
                 Everything You Need To{" "}
-                <span style={{ color: "#D81B8A" }}>Create Something</span>{" "}
+                <span style={{ color: "#a61c9b" }}>Create Something</span>{" "}
                 <span style={{ color: "#2E7D32" }}>Beautiful</span>
               </h1>
               <p className="text-lg text-foreground/60 mb-8 leading-relaxed max-w-lg">
@@ -71,7 +99,7 @@ export function LandingPage({
                   onClick={() => navigate("shop")}
                   className="flex items-center gap-2 px-7 py-3.5 rounded-2xl text-white font-semibold text-base transition-all hover:opacity-90 hover:gap-3 shadow-lg shadow-primary/25"
                   style={{
-                    background: "linear-gradient(135deg, #D81B8A, #e91ea0)",
+                    background: "linear-gradient(135deg, #a61c9b, #d82a81)",
                   }}
                 >
                   Shop Now <ArrowRight className="w-4 h-4" />
@@ -179,7 +207,7 @@ export function LandingPage({
               <div key={label} className="flex items-center gap-3">
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: "#FCE4EC" }}
+                  style={{ background: "#fbeaf5" }}
                 >
                   <Icon className="w-5 h-5 text-primary" />
                 </div>
@@ -221,7 +249,7 @@ export function LandingPage({
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {CATEGORIES.slice(0, 10).map((cat, i) => (
+            {categories.slice(0, 10).map((cat, i) => (
               <motion.button
                 key={cat.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -247,6 +275,7 @@ export function LandingPage({
               </motion.button>
             ))}
           </div>
+
         </div>
       </section>
 
@@ -258,7 +287,7 @@ export function LandingPage({
               <div className="flex items-center gap-2 mb-1">
                 <span
                   className="w-1 h-6 rounded-full inline-block"
-                  style={{ background: "#D81B8A" }}
+                  style={{ background: "#a61c9b" }}
                 />
                 <span className="text-sm font-semibold text-primary">
                   Trending
@@ -461,7 +490,7 @@ export function LandingPage({
                 <div
                   className="text-2xl font-bold"
                   style={{
-                    color: "#D81B8A",
+                    color: "#a61c9b",
                     fontFamily: "Poppins, sans-serif",
                   }}
                 >

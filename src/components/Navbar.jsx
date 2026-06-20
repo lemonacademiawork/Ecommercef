@@ -21,6 +21,7 @@ export function Navbar({
   wishlistCount,
   isLoggedIn,
   isAdmin,
+  user,
   onCartOpen,
   onLogout,
   searchQuery,
@@ -176,9 +177,9 @@ export function Navbar({
                       className="absolute right-0 top-full mt-1 w-48 bg-white rounded-2xl border border-border shadow-xl overflow-hidden z-50"
                     >
                       <div className="p-3 border-b border-border">
-                        <p className="text-sm font-semibold">Priya Sharma</p>
+                        <p className="text-sm font-semibold">{user?.name || "User"}</p>
                         <p className="text-xs text-muted-foreground">
-                          priya@example.com
+                          {user?.email || ""}
                         </p>
                       </div>
                       <div className="py-1">

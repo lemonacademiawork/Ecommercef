@@ -4,7 +4,7 @@ export const CATEGORIES = [
     name: "Resin Supplies",
     icon: "🧪",
     count: 124,
-    color: "#FCE4EC",
+    color: "#fbeaf5",
     image:
       "https://images.unsplash.com/photo-1615486511494-cf58e2a7b6c9?w=400&h=300&fit=crop&auto=format",
   },
@@ -31,7 +31,7 @@ export const CATEGORIES = [
     name: "Embroidery",
     icon: "🪡",
     count: 67,
-    color: "#FCE4EC",
+    color: "#fbeaf5",
     image:
       "https://images.unsplash.com/photo-1617721710888-aef4d0fd1e6b?w=400&h=300&fit=crop&auto=format",
   },
@@ -58,7 +58,7 @@ export const CATEGORIES = [
     name: "Jewelry Making",
     icon: "💍",
     count: 144,
-    color: "#FCE4EC",
+    color: "#fbeaf5",
     image:
       "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=400&h=300&fit=crop&auto=format",
   },
@@ -85,7 +85,7 @@ export const CATEGORIES = [
     name: "DIY Kits",
     icon: "🎁",
     count: 42,
-    color: "#FCE4EC",
+    color: "#fbeaf5",
     image:
       "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=400&h=300&fit=crop&auto=format",
   },

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Heart,
   ShoppingCart,
@@ -11,8 +11,9 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { PRODUCTS, REVIEWS } from "../data";
+import { REVIEWS } from "../data";
 import { ProductCard } from "../components/ProductCard";
+import { api } from "../services/api";
 
 export function ProductDetailPage({
   productId,
@@ -21,21 +22,75 @@ export function ProductDetailPage({
   wishlist,
   onToggleWishlist,
 }) {
-  const product = PRODUCTS.find((p) => p.id === productId) || PRODUCTS[0];
+  const [product, setProduct] = useState(null);
+  const [related, setRelated] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("description");
   const [addedToCart, setAddedToCart] = useState(false);
 
-  const related = PRODUCTS.filter(
-    (p) => p.category === product.category && p.id !== product.id,
-  ).slice(0, 4);
+  useEffect(() => {
+    async function loadProduct() {
+      setLoading(true);
+      try {
+        const res = await api.products.getProduct(productId);
+        if (res.success && res.data) {
+          setProduct(res.data);
+          setSelectedImage(0); // reset image index
+          
+          // load related products
+          const relatedRes = await api.products.listProducts();
+          if (relatedRes.success && relatedRes.data) {
+            const rel = relatedRes.data.filter(
+              (p) => (p.category === res.data.category || p.categoryId === res.data.categoryId) && p.id !== res.data.id
+            ).slice(0, 4);
+            setRelated(rel);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading product detail:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (productId) {
+      loadProduct();
+    }
+  }, [productId]);
 
   const handleAddToCart = () => {
     onAddToCart(product, quantity);
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FFFDF7]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground text-sm">Loading product details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#FFFDF7] p-6">
+        <p className="text-lg font-semibold text-muted-foreground mb-4">Product not found</p>
+        <button
+          onClick={() => navigate("shop")}
+          className="px-5 py-2.5 rounded-xl text-white font-semibold text-sm"
+          style={{ background: "linear-gradient(135deg, #a61c9b, #d82a81)" }}
+        >
+          Back to Shop
+        </button>
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen" style={{ background: "#FFFDF7" }}>
@@ -70,7 +125,7 @@ export function ProductDetailPage({
                 {product.isBestSeller && (
                   <span
                     className="px-2.5 py-1 text-xs font-semibold rounded-full text-white"
-                    style={{ background: "#D81B8A" }}
+                    style={{ background: "#a61c9b" }}
                   >
                     Best Seller
                   </span>
@@ -236,7 +291,7 @@ export function ProductDetailPage({
                 style={
                   !addedToCart
                     ? {
-                        background: "linear-gradient(135deg, #D81B8A, #e91ea0)",
+                        background: "linear-gradient(135deg, #a61c9b, #d82a81)",
                       }
                     : {}
                 }

@@ -38,7 +38,7 @@ export function ProductCard({
           {product.isBestSeller && (
             <span
               className="px-2 py-0.5 text-xs font-semibold rounded-full text-white"
-              style={{ background: "#D81B8A" }}
+              style={{ background: "#a61c9b" }}
             >
               Best Seller
             </span>

@@ -1,8 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { SlidersHorizontal, X, ChevronDown, Search } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { PRODUCTS, CATEGORIES } from "../data";
 import { ProductCard } from "../components/ProductCard";
+import { api } from "../services/api";
 
 const SORT_OPTIONS = [
   { value: "popular", label: "Most Popular" },
@@ -19,6 +19,9 @@ export function ShopPage({
   onToggleWishlist,
   searchQuery,
 }) {
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [priceRange, setPriceRange] = useState([0, 2000]);
   const [sortBy, setSortBy] = useState("popular");
@@ -26,22 +29,50 @@ export function ShopPage({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [localSearch, setLocalSearch] = useState(searchQuery);
 
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [prodRes, catRes] = await Promise.all([
+          api.products.listProducts(),
+          api.categories.listCategories(),
+        ]);
+        if (prodRes.success && prodRes.data) {
+          setProducts(prodRes.data);
+        }
+        if (catRes.success && catRes.data) {
+          setCategories(catRes.data);
+        }
+      } catch (err) {
+        console.error("Error loading shop data:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
   const filtered = useMemo(() => {
-    let list = [...PRODUCTS];
+    let list = [...products];
 
     if (localSearch) {
       const q = localSearch.toLowerCase();
       list = list.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q) ||
-          p.tags.some((t) => t.includes(q)),
+          p.category?.toLowerCase()?.includes(q) ||
+          p.tags?.some((t) => t.toLowerCase().includes(q))
       );
     }
-    if (selectedCategory !== "all")
-      list = list.filter((p) => p.category === selectedCategory);
+    if (selectedCategory !== "all") {
+      list = list.filter(
+        (p) =>
+          p.category === selectedCategory ||
+          p.categoryId?.toString() === selectedCategory.toString() ||
+          p.category?.toString() === selectedCategory.toString()
+      );
+    }
     list = list.filter(
-      (p) => p.price >= priceRange[0] && p.price <= priceRange[1],
+      (p) => p.price >= priceRange[0] && p.price <= priceRange[1]
     );
     if (onlyInStock) list = list.filter((p) => p.inStock);
 
@@ -60,18 +91,29 @@ export function ShopPage({
         break;
       default:
         list.sort(
-          (a, b) => (b.isBestSeller ? 1 : 0) - (a.isBestSeller ? 1 : 0),
+          (a, b) => (b.isBestSeller ? 1 : 0) - (a.isBestSeller ? 1 : 0)
         );
     }
 
     return list;
-  }, [localSearch, selectedCategory, priceRange, sortBy, onlyInStock]);
+  }, [products, localSearch, selectedCategory, priceRange, sortBy, onlyInStock]);
 
   const activeFiltersCount = [
     selectedCategory !== "all",
     priceRange[0] > 0 || priceRange[1] < 2000,
     onlyInStock,
   ].filter(Boolean).length;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FFFDF7]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground text-sm">Loading products...</p>
+        </div>
+      </div>
+    );
+  }
 
   const FilterPanel = () => (
     <div className="space-y-6">
@@ -89,10 +131,10 @@ export function ShopPage({
           >
             All Products
             <span className="float-right text-xs text-muted-foreground">
-              {PRODUCTS.length}
+              {products.length}
             </span>
           </button>
-          {CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
@@ -104,7 +146,7 @@ export function ShopPage({
             >
               {cat.icon} {cat.name}
               <span className="float-right text-xs text-muted-foreground">
-                {cat.count}
+                {products.filter(p => p.category === cat.idString || p.categoryId?.toString() === cat.id?.toString()).length || cat.count}
               </span>
             </button>
           ))}
@@ -323,7 +365,7 @@ export function ShopPage({
                 onClick={() => setFiltersOpen(false)}
                 className="w-full mt-6 py-3 rounded-2xl text-white font-semibold text-sm"
                 style={{
-                  background: "linear-gradient(135deg, #D81B8A, #e91ea0)",
+                  background: "linear-gradient(135deg, #a61c9b, #d82a81)",
                 }}
               >
                 Show {filtered.length} Products

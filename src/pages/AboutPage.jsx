@@ -39,7 +39,7 @@ export function AboutPage({ navigate }) {
           <div className="text-6xl mb-5">🍋</div>
           <h1
             className="text-4xl sm:text-5xl font-extrabold mb-4"
-            style={{ fontFamily: "Poppins, sans-serif", color: "#D81B8A" }}
+            style={{ fontFamily: "Poppins, sans-serif", color: "#a61c9b" }}
           >
             Our Story
           </h1>
@@ -62,7 +62,7 @@ export function AboutPage({ navigate }) {
               <div className="text-4xl mb-4">🎯</div>
               <h2
                 className="text-2xl font-bold mb-3"
-                style={{ fontFamily: "Poppins, sans-serif", color: "#D81B8A" }}
+                style={{ fontFamily: "Poppins, sans-serif", color: "#a61c9b" }}
               >
                 Our Mission
               </h2>
@@ -97,7 +97,7 @@ export function AboutPage({ navigate }) {
       {/* Stats */}
       <section
         className="py-14"
-        style={{ background: "linear-gradient(135deg, #D81B8A, #c0156e)" }}
+        style={{ background: "linear-gradient(135deg, #a61c9b, #d82a81)" }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center text-white">
@@ -168,7 +168,7 @@ export function AboutPage({ navigate }) {
                 <p
                   className="text-2xl font-bold"
                   style={{
-                    color: "#D81B8A",
+                    color: "#a61c9b",
                     fontFamily: "Poppins, sans-serif",
                   }}
                 >
@@ -205,7 +205,7 @@ export function AboutPage({ navigate }) {
               >
                 <div
                   className="w-16 h-16 rounded-full flex items-center justify-center text-4xl mx-auto mb-3"
-                  style={{ background: "#FCE4EC" }}
+                  style={{ background: "#fbeaf5" }}
                 >
                   {member.emoji}
                 </div>
@@ -243,7 +243,7 @@ export function AboutPage({ navigate }) {
           <button
             onClick={() => navigate("shop")}
             className="px-8 py-3.5 rounded-2xl text-white font-semibold text-sm shadow-lg shadow-primary/25 hover:opacity-90 transition-all"
-            style={{ background: "linear-gradient(135deg, #D81B8A, #e91ea0)" }}
+            style={{ background: "linear-gradient(135deg, #a61c9b, #d82a81)" }}
           >
             Start Shopping
           </button>

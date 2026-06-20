@@ -49,7 +49,7 @@ export function ContactPage() {
       >
         <h1
           className="text-4xl font-extrabold mb-2"
-          style={{ fontFamily: "Poppins, sans-serif", color: "#D81B8A" }}
+          style={{ fontFamily: "Poppins, sans-serif", color: "#a61c9b" }}
         >
           Contact Us
         </h1>
@@ -134,7 +134,7 @@ export function ContactPage() {
                   type="submit"
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold text-sm"
                   style={{
-                    background: "linear-gradient(135deg, #D81B8A, #e91ea0)",
+                    background: "linear-gradient(135deg, #a61c9b, #d82a81)",
                   }}
                 >
                   <Send className="w-4 h-4" /> Send Message
@@ -179,7 +179,7 @@ export function ContactPage() {
                   <div key={label} className="flex gap-4">
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: "#FCE4EC" }}
+                      style={{ background: "#fbeaf5" }}
                     >
                       <Icon className="w-4 h-4 text-primary" />
                     </div>

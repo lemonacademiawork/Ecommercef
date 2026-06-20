@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BarChart2,
   Package,
@@ -10,6 +10,8 @@ import {
   Trash2,
   Eye,
   ChevronDown,
+  X,
+  Upload,
 } from "lucide-react";
 import {
   AreaChart,
@@ -25,7 +27,8 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { PRODUCTS, ORDERS } from "../data";
+import { api } from "../services/api";
+import { toast } from "sonner";
 
 const salesData = [
   { month: "Jan", revenue: 42000, orders: 134 },
@@ -37,54 +40,11 @@ const salesData = [
 ];
 
 const categoryData = [
-  { name: "Resin", value: 124, color: "#D81B8A" },
+  { name: "Resin", value: 124, color: "#a61c9b" },
   { name: "Beads", value: 89, color: "#2E7D32" },
   { name: "Art", value: 183, color: "#FFD54F" },
   { name: "Fabric", value: 215, color: "#9c27b0" },
   { name: "Jewelry", value: 144, color: "#ff5722" },
-];
-
-const mockCustomers = [
-  {
-    name: "Priya Sharma",
-    email: "priya@example.com",
-    orders: 12,
-    spent: "₹14,823",
-    city: "Bengaluru",
-    joined: "Jan 2024",
-  },
-  {
-    name: "Meera Patel",
-    email: "meera@example.com",
-    orders: 8,
-    spent: "₹9,245",
-    city: "Mumbai",
-    joined: "Mar 2024",
-  },
-  {
-    name: "Ananya Krishnan",
-    email: "ananya@example.com",
-    orders: 15,
-    spent: "₹18,610",
-    city: "Chennai",
-    joined: "Nov 2023",
-  },
-  {
-    name: "Sneha Nair",
-    email: "sneha@example.com",
-    orders: 6,
-    spent: "₹6,890",
-    city: "Kochi",
-    joined: "Apr 2024",
-  },
-  {
-    name: "Divya Rao",
-    email: "divya@example.com",
-    orders: 21,
-    spent: "₹27,340",
-    city: "Hyderabad",
-    joined: "Oct 2023",
-  },
 ];
 
 const statusColors = {
@@ -96,14 +56,179 @@ const statusColors = {
 
 export function AdminDashboard() {
   const [section, setSection] = useState("dashboard");
+  const [metrics, setMetrics] = useState({
+    totalRevenue: 0,
+    totalOrders: 0,
+    totalUsers: 0,
+    totalProducts: 0,
+  });
+  const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Form states
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [editProduct, setEditProduct] = useState(null);
+  const [productForm, setProductForm] = useState({
+    name: "",
+    description: "",
+    price: "",
+    stock: "",
+    imageUrl: "",
+    active: true,
+    categoryId: "",
+  });
+
+  const loadAdminData = async () => {
+    try {
+      const [metricRes, prodRes, orderRes, catRes] = await Promise.all([
+        api.admin.getDashboardMetrics(),
+        api.products.listProducts({ all: true }),
+        api.admin.listAllOrders(),
+        api.categories.listCategories({ all: true }),
+      ]);
+      if (metricRes.success && metricRes.data) {
+        setMetrics(metricRes.data);
+      }
+      if (prodRes.success && prodRes.data) {
+        setProducts(prodRes.data);
+      }
+      if (orderRes.success && orderRes.data) {
+        setOrders(orderRes.data);
+      }
+      if (catRes.success && catRes.data) {
+        setCategories(catRes.data);
+        if (catRes.data.length > 0) {
+          setProductForm((prev) => ({ ...prev, categoryId: catRes.data[0].id }));
+        }
+      }
+    } catch (err) {
+      console.error("Error loading dashboard data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAdminData();
+  }, []);
+
+  const handleProductSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        name: productForm.name,
+        description: productForm.description,
+        price: Number(productForm.price),
+        stock: Number(productForm.stock),
+        imageUrl: productForm.imageUrl,
+        active: productForm.active,
+        categoryId: Number(productForm.categoryId),
+      };
+
+      let res;
+      if (editProduct) {
+        res = await api.products.updateProduct(editProduct.id, payload);
+      } else {
+        res = await api.products.createProduct(payload);
+      }
+
+      if (res.success) {
+        toast.success(editProduct ? "Product updated successfully!" : "Product created successfully!");
+        setShowProductForm(false);
+        setEditProduct(null);
+        setProductForm({
+          name: "",
+          description: "",
+          price: "",
+          stock: "",
+          imageUrl: "",
+          active: true,
+          categoryId: categories[0]?.id || "",
+        });
+        loadAdminData();
+      }
+    } catch (err) {
+      toast.error("Failed to save product: " + err.message);
+    }
+  };
+
+  const handleEditProductClick = (product) => {
+    setEditProduct(product);
+    setProductForm({
+      name: product.name,
+      description: product.description || "",
+      price: product.price,
+      stock: product.stock || 0,
+      imageUrl: product.imageUrl || product.image || "",
+      active: product.active !== undefined ? product.active : true,
+      categoryId: product.categoryId || (categories[0]?.id || ""),
+    });
+    setShowProductForm(true);
+  };
+
+  const handleDeleteProduct = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this product?")) return;
+    try {
+      const res = await api.products.deleteProduct(id);
+      if (res.success) {
+        toast.success("Product deleted successfully!");
+        setProducts((prev) => prev.filter((p) => p.id !== id));
+      }
+    } catch (err) {
+      toast.error("Failed to delete product: " + err.message);
+    }
+  };
+
+  const handleStatusChange = async (orderId, newStatus) => {
+    try {
+      const res = await api.admin.updateOrderStatus(orderId, newStatus);
+      if (res.success) {
+        toast.success(`Order status updated to ${newStatus}`);
+        setOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+        );
+      }
+    } catch (err) {
+      toast.error("Failed to update status: " + err.message);
+    }
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      toast.loading("Uploading product image...");
+      const res = await api.admin.uploadImage(file);
+      toast.dismiss();
+      if (res.success && res.data) {
+        setProductForm((prev) => ({ ...prev, imageUrl: res.data.imageUrl }));
+        toast.success("Image uploaded successfully!");
+      }
+    } catch (err) {
+      toast.dismiss();
+      toast.error("Image upload failed: " + err.message);
+    }
+  };
 
   const navItems = [
     { key: "dashboard", label: "Dashboard", Icon: BarChart2 },
     { key: "products", label: "Products", Icon: Package },
     { key: "orders", label: "Orders", Icon: ShoppingBag },
-    { key: "customers", label: "Customers", Icon: Users },
     { key: "analytics", label: "Analytics", Icon: TrendingUp },
   ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f8f9fc]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground text-sm">Loading admin dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen" style={{ background: "#f8f9fc" }}>
@@ -115,14 +240,14 @@ export function AdminDashboard() {
               <div
                 className="w-8 h-8 rounded-xl flex items-center justify-center text-base"
                 style={{
-                  background: "linear-gradient(135deg, #D81B8A, #e91ea0)",
+                  background: "linear-gradient(135deg, #a61c9b, #d82a81)",
                 }}
               >
                 🍋
               </div>
               <span
                 className="font-bold text-sm"
-                style={{ fontFamily: "Poppins, sans-serif", color: "#D81B8A" }}
+                style={{ fontFamily: "Poppins, sans-serif", color: "#a61c9b" }}
               >
                 LemonHouse
               </span>
@@ -165,32 +290,32 @@ export function AdminDashboard() {
                 {[
                   {
                     label: "Total Revenue",
-                    value: "₹3,63,000",
-                    change: "+18.2%",
-                    color: "#D81B8A",
-                    bg: "#FCE4EC",
+                    value: `₹${(metrics.totalRevenue || 0).toLocaleString()}`,
+                    change: "Live",
+                    color: "#a61c9b",
+                    bg: "#fbeaf5",
                     Icon: TrendingUp,
                   },
                   {
                     label: "Total Orders",
-                    value: "1,128",
-                    change: "+12.4%",
+                    value: metrics.totalOrders || 0,
+                    change: "Live",
                     color: "#2E7D32",
                     bg: "#E8F5E9",
                     Icon: ShoppingBag,
                   },
                   {
                     label: "Customers",
-                    value: "50,248",
-                    change: "+8.7%",
+                    value: metrics.totalUsers || 0,
+                    change: "Live",
                     color: "#1565C0",
                     bg: "#E3F2FD",
                     Icon: Users,
                   },
                   {
                     label: "Products",
-                    value: "1,097",
-                    change: "+5.1%",
+                    value: metrics.totalProducts || 0,
+                    change: "Live",
                     color: "#E65100",
                     bg: "#FFF3E0",
                     Icon: Package,
@@ -250,12 +375,12 @@ export function AdminDashboard() {
                       >
                         <stop
                           offset="5%"
-                          stopColor="#D81B8A"
+                          stopColor="#a61c9b"
                           stopOpacity={0.2}
                         />
                         <stop
                           offset="95%"
-                          stopColor="#D81B8A"
+                          stopColor="#a61c9b"
                           stopOpacity={0}
                         />
                       </linearGradient>
@@ -279,7 +404,7 @@ export function AdminDashboard() {
                     <Area
                       type="monotone"
                       dataKey="revenue"
-                      stroke="#D81B8A"
+                      stroke="#a61c9b"
                       strokeWidth={2}
                       fill="url(#revenueGrad)"
                     />
@@ -327,7 +452,7 @@ export function AdminDashboard() {
                     Recent Orders
                   </h2>
                   <div className="space-y-3">
-                    {ORDERS.map((order) => (
+                    {orders.slice(0, 5).map((order) => (
                       <div
                         key={order.id}
                         className="flex items-center justify-between text-sm"
@@ -335,13 +460,13 @@ export function AdminDashboard() {
                         <div>
                           <p className="font-medium">#{order.id}</p>
                           <p className="text-xs text-muted-foreground">
-                            {order.date}
+                            {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : order.date}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold">₹{order.total}</p>
+                          <p className="font-bold">₹{order.total || order.amount}</p>
                           <span
-                            className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[order.status]}`}
+                            className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[order.status] || "bg-gray-100 text-gray-700"}`}
                           >
                             {order.status}
                           </span>
@@ -365,14 +490,152 @@ export function AdminDashboard() {
                   Products
                 </h1>
                 <button
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white"
+                  onClick={() => {
+                    setEditProduct(null);
+                    setProductForm({
+                      name: "",
+                      description: "",
+                      price: "",
+                      stock: "",
+                      imageUrl: "",
+                      active: true,
+                      categoryId: categories[0]?.id || "",
+                    });
+                    setShowProductForm(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white cursor-pointer"
                   style={{
-                    background: "linear-gradient(135deg, #D81B8A, #e91ea0)",
+                    background: "linear-gradient(135deg, #a61c9b, #d82a81)",
                   }}
                 >
                   <Plus className="w-4 h-4" /> Add Product
                 </button>
               </div>
+
+              {showProductForm && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                  <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-border shadow-2xl overflow-y-auto max-h-[90vh]">
+                    <h2 className="text-lg font-bold mb-4" style={{ fontFamily: "Poppins, sans-serif" }}>
+                      {editProduct ? "Edit Product" : "Add New Product"}
+                    </h2>
+                    <form onSubmit={handleProductSubmit} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold mb-1">Product Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={productForm.name}
+                          onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                          className="w-full px-3 py-2 rounded-xl border border-border text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold mb-1">Description</label>
+                        <textarea
+                          required
+                          value={productForm.description}
+                          onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                          className="w-full px-3 py-2 rounded-xl border border-border text-sm h-20 resize-none"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold mb-1">Price (₹)</label>
+                          <input
+                            type="number"
+                            required
+                            value={productForm.price}
+                            onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+                            className="w-full px-3 py-2 rounded-xl border border-border text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold mb-1">Stock</label>
+                          <input
+                            type="number"
+                            required
+                            value={productForm.stock}
+                            onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
+                            className="w-full px-3 py-2 rounded-xl border border-border text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold mb-1">Category</label>
+                        <select
+                          value={productForm.categoryId}
+                          onChange={(e) => setProductForm({ ...productForm, categoryId: e.target.value })}
+                          className="w-full px-3 py-2 rounded-xl border border-border text-sm bg-white"
+                        >
+                          {categories.map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold mb-1">Product Image</label>
+                        <div className="flex gap-3 items-center">
+                          <input
+                            type="text"
+                            placeholder="Image URL"
+                            value={productForm.imageUrl}
+                            onChange={(e) => setProductForm({ ...productForm, imageUrl: e.target.value })}
+                            className="flex-1 px-3 py-2 rounded-xl border border-border text-sm"
+                          />
+                          <label className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border hover:bg-muted text-xs font-semibold cursor-pointer">
+                            <Upload className="w-3.5 h-3.5" /> Upload
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageUpload}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                        {productForm.imageUrl && (
+                          <img
+                            src={productForm.imageUrl}
+                            alt="preview"
+                            className="w-16 h-16 object-cover rounded-lg mt-2 border border-border"
+                          />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="active"
+                          checked={productForm.active}
+                          onChange={(e) => setProductForm({ ...productForm, active: e.target.checked })}
+                        />
+                        <label htmlFor="active" className="text-xs font-semibold cursor-pointer">Active (Visible in Shop)</label>
+                      </div>
+
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowProductForm(false);
+                            setEditProduct(null);
+                          }}
+                          className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold hover:bg-muted"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="flex-1 py-2.5 rounded-xl text-white font-semibold text-sm"
+                          style={{ background: "linear-gradient(135deg, #a61c9b, #d82a81)" }}
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
               <div className="bg-white rounded-2xl border border-border overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -388,10 +651,10 @@ export function AdminDashboard() {
                           Price
                         </th>
                         <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide">
-                          Rating
+                          Stock
                         </th>
                         <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide">
-                          Stock
+                          Status
                         </th>
                         <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide">
                           Actions
@@ -399,7 +662,7 @@ export function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {PRODUCTS.map((product) => (
+                      {products.map((product) => (
                         <tr
                           key={product.id}
                           className="hover:bg-muted/30 transition-colors"
@@ -407,7 +670,7 @@ export function AdminDashboard() {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
                               <img
-                                src={product.image}
+                                src={product.imageUrl || product.image}
                                 alt={product.name}
                                 className="w-9 h-9 rounded-lg object-cover bg-muted flex-shrink-0"
                               />
@@ -417,32 +680,33 @@ export function AdminDashboard() {
                             </div>
                           </td>
                           <td className="px-4 py-3 capitalize text-muted-foreground">
-                            {product.category}
+                            {categories.find((c) => c.id === product.categoryId)?.name || product.category || "—"}
                           </td>
                           <td className="px-4 py-3 font-semibold">
                             ₹{product.price}
                           </td>
-                          <td className="px-4 py-3">
-                            <span className="flex items-center gap-1">
-                              ⭐ {product.rating}
-                            </span>
+                          <td className="px-4 py-3 font-semibold">
+                            {product.stock || 0}
                           </td>
                           <td className="px-4 py-3">
                             <span
-                              className={`text-xs px-2 py-0.5 rounded-full font-medium ${product.inStock ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}
+                              className={`text-xs px-2 py-0.5 rounded-full font-medium ${product.active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}
                             >
-                              {product.inStock ? "In Stock" : "Out of Stock"}
+                              {product.active ? "Active" : "Inactive"}
                             </span>
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <button className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-primary">
-                                <Eye className="w-4 h-4" />
-                              </button>
-                              <button className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-primary">
+                              <button
+                                onClick={() => handleEditProductClick(product)}
+                                className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-primary"
+                              >
                                 <Edit2 className="w-4 h-4" />
                               </button>
-                              <button className="p-1.5 rounded-lg hover:bg-red-50 transition-colors text-muted-foreground hover:text-destructive">
+                              <button
+                                onClick={() => handleDeleteProduct(product.id)}
+                                className="p-1.5 rounded-lg hover:bg-red-50 transition-colors text-muted-foreground hover:text-destructive"
+                              >
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
@@ -473,11 +737,9 @@ export function AdminDashboard() {
                         {[
                           "Order ID",
                           "Date",
-                          "Customer",
-                          "Items",
+                          "ItemsCount",
                           "Total",
                           "Status",
-                          "Tracking",
                         ].map((h) => (
                           <th
                             key={h}
@@ -489,36 +751,29 @@ export function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {[
-                        ...ORDERS,
-                        ...ORDERS.map((o) => ({
-                          ...o,
-                          id: o.id + "B",
-                          status: "Processing",
-                        })),
-                      ].map((order, i) => (
+                      {orders.map((order) => (
                         <tr
-                          key={i}
+                          key={order.id}
                           className="hover:bg-muted/30 transition-colors"
                         >
                           <td className="px-4 py-3 font-semibold">
                             #{order.id}
                           </td>
                           <td className="px-4 py-3 text-muted-foreground">
-                            {order.date}
+                            {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : order.date}
                           </td>
-                          <td className="px-4 py-3">Priya Sharma</td>
                           <td className="px-4 py-3 text-muted-foreground">
-                            {order.items}
+                            {order.items?.length || order.items || 0}
                           </td>
                           <td className="px-4 py-3 font-bold">
-                            ₹{order.total}
+                            ₹{order.total || order.amount}
                           </td>
                           <td className="px-4 py-3">
                             <div className="relative inline-block">
                               <select
-                                defaultValue={order.status}
-                                className={`text-xs font-medium pl-2 pr-6 py-1 rounded-full border-0 cursor-pointer appearance-none ${statusColors[order.status]}`}
+                                value={order.status}
+                                onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                                className={`text-xs font-medium pl-2 pr-6 py-1 rounded-full border-0 cursor-pointer appearance-none ${statusColors[order.status] || "bg-gray-100 text-gray-700"}`}
                               >
                                 {[
                                   "Processing",
@@ -533,84 +788,6 @@ export function AdminDashboard() {
                               </select>
                               <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none" />
                             </div>
-                          </td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground">
-                            {order.trackingNumber || "—"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Customers */}
-          {section === "customers" && (
-            <div>
-              <h1
-                className="text-2xl font-bold mb-6"
-                style={{ fontFamily: "Poppins, sans-serif" }}
-              >
-                Customer Database
-              </h1>
-              <div className="bg-white rounded-2xl border border-border overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead style={{ background: "#f8f9fc" }}>
-                      <tr>
-                        {[
-                          "Customer",
-                          "Email",
-                          "City",
-                          "Orders",
-                          "Total Spent",
-                          "Joined",
-                        ].map((h) => (
-                          <th
-                            key={h}
-                            className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide"
-                          >
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {mockCustomers.map((c) => (
-                        <tr
-                          key={c.email}
-                          className="hover:bg-muted/30 transition-colors"
-                        >
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <div
-                                className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
-                                style={{
-                                  background: "#FCE4EC",
-                                  color: "#D81B8A",
-                                }}
-                              >
-                                {c.name[0]}
-                              </div>
-                              <span className="font-medium">{c.name}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground">
-                            {c.email}
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground">
-                            {c.city}
-                          </td>
-                          <td className="px-4 py-3 font-semibold">
-                            {c.orders}
-                          </td>
-                          <td className="px-4 py-3 font-bold text-primary">
-                            {c.spent}
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground">
-                            {c.joined}
                           </td>
                         </tr>
                       ))}
@@ -692,7 +869,7 @@ export function AdminDashboard() {
                       <Bar
                         yAxisId="left"
                         dataKey="revenue"
-                        fill="#D81B8A"
+                        fill="#a61c9b"
                         radius={[4, 4, 0, 0]}
                         opacity={0.8}
                       />
@@ -720,19 +897,19 @@ export function AdminDashboard() {
                   {[
                     {
                       label: "In Stock",
-                      count: PRODUCTS.filter((p) => p.inStock).length,
+                      count: products.filter((p) => p.stock > 0).length,
                       color: "#2E7D32",
                       bg: "#E8F5E9",
                     },
                     {
                       label: "Out of Stock",
-                      count: PRODUCTS.filter((p) => !p.inStock).length,
+                      count: products.filter((p) => p.stock <= 0).length,
                       color: "#d32f2f",
                       bg: "#FFEBEE",
                     },
                     {
                       label: "Low Stock (< 5)",
-                      count: 3,
+                      count: products.filter((p) => p.stock > 0 && p.stock < 5).length,
                       color: "#E65100",
                       bg: "#FFF3E0",
                     },

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Check,
   ChevronRight,
@@ -9,6 +9,8 @@ import {
   PartyPopper,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { api } from "../services/api";
+import { toast } from "sonner";
 
 const STEPS = [
   { key: "shipping", label: "Shipping", Icon: MapPin },
@@ -19,16 +21,39 @@ const STEPS = [
 
 export function CheckoutPage({ items, navigate, onOrderComplete }) {
   const [step, setStep] = useState("shipping");
+  const [addresses, setAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [useSavedAddress, setUseSavedAddress] = useState(true);
+  const [confirmedOrderId, setConfirmedOrderId] = useState("");
   const [form, setForm] = useState({
-    name: "Priya Sharma",
-    phone: "+91 98765 43210",
-    address: "42, 3rd Cross, Koramangala",
-    city: "Bengaluru",
-    state: "Karnataka",
-    pincode: "560034",
+    name: "",
+    phone: "",
+    address: "",
+    city: "",
+    state: "",
+    pincode: "",
     deliveryMethod: "standard",
     paymentMethod: "upi",
   });
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      api.addresses.listAddresses()
+        .then((res) => {
+          if (res.success && res.data) {
+            setAddresses(res.data);
+            const def = res.data.find((a) => a.isDefault);
+            if (def) {
+              setSelectedAddressId(def.id);
+            } else if (res.data.length > 0) {
+              setSelectedAddressId(res.data[0].id);
+            }
+          }
+        })
+        .catch((err) => console.error("Error loading addresses", err));
+    }
+  }, []);
 
   const stepIndex = STEPS.findIndex((s) => s.key === step);
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
@@ -39,9 +64,45 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
   const updateForm = (key, value) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  const placeOrder = () => {
-    setStep("confirmed");
-    onOrderComplete();
+  const placeOrder = async () => {
+    try {
+      let finalAddressId = selectedAddressId;
+      if (!useSavedAddress || !finalAddressId) {
+        // Add new address
+        const addRes = await api.addresses.addAddress({
+          fullName: form.name,
+          phone: form.phone,
+          addressLine1: form.address,
+          addressLine2: "",
+          city: form.city,
+          state: form.state,
+          pincode: form.pincode,
+          isDefault: true,
+        });
+        if (addRes.success && addRes.data) {
+          finalAddressId = addRes.data.id;
+        } else {
+          throw new Error("Failed to save shipping address");
+        }
+      }
+
+      const orderRes = await api.orders.createOrder(finalAddressId, form.paymentMethod);
+      if (orderRes.success) {
+        try {
+          await api.cart.clearCart();
+        } catch (cartErr) {
+          console.error("Cart clear error", cartErr);
+        }
+
+        setConfirmedOrderId(orderRes.data?.id || "LH-" + Math.floor(Math.random() * 10000));
+        setStep("confirmed");
+        onOrderComplete();
+      } else {
+        toast.error(orderRes.message || "Failed to place order");
+      }
+    } catch (err) {
+      toast.error("Order creation failed: " + err.message);
+    }
   };
 
   if (step === "confirmed") {
@@ -71,31 +132,14 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
             Order Placed! 🎉
           </h2>
           <p className="text-muted-foreground mb-2">
-            Your order <strong>#LH-2848</strong> has been placed successfully.
+            Your order <strong>#{confirmedOrderId}</strong> has been placed successfully.
           </p>
           <p className="text-sm text-muted-foreground mb-8">
-            Expected delivery: <strong>Jun 14–15, 2026</strong>
+            Expected delivery: <strong>3–5 business days</strong>
           </p>
 
           <div className="bg-white rounded-2xl border border-border p-5 mb-8 text-left space-y-3">
-            <h3 className="font-semibold text-sm mb-3">Order Summary</h3>
-            {items.map((item) => (
-              <div key={item.id} className="flex gap-3">
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="w-10 h-10 rounded-lg object-cover flex-shrink-0 bg-muted"
-                />
-                <div className="flex-1">
-                  <p className="text-xs font-medium line-clamp-1">
-                    {item.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Qty: {item.quantity} · ₹{item.price * item.quantity}
-                  </p>
-                </div>
-              </div>
-            ))}
+            <h3 className="font-semibold text-sm mb-3">Order Details</h3>
             <div className="border-t border-border pt-3 flex justify-between font-bold text-sm">
               <span>Total Paid</span>
               <span>₹{total}</span>
@@ -107,7 +151,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
               onClick={() => navigate("dashboard")}
               className="w-full py-3 rounded-2xl text-white font-semibold text-sm"
               style={{
-                background: "linear-gradient(135deg, #D81B8A, #e91ea0)",
+                background: "linear-gradient(135deg, #a61c9b, #d82a81)",
               }}
             >
               Track Order
@@ -123,6 +167,8 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
       </div>
     );
   }
+
+  const selectedSavedAddress = addresses.find((a) => a.id === selectedAddressId);
 
   return (
     <div className="min-h-screen" style={{ background: "#FFFDF7" }}>
@@ -194,48 +240,110 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                     >
                       Shipping Address
                     </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {[
-                        {
-                          label: "Full Name",
-                          key: "name",
-                          type: "text",
-                          col: "sm:col-span-2",
-                        },
-                        {
-                          label: "Phone Number",
-                          key: "phone",
-                          type: "tel",
-                          col: "",
-                        },
-                        {
-                          label: "Pin Code",
-                          key: "pincode",
-                          type: "text",
-                          col: "",
-                        },
-                        {
-                          label: "Address",
-                          key: "address",
-                          type: "text",
-                          col: "sm:col-span-2",
-                        },
-                        { label: "City", key: "city", type: "text", col: "" },
-                        { label: "State", key: "state", type: "text", col: "" },
-                      ].map((f) => (
-                        <div key={f.key} className={f.col}>
-                          <label className="block text-sm font-semibold mb-1.5">
-                            {f.label}
+
+                    {addresses.length > 0 && (
+                      <div className="mb-6 space-y-3">
+                        <div className="flex gap-4 mb-4">
+                          <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold">
+                            <input
+                              type="radio"
+                              name="addressType"
+                              checked={useSavedAddress}
+                              onChange={() => setUseSavedAddress(true)}
+                              className="accent-primary"
+                            />
+                            Use Saved Address
                           </label>
-                          <input
-                            type={f.type}
-                            value={form[f.key]}
-                            onChange={(e) => updateForm(f.key, e.target.value)}
-                            className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                          />
+                          <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold">
+                            <input
+                              type="radio"
+                              name="addressType"
+                              checked={!useSavedAddress}
+                              onChange={() => setUseSavedAddress(false)}
+                              className="accent-primary"
+                            />
+                            Deliver to a New Address
+                          </label>
                         </div>
-                      ))}
-                    </div>
+
+                        {useSavedAddress && (
+                          <div className="grid sm:grid-cols-2 gap-3">
+                            {addresses.map((addr) => (
+                              <label
+                                key={addr.id}
+                                className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                                  selectedAddressId === addr.id
+                                    ? "border-primary bg-primary/5"
+                                    : "border-border hover:border-primary/40"
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name="savedAddress"
+                                  value={addr.id}
+                                  checked={selectedAddressId === addr.id}
+                                  onChange={() => setSelectedAddressId(addr.id)}
+                                  className="accent-primary mt-1"
+                                />
+                                <div className="text-xs">
+                                  <p className="font-bold">{addr.fullName}</p>
+                                  <p className="text-muted-foreground mt-0.5">
+                                    {addr.addressLine1}
+                                    <br />
+                                    {addr.city}, {addr.state} – {addr.pincode}
+                                  </p>
+                                </div>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {(!useSavedAddress || addresses.length === 0) && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {[
+                          {
+                            label: "Full Name",
+                            key: "name",
+                            type: "text",
+                            col: "sm:col-span-2",
+                          },
+                          {
+                            label: "Phone Number",
+                            key: "phone",
+                            type: "tel",
+                            col: "",
+                          },
+                          {
+                            label: "Pin Code",
+                            key: "pincode",
+                            type: "text",
+                            col: "",
+                          },
+                          {
+                            label: "Address",
+                            key: "address",
+                            type: "text",
+                            col: "sm:col-span-2",
+                          },
+                          { label: "City", key: "city", type: "text", col: "" },
+                          { label: "State", key: "state", type: "text", col: "" },
+                        ].map((f) => (
+                          <div key={f.key} className={f.col}>
+                            <label className="block text-sm font-semibold mb-1.5">
+                              {f.label}
+                            </label>
+                            <input
+                              type={f.type}
+                              value={form[f.key]}
+                              onChange={(e) => updateForm(f.key, e.target.value)}
+                              className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </motion.div>
                 )}
 
@@ -409,7 +517,9 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                       <div className="flex justify-between text-muted-foreground">
                         <span>Ship to</span>
                         <span className="font-medium text-foreground">
-                          {form.name}, {form.city}
+                          {useSavedAddress && selectedSavedAddress
+                            ? `${selectedSavedAddress.fullName}, ${selectedSavedAddress.city}`
+                            : `${form.name}, ${form.city}`}
                         </span>
                       </div>
                       <div className="flex justify-between text-muted-foreground">
@@ -444,7 +554,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                     onClick={() => setStep(STEPS[stepIndex + 1].key)}
                     className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold text-sm"
                     style={{
-                      background: "linear-gradient(135deg, #D81B8A, #e91ea0)",
+                      background: "linear-gradient(135deg, #a61c9b, #d82a81)",
                     }}
                   >
                     Continue <ChevronRight className="w-4 h-4" />

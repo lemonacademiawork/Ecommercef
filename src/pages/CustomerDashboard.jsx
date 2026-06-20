@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Package,
   Heart,
@@ -14,7 +14,9 @@ import {
   Check,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { ORDERS, PRODUCTS } from "../data";
+import { PRODUCTS } from "../data";
+import { api } from "../services/api";
+import { toast } from "sonner";
 
 const statusColors = {
   Processing: "bg-yellow-100 text-yellow-700",
@@ -35,10 +37,157 @@ export function CustomerDashboard({
   wishlist,
   onToggleWishlist,
   onLogout,
+  user,
+  setUser,
 }) {
   const [section, setSection] = useState("overview");
+  const [addresses, setAddresses] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [addressesLoading, setAddressesLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [editAddress, setEditAddress] = useState(null);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [addressForm, setAddressForm] = useState({
+    fullName: "",
+    phone: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    state: "",
+    pincode: "",
+    isDefault: false,
+  });
+
+  const [profileForm, setProfileForm] = useState({
+    name: "",
+    phone: "",
+    oldPassword: "",
+    newPassword: "",
+  });
+
+  // Sync profile form when user object updates
+  useEffect(() => {
+    if (user) {
+      setProfileForm((prev) => ({
+        ...prev,
+        name: user.name || "",
+        phone: user.phone || "",
+      }));
+    }
+  }, [user]);
+
+  // Fetch addresses and orders on mount
+  useEffect(() => {
+    async function loadDashboardData() {
+      try {
+        const addrRes = await api.addresses.listAddresses();
+        if (addrRes.success && addrRes.data) {
+          setAddresses(addrRes.data);
+        }
+      } catch (err) {
+        console.error("Error loading addresses:", err);
+      } finally {
+        setAddressesLoading(false);
+      }
+
+      try {
+        const orderRes = await api.orders.getOrders();
+        if (orderRes.success && orderRes.data) {
+          setOrders(orderRes.data);
+        }
+      } catch (err) {
+        console.error("Error loading orders:", err);
+      } finally {
+        setOrdersLoading(false);
+      }
+    }
+    loadDashboardData();
+  }, []);
 
   const wishlistedProducts = PRODUCTS.filter((p) => wishlist.includes(p.id));
+
+  const handleAddressSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      let res;
+      if (editAddress) {
+        res = await api.addresses.updateAddress(editAddress.id, addressForm);
+      } else {
+        res = await api.addresses.addAddress(addressForm);
+      }
+      if (res.success) {
+        toast.success(editAddress ? "Address updated!" : "Address added!");
+        setShowAddressForm(false);
+        setEditAddress(null);
+        setAddressForm({
+          fullName: "",
+          phone: "",
+          addressLine1: "",
+          addressLine2: "",
+          city: "",
+          state: "",
+          pincode: "",
+          isDefault: false,
+        });
+        const listRes = await api.addresses.listAddresses();
+        if (listRes.success) setAddresses(listRes.data);
+      }
+    } catch (err) {
+      toast.error("Failed to save address: " + err.message);
+    }
+  };
+
+  const handleDeleteAddress = async (id) => {
+    try {
+      const res = await api.addresses.deleteAddress(id);
+      if (res.success) {
+        toast.success("Address removed!");
+        setAddresses((prev) => prev.filter((a) => a.id !== id));
+      }
+    } catch (err) {
+      toast.error("Failed to delete address: " + err.message);
+    }
+  };
+
+  const handleSetDefaultAddress = async (id) => {
+    try {
+      const res = await api.addresses.setDefaultAddress(id);
+      if (res.success) {
+        toast.success("Default address set!");
+        const listRes = await api.addresses.listAddresses();
+        if (listRes.success) setAddresses(listRes.data);
+      }
+    } catch (err) {
+      toast.error("Failed to set default address: " + err.message);
+    }
+  };
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const updateRes = await api.auth.updateProfile({
+        name: profileForm.name,
+        phone: profileForm.phone,
+      });
+      if (updateRes.success) {
+        setUser(updateRes.data);
+        toast.success("Profile updated successfully!");
+      }
+
+      if (profileForm.oldPassword && profileForm.newPassword) {
+        const pwdRes = await api.auth.changePassword(
+          profileForm.oldPassword,
+          profileForm.newPassword
+        );
+        if (pwdRes.success) {
+          toast.success("Password changed successfully!");
+          setProfileForm((prev) => ({ ...prev, oldPassword: "", newPassword: "" }));
+        }
+      }
+    } catch (err) {
+      toast.error("Profile update failed: " + err.message);
+    }
+  };
 
   const navItems = [
     { key: "overview", label: "Overview", Icon: User },
@@ -67,7 +216,7 @@ export function CustomerDashboard({
                   <div
                     className="w-12 h-12 rounded-full flex items-center justify-center text-xl"
                     style={{
-                      background: "linear-gradient(135deg, #D81B8A, #e91ea0)",
+                      background: "linear-gradient(135deg, #a61c9b, #d82a81)",
                     }}
                   >
                     👩
@@ -77,10 +226,10 @@ export function CustomerDashboard({
                       className="font-bold"
                       style={{ fontFamily: "Poppins, sans-serif" }}
                     >
-                      Priya Sharma
+                      {user?.name || "User"}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      priya@example.com
+                      {user?.email || ""}
                     </p>
                   </div>
                 </div>
@@ -126,7 +275,7 @@ export function CustomerDashboard({
                   className="text-2xl font-bold"
                   style={{ fontFamily: "Poppins, sans-serif" }}
                 >
-                  Welcome back, Priya! 👋
+                  Welcome back, {user?.name || "User"}! 👋
                 </h1>
 
                 {/* Stats */}
@@ -134,21 +283,19 @@ export function CustomerDashboard({
                   {[
                     {
                       label: "Total Orders",
-                      value: ORDERS.length,
-                      color: "#D81B8A",
-                      bg: "#FCE4EC",
+                      value: orders.length,
+                      color: "#a61c9b",
+                      bg: "#fbeaf5",
                     },
                     {
                       label: "Delivered",
-                      value: ORDERS.filter((o) => o.status === "Delivered")
-                        .length,
+                      value: orders.filter((o) => o.status === "Delivered").length,
                       color: "#2E7D32",
                       bg: "#E8F5E9",
                     },
                     {
                       label: "In Transit",
-                      value: ORDERS.filter((o) => o.status === "Shipped")
-                        .length,
+                      value: orders.filter((o) => o.status === "Shipped").length,
                       color: "#1565C0",
                       bg: "#E3F2FD",
                     },
@@ -196,8 +343,8 @@ export function CustomerDashboard({
                     </button>
                   </div>
                   <div className="divide-y divide-border">
-                    {ORDERS.slice(0, 3).map((order) => {
-                      const Icon = statusIcons[order.status];
+                    {orders.slice(0, 3).map((order) => {
+                      const Icon = statusIcons[order.status] || Clock;
                       return (
                         <div
                           key={order.id}
@@ -212,14 +359,14 @@ export function CustomerDashboard({
                                 #{order.id}
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                {order.date} · {order.items} items
+                                {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : order.date} · {order.items?.length || order.items || 0} items
                               </p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm font-bold">₹{order.total}</p>
+                            <p className="text-sm font-bold">₹{order.total || order.amount}</p>
                             <span
-                              className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[order.status]}`}
+                              className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[order.status] || "bg-gray-100 text-gray-700"}`}
                             >
                               {order.status}
                             </span>
@@ -242,8 +389,8 @@ export function CustomerDashboard({
                   My Orders
                 </h1>
                 <div className="space-y-4">
-                  {ORDERS.map((order) => {
-                    const Icon = statusIcons[order.status];
+                  {orders.map((order) => {
+                    const Icon = statusIcons[order.status] || Clock;
                     return (
                       <motion.div
                         key={order.id}
@@ -260,17 +407,16 @@ export function CustomerDashboard({
                               Order #{order.id}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              {order.date} · {order.items} items
+                              {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : order.date} · {order.items?.length || order.items || 0} items
                             </p>
                           </div>
                           <span
-                            className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 ${statusColors[order.status]}`}
+                            className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 ${statusColors[order.status] || "bg-gray-100 text-gray-700"}`}
                           >
                             <Icon className="w-3 h-3" /> {order.status}
                           </span>
                         </div>
 
-                        {/* Timeline (for shipped orders) */}
                         {order.status === "Shipped" && (
                           <div className="mb-4 relative">
                             <div className="flex items-center justify-between relative">
@@ -306,7 +452,7 @@ export function CustomerDashboard({
 
                         <div className="flex items-center justify-between">
                           <div>
-                            <span className="font-bold">₹{order.total}</span>
+                            <span className="font-bold">₹{order.total || order.amount}</span>
                             {order.trackingNumber && (
                               <p className="text-xs text-muted-foreground mt-0.5">
                                 Tracking: {order.trackingNumber}
@@ -346,7 +492,7 @@ export function CustomerDashboard({
                       onClick={() => navigate("shop")}
                       className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white"
                       style={{
-                        background: "linear-gradient(135deg, #D81B8A, #e91ea0)",
+                        background: "linear-gradient(135deg, #a61c9b, #d82a81)",
                       }}
                     >
                       Discover Products
@@ -401,39 +547,197 @@ export function CustomerDashboard({
                   Saved Addresses
                 </h1>
                 <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="bg-white rounded-2xl border-2 border-primary p-5 relative">
-                    <span className="absolute top-3 right-3 text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                      Default
-                    </span>
-                    <div className="flex items-start gap-3">
-                      <MapPin className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-semibold text-sm">Home</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          42, 3rd Cross, Koramangala
-                          <br />
-                          Bengaluru, Karnataka – 560034
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          +91 98765 43210
-                        </p>
+                  {addresses.map((addr) => (
+                    <div
+                      key={addr.id}
+                      className={`bg-white rounded-2xl border-2 p-5 relative ${addr.isDefault ? "border-primary" : "border-border"}`}
+                    >
+                      {addr.isDefault && (
+                        <span className="absolute top-3 right-3 text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                          Default
+                        </span>
+                      )}
+                      <div className="flex items-start gap-3">
+                        <MapPin className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-semibold text-sm">{addr.fullName}</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {addr.addressLine1}
+                            {addr.addressLine2 && <><br />{addr.addressLine2}</>}
+                            <br />
+                            {addr.city}, {addr.state} – {addr.pincode}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {addr.phone}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-4">
+                        <button
+                          onClick={() => {
+                            setEditAddress(addr);
+                            setAddressForm(addr);
+                            setShowAddressForm(true);
+                          }}
+                          className="text-xs text-primary font-semibold hover:underline"
+                        >
+                          Edit
+                        </button>
+                        <span className="text-border">·</span>
+                        <button
+                          onClick={() => handleDeleteAddress(addr.id)}
+                          className="text-xs text-muted-foreground hover:text-destructive"
+                        >
+                          Remove
+                        </button>
+                        {!addr.isDefault && (
+                          <>
+                            <span className="text-border">·</span>
+                            <button
+                              onClick={() => handleSetDefaultAddress(addr.id)}
+                              className="text-xs text-primary font-semibold hover:underline"
+                            >
+                              Set Default
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
-                    <div className="flex gap-2 mt-4">
-                      <button className="text-xs text-primary font-semibold hover:underline">
-                        Edit
-                      </button>
-                      <span className="text-border">·</span>
-                      <button className="text-xs text-muted-foreground hover:text-destructive">
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                  <button className="bg-white rounded-2xl border-2 border-dashed border-border p-5 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors">
+                  ))}
+                  <button
+                    onClick={() => {
+                      setEditAddress(null);
+                      setAddressForm({
+                        fullName: "",
+                        phone: "",
+                        addressLine1: "",
+                        addressLine2: "",
+                        city: "",
+                        state: "",
+                        pincode: "",
+                        isDefault: false,
+                      });
+                      setShowAddressForm(true);
+                    }}
+                    className="bg-white rounded-2xl border-2 border-dashed border-border p-5 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors min-h-[180px]"
+                  >
                     <MapPin className="w-8 h-8" />
                     <span className="text-sm font-medium">Add New Address</span>
                   </button>
                 </div>
+
+                {showAddressForm && (
+                  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-border shadow-2xl">
+                      <h2 className="text-lg font-bold mb-4" style={{ fontFamily: "Poppins, sans-serif" }}>
+                        {editAddress ? "Edit Address" : "Add New Address"}
+                      </h2>
+                      <form onSubmit={handleAddressSubmit} className="space-y-4">
+                        <div>
+                          <label className="block text-xs font-semibold mb-1">Full Name</label>
+                          <input
+                            type="text"
+                            required
+                            value={addressForm.fullName}
+                            onChange={(e) => setAddressForm({ ...addressForm, fullName: e.target.value })}
+                            className="w-full px-3 py-2 rounded-xl border border-border text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold mb-1">Phone Number</label>
+                          <input
+                            type="text"
+                            required
+                            value={addressForm.phone}
+                            onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
+                            className="w-full px-3 py-2 rounded-xl border border-border text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold mb-1">Address Line 1</label>
+                          <input
+                            type="text"
+                            required
+                            value={addressForm.addressLine1}
+                            onChange={(e) => setAddressForm({ ...addressForm, addressLine1: e.target.value })}
+                            className="w-full px-3 py-2 rounded-xl border border-border text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold mb-1">Address Line 2 (Optional)</label>
+                          <input
+                            type="text"
+                            value={addressForm.addressLine2 || ""}
+                            onChange={(e) => setAddressForm({ ...addressForm, addressLine2: e.target.value })}
+                            className="w-full px-3 py-2 rounded-xl border border-border text-sm"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-semibold mb-1">City</label>
+                            <input
+                              type="text"
+                              required
+                              value={addressForm.city}
+                              onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
+                              className="w-full px-3 py-2 rounded-xl border border-border text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold mb-1">State</label>
+                            <input
+                              type="text"
+                              required
+                              value={addressForm.state}
+                              onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
+                              className="w-full px-3 py-2 rounded-xl border border-border text-sm"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-semibold mb-1">Pincode</label>
+                            <input
+                              type="text"
+                              required
+                              value={addressForm.pincode}
+                              onChange={(e) => setAddressForm({ ...addressForm, pincode: e.target.value })}
+                              className="w-full px-3 py-2 rounded-xl border border-border text-sm"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2 pt-5">
+                            <input
+                              type="checkbox"
+                              id="isDefault"
+                              checked={addressForm.isDefault}
+                              onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
+                            />
+                            <label htmlFor="isDefault" className="text-xs font-semibold cursor-pointer">Set as Default</label>
+                          </div>
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowAddressForm(false);
+                              setEditAddress(null);
+                            }}
+                            className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold hover:bg-muted"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className="flex-1 py-2.5 rounded-xl text-white font-semibold text-sm"
+                            style={{ background: "linear-gradient(135deg, #a61c9b, #d82a81)" }}
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -451,47 +755,86 @@ export function CustomerDashboard({
                     <div
                       className="w-16 h-16 rounded-full flex items-center justify-center text-3xl"
                       style={{
-                        background: "linear-gradient(135deg, #D81B8A, #e91ea0)",
+                        background: "linear-gradient(135deg, #a61c9b, #d82a81)",
                       }}
                     >
                       👩
                     </div>
                     <div>
-                      <p className="font-bold">Priya Sharma</p>
+                      <p className="font-bold">{user?.name || "User"}</p>
                       <p className="text-sm text-muted-foreground">
-                        Member since January 2024
+                        Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "January 2024"}
                       </p>
-                      <button className="text-xs text-primary font-semibold mt-1">
-                        Change Photo
-                      </button>
                     </div>
                   </div>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    {[
-                      { label: "Full Name", value: "Priya Sharma" },
-                      { label: "Email", value: "priya@example.com" },
-                      { label: "Phone", value: "+91 98765 43210" },
-                      { label: "Date of Birth", value: "March 15, 1995" },
-                    ].map((f) => (
-                      <div key={f.label}>
-                        <label className="block text-sm font-semibold mb-1.5">
-                          {f.label}
-                        </label>
+
+                  <form onSubmit={handleProfileSubmit} className="space-y-4">
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold mb-1.5">Full Name</label>
                         <input
-                          defaultValue={f.value}
-                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          type="text"
+                          value={profileForm.name}
+                          onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                         />
                       </div>
-                    ))}
-                  </div>
-                  <button
-                    className="mt-6 px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
-                    style={{
-                      background: "linear-gradient(135deg, #D81B8A, #e91ea0)",
-                    }}
-                  >
-                    Save Changes
-                  </button>
+                      <div>
+                        <label className="block text-sm font-semibold mb-1.5">Email (Cannot be changed)</label>
+                        <input
+                          type="email"
+                          disabled
+                          value={user?.email || ""}
+                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted/40 text-sm cursor-not-allowed"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold mb-1.5">Phone</label>
+                        <input
+                          type="text"
+                          value={profileForm.phone}
+                          onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="border-t border-border pt-5 mt-5">
+                      <h3 className="font-bold text-sm mb-3">Change Password</h3>
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-semibold mb-1.5">Old Password</label>
+                          <input
+                            type="password"
+                            value={profileForm.oldPassword}
+                            onChange={(e) => setProfileForm({ ...profileForm, oldPassword: e.target.value })}
+                            className="w-full px-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                            placeholder="••••••••"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold mb-1.5">New Password</label>
+                          <input
+                            type="password"
+                            value={profileForm.newPassword}
+                            onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
+                            className="w-full px-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                            placeholder="••••••••"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="mt-6 px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                      style={{
+                        background: "linear-gradient(135deg, #a61c9b, #d82a81)",
+                      }}
+                    >
+                      Save Changes
+                    </button>
+                  </form>
                 </div>
               </div>
             )}
@@ -509,30 +852,16 @@ export function CustomerDashboard({
                   {[
                     {
                       icon: "🚚",
-                      title: "Your order #LH-2847 has been shipped!",
-                      sub: "Expected delivery: Jun 14, 2026",
+                      title: "Your order has been shipped!",
+                      sub: "Track your shipment details in My Orders tab.",
                       time: "2 hours ago",
                       unread: true,
                     },
                     {
                       icon: "✅",
-                      title: "Order #LH-2631 delivered successfully",
-                      sub: "Hope you love your purchase!",
-                      time: "2 weeks ago",
-                      unread: false,
-                    },
-                    {
-                      icon: "🎁",
-                      title: "New DIY Kits just arrived!",
-                      sub: "Check out our latest craft kits",
-                      time: "3 weeks ago",
-                      unread: false,
-                    },
-                    {
-                      icon: "💌",
                       title: "Welcome to Lemon House!",
-                      sub: "Thanks for joining our crafting community",
-                      time: "5 months ago",
+                      sub: "Thanks for joining our crafting community!",
+                      time: "Just now",
                       unread: false,
                     },
                   ].map((notif, i) => (
@@ -540,13 +869,9 @@ export function CustomerDashboard({
                       key={i}
                       className={`flex gap-4 p-4 rounded-2xl border transition-all ${notif.unread ? "bg-primary/5 border-primary/20" : "bg-white border-border"}`}
                     >
-                      <span className="text-2xl flex-shrink-0">
-                        {notif.icon}
-                      </span>
+                      <span className="text-2xl flex-shrink-0">{notif.icon}</span>
                       <div className="flex-1">
-                        <p
-                          className={`text-sm font-medium ${notif.unread ? "text-foreground" : "text-foreground/70"}`}
-                        >
+                        <p className={`text-sm font-medium ${notif.unread ? "text-foreground" : "text-foreground/70"}`}>
                           {notif.title}
                         </p>
                         <p className="text-xs text-muted-foreground mt-0.5">

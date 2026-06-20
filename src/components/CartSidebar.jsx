@@ -93,7 +93,7 @@ export function CartSidebar({
                     }}
                     className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white"
                     style={{
-                      background: "linear-gradient(135deg, #D81B8A, #e91ea0)",
+                      background: "linear-gradient(135deg, #a61c9b, #d82a81)",
                     }}
                   >
                     Start Shopping
@@ -123,7 +123,7 @@ export function CartSidebar({
                         <div className="flex items-center border border-border rounded-lg bg-white overflow-hidden">
                           <button
                             onClick={() =>
-                              onUpdateQuantity(item.id, item.quantity - 1)
+                              onUpdateQuantity(item.id, item.quantity - 1, item.cartItemId)
                             }
                             className="w-7 h-7 flex items-center justify-center hover:bg-muted transition-colors"
                           >
@@ -134,7 +134,7 @@ export function CartSidebar({
                           </span>
                           <button
                             onClick={() =>
-                              onUpdateQuantity(item.id, item.quantity + 1)
+                              onUpdateQuantity(item.id, item.quantity + 1, item.cartItemId)
                             }
                             className="w-7 h-7 flex items-center justify-center hover:bg-muted transition-colors"
                           >
@@ -142,7 +142,7 @@ export function CartSidebar({
                           </button>
                         </div>
                         <button
-                          onClick={() => onRemove(item.id)}
+                          onClick={() => onRemove(item.id, item.cartItemId)}
                           className="text-muted-foreground hover:text-destructive transition-colors p-1"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -224,7 +224,7 @@ export function CartSidebar({
                   }}
                   className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-white font-semibold text-sm transition-all hover:opacity-90"
                   style={{
-                    background: "linear-gradient(135deg, #D81B8A, #e91ea0)",
+                    background: "linear-gradient(135deg, #a61c9b, #d82a81)",
                   }}
                 >
                   Proceed to Checkout <ArrowRight className="w-4 h-4" />

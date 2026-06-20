@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 import logoImg from "../assets/logo.png";
+import { api } from "../services/api";
+import { toast } from "sonner";
 
 export function LoginPage({ navigate, onLogin }) {
   const [loginType, setLoginType] = useState("customer");
@@ -10,9 +12,46 @@ export function LoginPage({ navigate, onLogin }) {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    onLogin(loginType === "admin" || email === "admin@lemonhouse.in");
+    try {
+      const response = await api.auth.login(email, password);
+      if (response.success && response.data) {
+        const { token, role, email: userEmail, name } = response.data;
+        // set token temporarily for profile retrieval
+        localStorage.setItem("token", token);
+        const profileRes = await api.auth.getProfile();
+        if (profileRes.success && profileRes.data) {
+          onLogin(token, role, profileRes.data);
+        } else {
+          onLogin(token, role, { name, email: userEmail, roles: [role.replace("ROLE_", "")] });
+        }
+      } else {
+        toast.error(response.message || "Login failed");
+      }
+    } catch (err) {
+      toast.error(err.message || "An error occurred during login");
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      const response = await api.auth.googleLogin("mock-google-id-token");
+      if (response.success && response.data) {
+        const { token, role, email: userEmail, name } = response.data;
+        localStorage.setItem("token", token);
+        const profileRes = await api.auth.getProfile();
+        if (profileRes.success && profileRes.data) {
+          onLogin(token, role, profileRes.data);
+        } else {
+          onLogin(token, role, { name, email: userEmail, roles: [role.replace("ROLE_", "")] });
+        }
+      } else {
+        toast.error(response.message || "Google login failed");
+      }
+    } catch (err) {
+      toast.error("Google login error: " + err.message);
+    }
   };
 
   const handleTypeChange = (type) => {
@@ -244,17 +283,12 @@ export function LoginPage({ navigate, onLogin }) {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: "Google", icon: "🌐" },
-              { label: "Apple", icon: "🍎" },
-            ].map((p) => (
-              <button
-                key={p.label}
-                className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors"
-              >
-                <span>{p.icon}</span> {p.label}
-              </button>
-            ))}
+            <button
+              onClick={handleGoogleLogin}
+              className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors w-full col-span-2"
+            >
+              <span>🌐</span> Google
+            </button>
           </div>
 
           <p className="text-xs text-muted-foreground text-center mt-6">
@@ -266,6 +300,7 @@ export function LoginPage({ navigate, onLogin }) {
   );
 }
 
+
 export function RegisterPage({ navigate, onLogin }) {
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({
@@ -276,9 +311,41 @@ export function RegisterPage({ navigate, onLogin }) {
     confirm: "",
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onLogin(false);
+    if (form.password !== form.confirm) {
+      toast.error("Passwords do not match!");
+      return;
+    }
+    try {
+      const response = await api.auth.register({
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        password: form.password,
+      });
+      if (response.success) {
+        toast.success("Account created successfully!");
+        // Log in the user immediately
+        const loginResponse = await api.auth.login(form.email, form.password);
+        if (loginResponse.success && loginResponse.data) {
+          const { token, role, email: userEmail, name } = loginResponse.data;
+          localStorage.setItem("token", token);
+          const profileRes = await api.auth.getProfile();
+          if (profileRes.success && profileRes.data) {
+            onLogin(token, role, profileRes.data);
+          } else {
+            onLogin(token, role, { name, email: userEmail, roles: [role.replace("ROLE_", "")] });
+          }
+        } else {
+          navigate("login");
+        }
+      } else {
+        toast.error(response.message || "Registration failed");
+      }
+    } catch (err) {
+      toast.error(err.message || "An error occurred during registration");
+    }
   };
 
   return (
