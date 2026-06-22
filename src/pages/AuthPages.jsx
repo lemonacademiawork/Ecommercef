@@ -16,15 +16,25 @@ export function LoginPage({ navigate, onLogin }) {
     e.preventDefault();
     try {
       const response = await api.auth.login(email, password);
+      console.log("LOGIN RESPONSE", response.data);
       if (response.success && response.data) {
         const { token, role, email: userEmail, name } = response.data;
         // set token temporarily for profile retrieval
         localStorage.setItem("token", token);
         const profileRes = await api.auth.getProfile();
         if (profileRes.success && profileRes.data) {
-          onLogin(token, role, profileRes.data);
+          console.log("TOKEN:", token);
+          console.log("ROLE:", role);
+          console.log("PROFILE:", profileRes.data);
+          const profileRole = profileRes.data.role || (profileRes.data.roles && profileRes.data.roles[0]) || role;
+          const userProfile = {
+            ...profileRes.data,
+            role: profileRole,
+            roles: profileRes.data.roles || [profileRole],
+          };
+          onLogin(token, role, userProfile);
         } else {
-          onLogin(token, role, { name, email: userEmail, roles: [role.replace("ROLE_", "")] });
+          onLogin(token, role, { name, email: userEmail, role, roles: [role] });
         }
       } else {
         toast.error(response.message || "Login failed");
@@ -42,9 +52,15 @@ export function LoginPage({ navigate, onLogin }) {
         localStorage.setItem("token", token);
         const profileRes = await api.auth.getProfile();
         if (profileRes.success && profileRes.data) {
-          onLogin(token, role, profileRes.data);
+          const profileRole = profileRes.data.role || (profileRes.data.roles && profileRes.data.roles[0]) || role;
+          const userProfile = {
+            ...profileRes.data,
+            role: profileRole,
+            roles: profileRes.data.roles || [profileRole],
+          };
+          onLogin(token, role, userProfile);
         } else {
-          onLogin(token, role, { name, email: userEmail, roles: [role.replace("ROLE_", "")] });
+          onLogin(token, role, { name, email: userEmail, role, roles: [role] });
         }
       } else {
         toast.error(response.message || "Google login failed");
@@ -56,15 +72,9 @@ export function LoginPage({ navigate, onLogin }) {
 
   const handleTypeChange = (type) => {
     setLoginType(type);
-    if (type === "admin") {
-      setEmail("admin@lemonhouse.in");
-      setPassword("admin123");
-    } else {
-      setEmail("priya@example.com");
-      setPassword("craft123");
-    }
+    setEmail("");
+    setPassword("");
   };
-
   return (
     <div className="min-h-screen flex" style={{ background: "#FFFDF7" }}>
       {/* Left Panel */}
@@ -333,9 +343,15 @@ export function RegisterPage({ navigate, onLogin }) {
           localStorage.setItem("token", token);
           const profileRes = await api.auth.getProfile();
           if (profileRes.success && profileRes.data) {
-            onLogin(token, role, profileRes.data);
+            const profileRole = profileRes.data.role || (profileRes.data.roles && profileRes.data.roles[0]) || role;
+            const userProfile = {
+              ...profileRes.data,
+              role: profileRole,
+              roles: profileRes.data.roles || [profileRole],
+            };
+            onLogin(token, role, userProfile);
           } else {
-            onLogin(token, role, { name, email: userEmail, roles: [role.replace("ROLE_", "")] });
+            onLogin(token, role, { name, email: userEmail, role, roles: [role] });
           }
         } else {
           navigate("login");

@@ -12,6 +12,8 @@ import {
   ChevronDown,
   X,
   Upload,
+  Layers,
+  LogOut,
 } from "lucide-react";
 import {
   AreaChart,
@@ -54,7 +56,7 @@ const statusColors = {
   Cancelled: "bg-red-100 text-red-600",
 };
 
-export function AdminDashboard() {
+export function AdminDashboard({ onLogout }) {
   const [section, setSection] = useState("dashboard");
   const [metrics, setMetrics] = useState({
     totalRevenue: 0,
@@ -80,13 +82,22 @@ export function AdminDashboard() {
     categoryId: "",
   });
 
+  // Category form states
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [editCategory, setEditCategory] = useState(null);
+  const [categoryForm, setCategoryForm] = useState({
+    name: "",
+    imageUrl: "",
+    active: true,
+  });
+
   const loadAdminData = async () => {
     try {
       const [metricRes, prodRes, orderRes, catRes] = await Promise.all([
         api.admin.getDashboardMetrics(),
         api.products.listProducts({ all: true }),
         api.admin.listAllOrders(),
-        api.categories.listCategories({ all: true }),
+        api.categories.listCategories(true),
       ]);
       if (metricRes.success && metricRes.data) {
         setMetrics(metricRes.data);
@@ -212,9 +223,94 @@ export function AdminDashboard() {
     }
   };
 
+  const handleCategoryImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      toast.loading("Uploading category image...");
+      const res = await api.admin.uploadImage(file);
+      toast.dismiss();
+      if (res.success && res.data) {
+        setCategoryForm((prev) => ({ ...prev, imageUrl: res.data.imageUrl }));
+        toast.success("Image uploaded successfully!");
+      }
+    } catch (err) {
+      toast.dismiss();
+      toast.error("Image upload failed: " + err.message);
+    }
+  };
+
+  const handleCategorySubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        name: categoryForm.name,
+        imageUrl: categoryForm.imageUrl,
+        image: categoryForm.imageUrl,
+        active: categoryForm.active,
+      };
+
+      let res;
+      if (editCategory) {
+        try {
+          res = await api.categories.updateCategory(editCategory.id, payload);
+        } catch (err) {
+          // If the backend uniqueness check throws an error on update for the same name,
+          // attempt a partial update by omitting the name field if the name hasn't changed.
+          if (err.message.includes("already exists") && categoryForm.name.trim().toLowerCase() === editCategory.name.trim().toLowerCase()) {
+            const { name, ...partialPayload } = payload;
+            res = await api.categories.updateCategory(editCategory.id, partialPayload);
+          } else {
+            throw err;
+          }
+        }
+      } else {
+        res = await api.categories.createCategory(payload);
+      }
+
+      if (res.success) {
+        toast.success(editCategory ? "Category updated successfully!" : "Category created successfully!");
+        setShowCategoryForm(false);
+        setEditCategory(null);
+        setCategoryForm({
+          name: "",
+          imageUrl: "",
+          active: true,
+        });
+        loadAdminData();
+      }
+    } catch (err) {
+      toast.error("Failed to save category: " + err.message);
+    }
+  };
+
+  const handleEditCategoryClick = (cat) => {
+    setEditCategory(cat);
+    setCategoryForm({
+      name: cat.name,
+      imageUrl: cat.imageUrl || cat.image || "",
+      active: cat.active !== undefined ? cat.active : true,
+    });
+    setShowCategoryForm(true);
+  };
+
+  const handleDeleteCategory = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this category? This might affect products under this category!")) return;
+    try {
+      const res = await api.categories.deleteCategory(id);
+      if (res.success) {
+        toast.success("Category deleted successfully!");
+        setCategories((prev) => prev.filter((c) => c.id !== id));
+      }
+    } catch (err) {
+      toast.error("Failed to delete category: " + err.message);
+    }
+  };
+
   const navItems = [
     { key: "dashboard", label: "Dashboard", Icon: BarChart2 },
     { key: "products", label: "Products", Icon: Package },
+    { key: "categories", label: "Categories", Icon: Layers },
     { key: "orders", label: "Orders", Icon: ShoppingBag },
     { key: "analytics", label: "Analytics", Icon: TrendingUp },
   ];
@@ -230,11 +326,28 @@ export function AdminDashboard() {
     );
   }
 
+  const colors = ["#a61c9b", "#2E7D32", "#FFD54F", "#9c27b0", "#ff5722", "#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
+  const dynamicCategoryData = categories.length > 0
+    ? categories.map((cat, i) => ({
+        name: cat.name,
+        value: products.filter((p) => p.categoryId === cat.id).length || 0,
+        color: colors[i % colors.length],
+      })).filter((item) => item.value > 0)
+    : categoryData;
+
+  const finalPieData = dynamicCategoryData.length > 0 
+    ? dynamicCategoryData 
+    : categories.map((cat, i) => ({
+        name: cat.name,
+        value: 1,
+        color: colors[i % colors.length],
+      }));
+
   return (
     <div className="min-h-screen" style={{ background: "#f8f9fc" }}>
       <div className="flex">
         {/* Sidebar */}
-        <aside className="w-56 flex-shrink-0 min-h-screen bg-white border-r border-border">
+        <aside className="w-56 flex-shrink-0 h-screen sticky top-0 bg-white border-r border-border flex flex-col">
           <div className="p-5 border-b border-border">
             <div className="flex items-center gap-2">
               <div
@@ -256,20 +369,29 @@ export function AdminDashboard() {
               Admin Panel
             </span>
           </div>
-          <nav className="p-3">
-            {navItems.map(({ key, label, Icon }) => (
-              <button
-                key={key}
-                onClick={() => setSection(key)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium mb-0.5 transition-all ${
-                  section === key
-                    ? "bg-primary/10 text-primary"
-                    : "text-foreground/70 hover:bg-muted"
-                }`}
-              >
-                <Icon className="w-4 h-4" /> {label}
-              </button>
-            ))}
+          <nav className="p-3 flex-1 flex flex-col justify-between overflow-y-auto">
+            <div className="space-y-0.5">
+              {navItems.map(({ key, label, Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => setSection(key)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    section === key
+                      ? "bg-primary/10 text-primary"
+                      : "text-foreground/70 hover:bg-muted"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" /> {label}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={onLogout}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-destructive hover:bg-red-50 transition-colors mt-auto"
+            >
+              <LogOut className="w-4 h-4" /> Logout
+            </button>
           </nav>
         </aside>
 
@@ -476,6 +598,45 @@ export function AdminDashboard() {
                   </div>
                 </div>
               </div>
+
+              {/* Categories Summary */}
+              <div className="bg-white rounded-2xl border border-border p-5">
+                <h2
+                  className="font-bold mb-4"
+                  style={{ fontFamily: "Poppins, sans-serif" }}
+                >
+                  Categories Summary
+                </h2>
+                {categories.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No categories created yet.</p>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {categories.map((cat) => {
+                      const count = products.filter((p) => p.categoryId === cat.id).length;
+                      return (
+                        <div
+                          key={cat.id}
+                          className="flex items-center gap-3 p-3 rounded-xl border border-border bg-muted/10"
+                        >
+                          <img
+                            src={cat.imageUrl || cat.image}
+                            alt={cat.name}
+                            className="w-10 h-10 rounded-lg object-cover bg-muted flex-shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm capitalize truncate">
+                              {cat.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {count} {count === 1 ? "product" : "products"}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -515,9 +676,21 @@ export function AdminDashboard() {
               {showProductForm && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                   <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-border shadow-2xl overflow-y-auto max-h-[90vh]">
-                    <h2 className="text-lg font-bold mb-4" style={{ fontFamily: "Poppins, sans-serif" }}>
-                      {editProduct ? "Edit Product" : "Add New Product"}
-                    </h2>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-bold" style={{ fontFamily: "Poppins, sans-serif" }}>
+                        {editProduct ? "Edit Product" : "Add New Product"}
+                      </h2>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowProductForm(false);
+                          setEditProduct(null);
+                        }}
+                        className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
                     <form onSubmit={handleProductSubmit} className="space-y-4">
                       <div>
                         <label className="block text-xs font-semibold mb-1">Product Name</label>
@@ -720,6 +893,195 @@ export function AdminDashboard() {
             </div>
           )}
 
+          {/* Categories */}
+          {section === "categories" && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h1
+                  className="text-2xl font-bold"
+                  style={{ fontFamily: "Poppins, sans-serif" }}
+                >
+                  Categories
+                </h1>
+                <button
+                  onClick={() => {
+                    setEditCategory(null);
+                    setCategoryForm({
+                      name: "",
+                      imageUrl: "",
+                      active: true,
+                    });
+                    setShowCategoryForm(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white cursor-pointer"
+                  style={{
+                    background: "linear-gradient(135deg, #a61c9b, #d82a81)",
+                  }}
+                >
+                  <Plus className="w-4 h-4" /> Add Category
+                </button>
+              </div>
+
+              {showCategoryForm && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                  <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-border shadow-2xl overflow-y-auto max-h-[90vh]">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-bold" style={{ fontFamily: "Poppins, sans-serif" }}>
+                        {editCategory ? "Edit Category" : "Add New Category"}
+                      </h2>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCategoryForm(false);
+                          setEditCategory(null);
+                        }}
+                        className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <form onSubmit={handleCategorySubmit} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold mb-1">Category Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={categoryForm.name}
+                          onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                          className="w-full px-3 py-2 rounded-xl border border-border text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold mb-1">Category Image</label>
+                        <div className="flex gap-3 items-center">
+                          <input
+                            type="text"
+                            placeholder="Image URL"
+                            value={categoryForm.imageUrl}
+                            onChange={(e) => setCategoryForm({ ...categoryForm, imageUrl: e.target.value })}
+                            className="flex-1 px-3 py-2 rounded-xl border border-border text-sm"
+                          />
+                          <label className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border hover:bg-muted text-xs font-semibold cursor-pointer">
+                            <Upload className="w-3.5 h-3.5" /> Upload
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleCategoryImageUpload}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                        {categoryForm.imageUrl && (
+                          <img
+                            src={categoryForm.imageUrl}
+                            alt="preview"
+                            className="w-16 h-16 object-cover rounded-lg mt-2 border border-border"
+                          />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="cat-active"
+                          checked={categoryForm.active}
+                          onChange={(e) => setCategoryForm({ ...categoryForm, active: e.target.checked })}
+                        />
+                        <label htmlFor="cat-active" className="text-xs font-semibold cursor-pointer">Active (Visible in Shop)</label>
+                      </div>
+
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowCategoryForm(false);
+                            setEditCategory(null);
+                          }}
+                          className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold hover:bg-muted"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="flex-1 py-2.5 rounded-xl text-white font-semibold text-sm"
+                          style={{ background: "linear-gradient(135deg, #a61c9b, #d82a81)" }}
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-white rounded-2xl border border-border overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead style={{ background: "#f8f9fc" }}>
+                      <tr>
+                        <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide">
+                          Category
+                        </th>
+
+                        <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide">
+                          Status
+                        </th>
+                        <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {categories.map((cat) => (
+                        <tr
+                          key={cat.id}
+                          className="hover:bg-muted/30 transition-colors"
+                        >
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={cat.imageUrl || cat.image}
+                                alt={cat.name}
+                                className="w-9 h-9 rounded-lg object-cover bg-muted flex-shrink-0"
+                              />
+                              <span className="font-medium">
+                                {cat.name}
+                              </span>
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-3">
+                            <span
+                              className={`text-xs px-2 py-0.5 rounded-full font-medium ${cat.active !== false ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}
+                            >
+                              {cat.active !== false ? "Active" : "Inactive"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleEditCategoryClick(cat)}
+                                className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-primary"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCategory(cat.id)}
+                                className="p-1.5 rounded-lg hover:bg-red-50 transition-colors text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Orders */}
           {section === "orders" && (
             <div>
@@ -818,7 +1180,7 @@ export function AdminDashboard() {
                   <ResponsiveContainer width="100%" height={240}>
                     <PieChart>
                       <Pie
-                        data={categoryData}
+                        data={finalPieData}
                         cx="50%"
                         cy="50%"
                         outerRadius={90}
@@ -827,7 +1189,7 @@ export function AdminDashboard() {
                           `${name} ${(percent * 100).toFixed(0)}%`
                         }
                       >
-                        {categoryData.map((entry, i) => (
+                        {finalPieData.map((entry, i) => (
                           <Cell key={i} fill={entry.color} />
                         ))}
                       </Pie>

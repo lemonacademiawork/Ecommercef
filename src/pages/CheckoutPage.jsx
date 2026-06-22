@@ -25,6 +25,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [useSavedAddress, setUseSavedAddress] = useState(true);
   const [confirmedOrderId, setConfirmedOrderId] = useState("");
+  const [confirmedOrderTotal, setConfirmedOrderTotal] = useState(0);
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -88,6 +89,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
 
       const orderRes = await api.orders.createOrder(finalAddressId, form.paymentMethod);
       if (orderRes.success) {
+        setConfirmedOrderTotal(total);
         try {
           await api.cart.clearCart();
         } catch (cartErr) {
@@ -142,7 +144,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
             <h3 className="font-semibold text-sm mb-3">Order Details</h3>
             <div className="border-t border-border pt-3 flex justify-between font-bold text-sm">
               <span>Total Paid</span>
-              <span>₹{total}</span>
+              <span>₹{confirmedOrderTotal}</span>
             </div>
           </div>
 

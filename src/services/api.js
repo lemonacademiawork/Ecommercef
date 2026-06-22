@@ -177,11 +177,13 @@ export const api = {
   },
 
   categories: {
-    listCategories: (all = false) =>
-      request(`/categories?all=${all}`).then((res) => ({
+    listCategories: (all = false) => {
+      const showAll = typeof all === "object" && all !== null ? !!all.all : !!all;
+      return request(`/categories?all=${showAll}`).then((res) => ({
         ...res,
         data: res.data ? res.data.map(mapCategoryData) : res.data,
-      })),
+      }));
+    },
     getCategory: (id) =>
       request(`/categories/${id}`).then((res) => ({
         ...res,

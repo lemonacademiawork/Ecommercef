@@ -18,7 +18,7 @@ import { api } from "./services/api";
 const NO_NAVBAR_FOOTER = ["login", "register", "admin"];
 
 export default function App() {
-  const [page, setPage] = useState("home");
+  const [page, setPage] = useState(() => localStorage.getItem("currentPage") || "home");
   const [productId, setProductId] = useState("");
   const [cartItems, setCartItems] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
@@ -30,6 +30,7 @@ export default function App() {
 
   const navigate = (p, id) => {
     setPage(p);
+    localStorage.setItem("currentPage", p);
     if (id) setProductId(id);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -41,9 +42,33 @@ export default function App() {
       api.auth.getProfile()
         .then((res) => {
           if (res.success && res.data) {
-            setUser(res.data);
+            const storedAuthStr = localStorage.getItem("auth");
+            let storedRole = localStorage.getItem("role");
+            if (storedAuthStr) {
+              try {
+                const storedAuth = JSON.parse(storedAuthStr);
+                if (storedAuth && storedAuth.role) {
+                  storedRole = storedRole || storedAuth.role;
+                }
+              } catch (e) {
+                console.error("Failed to parse stored auth", e);
+              }
+            }
+            const profileRole = res.data.role || (res.data.roles && res.data.roles[0]);
+            const finalRole = profileRole || storedRole || "CUSTOMER";
+
+            const isUserAdmin = finalRole === "ADMIN" || finalRole === "ROLE_ADMIN" ||
+                                (res.data.roles && (res.data.roles.includes("ADMIN") || res.data.roles.includes("ROLE_ADMIN")));
+
+            const updatedUser = {
+              ...res.data,
+              role: finalRole,
+              roles: res.data.roles || [finalRole],
+            };
+
+            setUser(updatedUser);
             setIsLoggedIn(true);
-            setIsAdmin(res.data.roles.includes("ADMIN") || res.data.roles.includes("ROLE_ADMIN"));
+            setIsAdmin(isUserAdmin);
             fetchCart();
           }
         })
@@ -181,9 +206,17 @@ export default function App() {
   };
 
   const handleLogin = async (token, role, userProfile) => {
+    const isUserAdmin = role === "ADMIN" || role === "ROLE_ADMIN" || 
+                        userProfile.role === "ADMIN" || userProfile.role === "ROLE_ADMIN" || 
+                        (userProfile.roles && (userProfile.roles.includes("ADMIN") || userProfile.roles.includes("ROLE_ADMIN")));
+
     localStorage.setItem("token", token);
+    localStorage.setItem("role", role);
+    localStorage.setItem("user", JSON.stringify(userProfile));
+    localStorage.setItem("auth", JSON.stringify({ token, role, user: userProfile }));
+
     setIsLoggedIn(true);
-    setIsAdmin(role === "ROLE_ADMIN");
+    setIsAdmin(isUserAdmin);
     setUser(userProfile);
 
     // Sync guest cart to backend
@@ -201,13 +234,17 @@ export default function App() {
     }
 
     fetchCart();
-    navigate(role === "ROLE_ADMIN" ? "admin" : "home");
+    navigate(isUserAdmin ? "admin" : "home");
     toast.success(`Welcome back, ${userProfile.name}! 👋`);
   };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("user");
+    localStorage.removeItem("auth");
     localStorage.removeItem("guestCart");
+    localStorage.removeItem("currentPage");
     setIsLoggedIn(false);
     setIsAdmin(false);
     setUser(null);
@@ -224,7 +261,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Toaster position="top-right" richColors />
+      <Toaster position="top-right" richColors closeButton />
 
       {showNavFooter && (
         <Navbar
@@ -304,7 +341,7 @@ export default function App() {
           <LoginPage navigate={navigate} onLogin={handleLogin} />
         )}
 
-        {page === "admin" && isAdmin && <AdminDashboard />}
+        {page === "admin" && isAdmin && <AdminDashboard onLogout={handleLogout} />}
         {page === "admin" && !isAdmin && (
           <LoginPage navigate={navigate} onLogin={handleLogin} />
         )}
