@@ -8,12 +8,36 @@ import { toast } from "sonner";
 export function LoginPage({ navigate, onLogin }) {
   const [loginType, setLoginType] = useState("customer");
   const [email, setEmail] = useState("priya@example.com");
+  const [phone, setPhone] = useState("9876543210");
   const [password, setPassword] = useState("craft123");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (!email) {
+      toast.error("Email is required!");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error("Please enter a valid email address!");
+      return;
+    }
+    if (loginType === "customer") {
+      if (!phone) {
+        toast.error("Phone number is required!");
+        return;
+      }
+      if (phone.replace(/\D/g, "").length < 10) {
+        toast.error("Please enter a valid 10-digit phone number!");
+        return;
+      }
+    }
+    if (!password) {
+      toast.error("Password is required!");
+      return;
+    }
     try {
       const response = await api.auth.login(email, password);
       console.log("LOGIN RESPONSE", response.data);
@@ -72,8 +96,9 @@ export function LoginPage({ navigate, onLogin }) {
 
   const handleTypeChange = (type) => {
     setLoginType(type);
-    setEmail("");
-    setPassword("");
+    setEmail(type === "admin" ? "" : "priya@example.com");
+    setPhone(type === "admin" ? "" : "9876543210");
+    setPassword(type === "admin" ? "" : "craft123");
   };
   return (
     <div className="min-h-screen flex" style={{ background: "#FFFDF7" }}>
@@ -224,6 +249,24 @@ export function LoginPage({ navigate, onLogin }) {
               </div>
             </div>
 
+            {loginType === "customer" && (
+              <div>
+                <label className="block text-sm font-semibold mb-1.5">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    placeholder="+91 98765 43210"
+                  />
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-semibold mb-1.5">
                 Password
@@ -323,6 +366,31 @@ export function RegisterPage({ navigate, onLogin }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!form.name.trim()) {
+      toast.error("Full Name is required!");
+      return;
+    }
+    if (!form.email.trim()) {
+      toast.error("Email is required!");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      toast.error("Please enter a valid email address!");
+      return;
+    }
+    if (!form.phone.trim()) {
+      toast.error("Phone Number is required!");
+      return;
+    }
+    if (form.phone.replace(/\D/g, "").length < 10) {
+      toast.error("Please enter a valid 10-digit phone number!");
+      return;
+    }
+    if (form.password.length < 6) {
+      toast.error("Password must be at least 6 characters long!");
+      return;
+    }
     if (form.password !== form.confirm) {
       toast.error("Passwords do not match!");
       return;
