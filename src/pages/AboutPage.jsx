@@ -183,50 +183,6 @@ export function AboutPage({ navigate }) {
         </div>
       </section>
 
-      {/* Team */}
-      <section className="py-16" style={{ background: "#FFFDF7" }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10">
-            <h2
-              className="text-3xl font-bold"
-              style={{ fontFamily: "Poppins, sans-serif" }}
-            >
-              Meet the Team
-            </h2>
-            <p className="text-muted-foreground mt-2">
-              The passionate people behind Lemon House
-            </p>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {team.map((member) => (
-              <div
-                key={member.name}
-                className="bg-white rounded-2xl border border-border p-5 text-center hover:shadow-md transition-shadow"
-              >
-                <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center text-4xl mx-auto mb-3"
-                  style={{ background: "#fbeaf5" }}
-                >
-                  {member.emoji}
-                </div>
-                <h3
-                  className="font-bold"
-                  style={{ fontFamily: "Poppins, sans-serif" }}
-                >
-                  {member.name}
-                </h3>
-                <p className="text-xs text-primary font-semibold mb-2">
-                  {member.role}
-                </p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {member.bio}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* CTA */}
       <section className="py-14 bg-white text-center">
         <div className="max-w-xl mx-auto px-4">

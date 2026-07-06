@@ -7,9 +7,10 @@ import { toast } from "sonner";
 
 export function LoginPage({ navigate, onLogin }) {
   const [loginType, setLoginType] = useState("customer");
-  const [email, setEmail] = useState("priya@example.com");
-  const [phone, setPhone] = useState("9876543210");
-  const [password, setPassword] = useState("craft123");
+
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
 
@@ -94,12 +95,7 @@ export function LoginPage({ navigate, onLogin }) {
     }
   };
 
-  const handleTypeChange = (type) => {
-    setLoginType(type);
-    setEmail(type === "admin" ? "" : "priya@example.com");
-    setPhone(type === "admin" ? "" : "9876543210");
-    setPassword(type === "admin" ? "" : "craft123");
-  };
+
   return (
     <div className="min-h-screen flex" style={{ background: "#FFFDF7" }}>
       {/* Left Panel */}

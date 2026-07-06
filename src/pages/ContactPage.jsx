@@ -197,23 +197,37 @@ export function ContactPage() {
             {/* Social Links */}
             <div className="bg-white rounded-2xl border border-border p-5">
               <h3 className="font-semibold mb-3 text-sm">Follow Us</h3>
-              <div className="flex gap-3">
+              <div className="flex gap-3 flex-wrap">
                 {[
-                  { icon: "📸", label: "Instagram", handle: "@lemonhousein" },
+                  {
+                    icon: "📸",
+                    label: "Instagram",
+                    handle: "@lemon_academia__",
+                    href: "https://www.instagram.com/lemon_academia__?igsh=MW91bmp1eDN6N2xhbA==",
+                  },
                   {
                     icon: "▶️",
                     label: "YouTube",
-                    handle: "Lemon House Crafts",
+                    handle: "@Lemonacademia_in",
+                    href: "https://www.youtube.com/@Lemonacademia_in",
+                  },
+                  {
+                    icon: "💬",
+                    label: "WhatsApp",
+                    handle: "Channel",
+                    href: "https://whatsapp.com/channel/0029VbBY7JXFMqrOLLRraZ3m",
                   },
                   {
                     icon: "👥",
                     label: "Facebook",
-                    handle: "Lemon House India",
+                    handle: "Lemon Academia",
+                    href: "https://www.facebook.com/share/18uE5qyVBg/",
                   },
                 ].map((s) => (
                   <div
                     key={s.label}
-                    className="flex-1 text-center p-3 rounded-xl bg-muted hover:bg-primary/10 transition-colors cursor-pointer"
+                    onClick={() => window.open(s.href, "_blank")}
+                    className="flex-1 min-w-[80px] text-center p-3 rounded-xl bg-muted hover:bg-primary/10 transition-colors cursor-pointer"
                   >
                     <div className="text-2xl mb-1">{s.icon}</div>
                     <p className="text-xs font-semibold">{s.label}</p>

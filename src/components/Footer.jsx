@@ -1,7 +1,6 @@
 import {
   Instagram,
   Youtube,
-  Twitter,
   Facebook,
   Mail,
   Phone,
@@ -9,6 +8,21 @@ import {
   Heart,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
+
+const WhatsApp = (props) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={props.className}
+  >
+    <path d="M17.49 15.3a1.55 1.55 0 0 1-1 1.54 3.76 3.76 0 0 1-2.39-.75 14.66 14.66 0 0 1-4.79-4.79 3.74 3.74 0 0 1-.75-2.38 1.56 1.56 0 0 1 1.54-1h1.16a1 1 0 0 1 .99.82 7.74 7.74 0 0 0 .41 1.63 1 1 0 0 1-.22 1L11.89 11a1 1 0 0 0 0 1l.71.71a1 1 0 0 0 1 0l.74-.74a1 1 0 0 1 1-.22 7.8 7.8 0 0 0 1.63.41 1 1 0 0 1 .82.99v1.15z" />
+    <path d="M22 12A10 10 0 0 1 12 22a9.9 9.9 0 0 1-4.54-1.1L3 21l1.1-4.54A10 10 0 1 1 22 12z" />
+  </svg>
+);
 
 export function Footer({ navigate }) {
   return (
@@ -73,10 +87,17 @@ export function Footer({ navigate }) {
                 materials, and creative essentials.
               </p>
               <div className="flex gap-3">
-                {[Instagram, Facebook, Youtube, Twitter].map((Icon, i) => (
+                {[
+                  { Icon: Instagram, href: "https://www.instagram.com/lemon_academia__?igsh=MW91bmp1eDN6N2xhbA==" },
+                  { Icon: Facebook, href: "https://www.facebook.com/share/18uE5qyVBg/" },
+                  { Icon: Youtube, href: "https://www.youtube.com/@Lemonacademia_in" },
+                  { Icon: WhatsApp, href: "https://whatsapp.com/channel/0029VbBY7JXFMqrOLLRraZ3m" },
+                ].map(({ Icon, href }, i) => (
                   <a
                     key={i}
-                    href="#"
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center hover:bg-primary transition-colors"
                   >
                     <Icon className="w-4 h-4" />
@@ -125,9 +146,7 @@ export function Footer({ navigate }) {
                   "Resin Supplies",
                   "Beads & Stones",
                   "Art Supplies",
-                  "Embroidery",
                   "DIY Kits",
-                  "Jewelry Making",
                 ].map((cat) => (
                   <li key={cat}>
                     <button
@@ -152,7 +171,7 @@ export function Footer({ navigate }) {
               <ul className="space-y-3">
                 <li className="flex items-start gap-2.5 text-white/60 text-sm">
                   <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
-                  42 Craft Lane, Koramangala, Bengaluru – 560034
+                  Ritu Bihar Colony near rai atta chakki infront of radha rani tent house Jhansi
                 </li>
                 <li className="flex items-center gap-2.5 text-white/60 text-sm">
                   <Phone className="w-4 h-4 flex-shrink-0 text-primary" />
