@@ -364,7 +364,7 @@ export function CustomerDashboard({
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm font-bold">₹{order.totalAmount || order.total || order.amount}</p>
+                            <p className="text-sm font-bold">₹{getOrderTotal(order)}</p>
                             <span
                               className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[order.status] || "bg-gray-100 text-gray-700"}`}
                             >

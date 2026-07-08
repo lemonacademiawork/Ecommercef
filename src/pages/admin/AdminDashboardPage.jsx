@@ -103,7 +103,13 @@ export function AdminDashboardPage() {
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const dynamicSalesData = months.map((m) => ({ month: m, revenue: 0, orders: 0 }));
 
+  let calculatedTotalRevenue = 0;
+  let calculatedTotalOrders = 0;
+
   orders.forEach((order) => {
+    // Exclude cancelled orders from dashboard metrics
+    if (order.status === "Cancelled") return;
+
     const date = order.createdAt ? new Date(order.createdAt) : (order.date ? new Date(order.date) : null);
     if (date && date.getFullYear() === displayYear) {
       const monthIdx = date.getMonth();
@@ -111,12 +117,13 @@ export function AdminDashboardPage() {
         const amount = getOrderTotal(order);
         dynamicSalesData[monthIdx].revenue += amount;
         dynamicSalesData[monthIdx].orders += 1;
+        calculatedTotalRevenue += amount;
+        calculatedTotalOrders += 1;
       }
     }
   });
 
   const chartData = dynamicSalesData;
-  const calculatedTotalRevenue = orders.reduce((sum, order) => sum + getOrderTotal(order), 0);
 
   const finalPieData = dynamicCategoryData.length > 0 
     ? dynamicCategoryData 
@@ -159,7 +166,7 @@ export function AdminDashboardPage() {
           },
           {
             label: "Total Orders",
-            value: orders.length,
+            value: calculatedTotalOrders,
             change: "Live",
             color: "#2E7D32",
             bg: "#E8F5E9",

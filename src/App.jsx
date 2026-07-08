@@ -300,7 +300,6 @@ export default function App() {
       fetchCart();
     }
     navigate(isUserAdmin ? "admin" : "home");
-    toast.success(`Welcome back, ${userProfile.name}! 👋`);
   };
 
   const handleLogout = () => {

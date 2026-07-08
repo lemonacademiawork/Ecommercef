@@ -92,7 +92,6 @@ export function LoginPage({ navigate, onLogin }) {
       const response = await api.auth.verifyOtp(phone, otp);
       toast.dismiss();
       if (response.success && response.data) {
-        toast.success("Logged in successfully!");
         const { token, role, email: userEmail, name } = response.data;
         localStorage.setItem("token", token);
         const profileRes = await api.auth.getProfile();
