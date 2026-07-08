@@ -1,13 +1,11 @@
 import { useState, useEffect } from "react";
-import { Navbar } from "./components/Navbar";
-import { Footer } from "./components/Footer";
+import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from "react-router";
 import { LandingPage } from "./pages/LandingPage";
 import { ShopPage } from "./pages/ShopPage";
 import { ProductDetailPage } from "./pages/ProductDetailPage";
 import { CartSidebar } from "./components/CartSidebar";
 import { CheckoutPage } from "./pages/CheckoutPage";
 import { CustomerDashboard } from "./pages/CustomerDashboard";
-import { AdminDashboard } from "./pages/AdminDashboard";
 import { LoginPage, RegisterPage } from "./pages/AuthPages";
 import { AboutPage } from "./pages/AboutPage";
 import { ContactPage } from "./pages/ContactPage";
@@ -15,7 +13,32 @@ import { Toaster } from "sonner";
 import { toast } from "sonner";
 import { api } from "./services/api";
 
-const NO_NAVBAR_FOOTER = ["login", "register", "admin"];
+// Layouts
+import { CustomerLayout } from "./layouts/CustomerLayout";
+import { AdminLayout } from "./layouts/AdminLayout";
+
+// Admin Pages
+import { AdminLoginPage } from "./pages/admin/AdminLoginPage";
+import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
+import { AdminProductsPage } from "./pages/admin/AdminProductsPage";
+import { AdminCategoriesPage } from "./pages/admin/AdminCategoriesPage";
+import { AdminOrdersPage } from "./pages/admin/AdminOrdersPage";
+import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
+import { AdminSettingsPage } from "./pages/admin/AdminSettingsPage";
+
+// Route helper to extract parameter for ProductDetail
+const ProductDetailRouteWrapper = ({ navigate, onAddToCart, wishlist, onToggleWishlist }) => {
+  const { id } = useParams();
+  return (
+    <ProductDetailPage
+      productId={id}
+      navigate={navigate}
+      onAddToCart={onAddToCart}
+      wishlist={wishlist}
+      onToggleWishlist={onToggleWishlist}
+    />
+  );
+};
 
 export default function App() {
   const [page, setPage] = useState(() => localStorage.getItem("currentPage") || "home");
@@ -28,12 +51,43 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
 
+  const reactNavigator = useNavigate();
+  const location = useLocation();
+
   const navigate = (p, id) => {
-    setPage(p);
-    localStorage.setItem("currentPage", p);
-    if (id) setProductId(id);
+    let path = "/";
+    if (p === "home") path = "/";
+    else if (p === "shop") path = "/shop";
+    else if (p === "product") path = `/product/${id}`;
+    else if (p === "checkout") path = "/checkout";
+    else if (p === "dashboard") path = "/dashboard";
+    else if (p === "login") path = "/login";
+    else if (p === "register") path = "/register";
+    else if (p === "about") path = "/about";
+    else if (p === "contact") path = "/contact";
+    else if (p === "admin") path = "/admin/dashboard";
+
+    reactNavigator(path);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  // Sync state-based page variable with route pathname to keep active states correct
+  useEffect(() => {
+    let p = "home";
+    if (location.pathname === "/") p = "home";
+    else if (location.pathname.startsWith("/shop")) p = "shop";
+    else if (location.pathname.startsWith("/product")) p = "product";
+    else if (location.pathname.startsWith("/checkout")) p = "checkout";
+    else if (location.pathname.startsWith("/dashboard")) p = "dashboard";
+    else if (location.pathname.startsWith("/about")) p = "about";
+    else if (location.pathname.startsWith("/contact")) p = "contact";
+    else if (location.pathname.startsWith("/admin")) p = "admin";
+    else if (location.pathname === "/login") p = "login";
+    else if (location.pathname === "/register") p = "register";
+    
+    setPage(p);
+    localStorage.setItem("currentPage", p);
+  }, [location.pathname]);
 
   // Recover session on mount
   useEffect(() => {
@@ -113,12 +167,8 @@ export default function App() {
       try {
         await api.cart.addToCart(product.id, qty);
         fetchCart();
-        toast.success(`${product.name} added to cart!`, {
-          description: `₹${product.price}`,
-          duration: 2000,
-        });
       } catch (err) {
-        toast.error("Failed to add to cart: " + err.message);
+        console.error("Failed to add to cart: " + err.message);
       }
     } else {
       setCartItems((prev) => {
@@ -133,10 +183,6 @@ export default function App() {
         }
         localStorage.setItem("guestCart", JSON.stringify(next));
         return next;
-      });
-      toast.success(`${product.name} added to cart!`, {
-        description: `₹${product.price}`,
-        duration: 2000,
       });
     }
   };
@@ -155,7 +201,7 @@ export default function App() {
         }
         fetchCart();
       } catch (err) {
-        toast.error("Failed to update quantity: " + err.message);
+        console.error("Failed to update quantity: " + err.message);
       }
     } else {
       setCartItems((prev) => {
@@ -180,9 +226,8 @@ export default function App() {
         }
         await api.cart.removeCartItem(targetItemId);
         fetchCart();
-        toast.info("Item removed from cart");
       } catch (err) {
-        toast.error("Failed to remove item: " + err.message);
+        console.error("Failed to remove item: " + err.message);
       }
     } else {
       setCartItems((prev) => {
@@ -190,17 +235,14 @@ export default function App() {
         localStorage.setItem("guestCart", JSON.stringify(next));
         return next;
       });
-      toast.info("Item removed from cart");
     }
   };
 
   const handleToggleWishlist = (id) => {
     setWishlist((prev) => {
       if (prev.includes(id)) {
-        toast.info("Removed from wishlist");
         return prev.filter((i) => i !== id);
       }
-      toast.success("Added to wishlist!");
       return [...prev, id];
     });
   };
@@ -257,27 +299,9 @@ export default function App() {
     setCartItems([]);
   };
 
-  const showNavFooter = !NO_NAVBAR_FOOTER.includes(page);
-
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Toaster position="top-right" richColors closeButton />
-
-      {showNavFooter && (
-        <Navbar
-          currentPage={page}
-          navigate={navigate}
-          cartItems={cartItems}
-          wishlistCount={wishlist.length}
-          isLoggedIn={isLoggedIn}
-          isAdmin={isAdmin}
-          user={user}
-          onCartOpen={() => setCartOpen(true)}
-          onLogout={handleLogout}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-        />
-      )}
 
       <CartSidebar
         isOpen={cartOpen}
@@ -288,76 +312,110 @@ export default function App() {
         navigate={navigate}
       />
 
-      <main className="flex-1">
-        {page === "home" && (
-          <LandingPage
-            navigate={navigate}
-            onAddToCart={handleAddToCart}
-            wishlist={wishlist}
-            onToggleWishlist={handleToggleWishlist}
+      <Routes>
+        {/* Customer Routes with Layout */}
+        <Route
+          element={
+            <CustomerLayout
+              currentPage={page}
+              navigate={navigate}
+              cartItems={cartItems}
+              wishlistCount={wishlist.length}
+              isLoggedIn={isLoggedIn}
+              user={user}
+              onCartOpen={() => setCartOpen(true)}
+              onLogout={handleLogout}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+            />
+          }
+        >
+          <Route
+            path="/"
+            element={
+              <LandingPage
+                navigate={navigate}
+                onAddToCart={handleAddToCart}
+                wishlist={wishlist}
+                onToggleWishlist={handleToggleWishlist}
+              />
+            }
           />
-        )}
-
-        {page === "shop" && (
-          <ShopPage
-            navigate={navigate}
-            onAddToCart={handleAddToCart}
-            wishlist={wishlist}
-            onToggleWishlist={handleToggleWishlist}
-            searchQuery={searchQuery}
+          <Route
+            path="/shop"
+            element={
+              <ShopPage
+                navigate={navigate}
+                onAddToCart={handleAddToCart}
+                wishlist={wishlist}
+                onToggleWishlist={handleToggleWishlist}
+                searchQuery={searchQuery}
+              />
+            }
           />
-        )}
-
-        {page === "product" && (
-          <ProductDetailPage
-            productId={productId}
-            navigate={navigate}
-            onAddToCart={handleAddToCart}
-            wishlist={wishlist}
-            onToggleWishlist={handleToggleWishlist}
+          <Route
+            path="/product/:id"
+            element={
+              <ProductDetailRouteWrapper
+                navigate={navigate}
+                onAddToCart={handleAddToCart}
+                wishlist={wishlist}
+                onToggleWishlist={handleToggleWishlist}
+              />
+            }
           />
-        )}
-
-        {page === "checkout" && (
-          <CheckoutPage
-            items={cartItems}
-            navigate={navigate}
-            onOrderComplete={handleOrderComplete}
+          <Route
+            path="/checkout"
+            element={
+              <CheckoutPage
+                items={cartItems}
+                navigate={navigate}
+                onOrderComplete={handleOrderComplete}
+              />
+            }
           />
-        )}
-
-        {page === "dashboard" && isLoggedIn && (
-          <CustomerDashboard
-            navigate={navigate}
-            wishlist={wishlist}
-            onToggleWishlist={handleToggleWishlist}
-            onLogout={handleLogout}
-            user={user}
-            setUser={setUser}
+          <Route
+            path="/dashboard"
+            element={
+              isLoggedIn ? (
+                <CustomerDashboard
+                  navigate={navigate}
+                  wishlist={wishlist}
+                  onToggleWishlist={handleToggleWishlist}
+                  onLogout={handleLogout}
+                  user={user}
+                  setUser={setUser}
+                />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
           />
-        )}
+          <Route path="/about" element={<AboutPage navigate={navigate} />} />
+          <Route path="/contact" element={<ContactPage />} />
+        </Route>
 
-        {page === "dashboard" && !isLoggedIn && (
-          <LoginPage navigate={navigate} onLogin={handleLogin} />
-        )}
+        {/* Standalone Customer Auth */}
+        <Route path="/login" element={<LoginPage navigate={navigate} onLogin={handleLogin} />} />
+        <Route path="/register" element={<RegisterPage navigate={navigate} onLogin={handleLogin} />} />
 
-        {page === "admin" && isAdmin && <AdminDashboard onLogout={handleLogout} />}
-        {page === "admin" && !isAdmin && (
-          <LoginPage navigate={navigate} onLogin={handleLogin} />
-        )}
+        {/* Standalone Admin Auth */}
+        <Route path="/admin/login" element={<AdminLoginPage onLogin={handleLogin} />} />
 
-        {page === "login" && (
-          <LoginPage navigate={navigate} onLogin={handleLogin} />
-        )}
-        {page === "register" && (
-          <RegisterPage navigate={navigate} onLogin={handleLogin} />
-        )}
+        {/* Protected Admin Routes with Layout */}
+        <Route element={<AdminLayout isLoggedIn={isLoggedIn} isAdmin={isAdmin} onLogout={handleLogout} />}>
+          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+          <Route path="/admin/products" element={<AdminProductsPage />} />
+          <Route path="/admin/categories" element={<AdminCategoriesPage />} />
+          <Route path="/admin/orders" element={<AdminOrdersPage />} />
+          <Route path="/admin/users" element={<AdminUsersPage />} />
+          <Route path="/admin/settings" element={<AdminSettingsPage />} />
+        </Route>
 
-        {page === "about" && <AboutPage navigate={navigate} />}
-        {page === "contact" && <ContactPage />}
-      </main>
-
-      {showNavFooter && <Footer navigate={navigate} />}
+        {/* Fallback Catch-all redirect to Home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </div>
   );
 }

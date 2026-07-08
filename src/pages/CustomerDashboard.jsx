@@ -116,7 +116,6 @@ export function CustomerDashboard({
         res = await api.addresses.addAddress(addressForm);
       }
       if (res.success) {
-        toast.success(editAddress ? "Address updated!" : "Address added!");
         setShowAddressForm(false);
         setEditAddress(null);
         setAddressForm({
@@ -133,7 +132,7 @@ export function CustomerDashboard({
         if (listRes.success) setAddresses(listRes.data);
       }
     } catch (err) {
-      toast.error("Failed to save address: " + err.message);
+      console.error("Failed to save address: " + err.message);
     }
   };
 
@@ -141,11 +140,10 @@ export function CustomerDashboard({
     try {
       const res = await api.addresses.deleteAddress(id);
       if (res.success) {
-        toast.success("Address removed!");
         setAddresses((prev) => prev.filter((a) => a.id !== id));
       }
     } catch (err) {
-      toast.error("Failed to delete address: " + err.message);
+      console.error("Failed to delete address: " + err.message);
     }
   };
 
@@ -153,12 +151,11 @@ export function CustomerDashboard({
     try {
       const res = await api.addresses.setDefaultAddress(id);
       if (res.success) {
-        toast.success("Default address set!");
         const listRes = await api.addresses.listAddresses();
         if (listRes.success) setAddresses(listRes.data);
       }
     } catch (err) {
-      toast.error("Failed to set default address: " + err.message);
+      console.error("Failed to set default address: " + err.message);
     }
   };
 
@@ -171,7 +168,6 @@ export function CustomerDashboard({
       });
       if (updateRes.success) {
         setUser(updateRes.data);
-        toast.success("Profile updated successfully!");
       }
 
       if (profileForm.oldPassword && profileForm.newPassword) {
@@ -180,12 +176,11 @@ export function CustomerDashboard({
           profileForm.newPassword
         );
         if (pwdRes.success) {
-          toast.success("Password changed successfully!");
           setProfileForm((prev) => ({ ...prev, oldPassword: "", newPassword: "" }));
         }
       }
     } catch (err) {
-      toast.error("Profile update failed: " + err.message);
+      console.error("Profile update failed: " + err.message);
     }
   };
 
@@ -241,11 +236,10 @@ export function CustomerDashboard({
                   <button
                     key={key}
                     onClick={() => setSection(key)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                      section === key
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${section === key
                         ? "bg-primary/10 text-primary"
                         : "text-foreground/70 hover:bg-muted hover:text-foreground"
-                    }`}
+                      }`}
                   >
                     <Icon className="w-4 h-4" />
                     {label}
@@ -452,7 +446,7 @@ export function CustomerDashboard({
 
                         <div className="flex items-center justify-between">
                           <div>
-                             <span className="font-bold">₹{order.totalAmount || order.total || order.amount}</span>
+                            <span className="font-bold">₹{order.totalAmount || order.total || order.amount}</span>
                             {order.trackingNumber && (
                               <p className="text-xs text-muted-foreground mt-0.5">
                                 Tracking: {order.trackingNumber}

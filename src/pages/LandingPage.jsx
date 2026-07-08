@@ -157,7 +157,7 @@ export function LandingPage({
                   span: "",
                 },
                 {
-                  src: "https://images.unsplash.com/photo-1617721710888-aef4d0fd1e6b?w=300&h=200&fit=crop&auto=format",
+                  src: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=300&h=200&fit=crop&auto=format",
                   alt: "Embroidery",
                   span: "",
                 },

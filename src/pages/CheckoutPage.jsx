@@ -100,10 +100,10 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
         setStep("confirmed");
         onOrderComplete();
       } else {
-        toast.error(orderRes.message || "Failed to place order");
+        console.error(orderRes.message || "Failed to place order");
       }
     } catch (err) {
-      toast.error("Order creation failed: " + err.message);
+      console.error("Order creation failed: " + err.message);
     }
   };
 

@@ -1,4 +1,4 @@
-let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://ecommerce-b-production.up.railway.app";
+let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://ecommerce-b-production-70b5.up.railway.app";
 // Ensure the base URL ends with /api to resolve endpoints correctly
 if (!API_BASE_URL.endsWith("/api") && !API_BASE_URL.endsWith("/api/")) {
   API_BASE_URL = API_BASE_URL.endsWith("/") ? `${API_BASE_URL}api` : `${API_BASE_URL}/api`;
@@ -10,16 +10,66 @@ const getToken = () => localStorage.getItem("token");
 export const mapCategoryData = (cat) => {
   if (!cat) return cat;
   const mapping = {
-    "Resin Supplies": { icon: "🧪", color: "#fbeaf5", idString: "resin" },
-    "Beads & Stones": { icon: "💎", color: "#E8F5E9", idString: "beads" },
-    "Fabric & Threads": { icon: "🧵", color: "#FFF9C4", idString: "fabric" },
-    "Embroidery": { icon: "🪡", color: "#fbeaf5", idString: "embroidery" },
-    "Art Supplies": { icon: "🎨", color: "#E8F5E9", idString: "art" },
-    "Acrylic Paints": { icon: "🖌️", color: "#FFF9C4", idString: "paints" },
-    "Jewelry Making": { icon: "💍", color: "#fbeaf5", idString: "jewelry" },
-    "Clay & Pottery": { icon: "🏺", color: "#E8F5E9", idString: "clay" },
-    "Packaging": { icon: "📦", color: "#FFF9C4", idString: "packaging" },
-    "DIY Kits": { icon: "🎁", color: "#fbeaf5", idString: "kits" },
+    "Resin Supplies": { 
+      icon: "🧪", 
+      color: "#fbeaf5", 
+      idString: "resin",
+      image: "https://images.unsplash.com/photo-1597481499750-3e6b22637e12?w=400&h=300&fit=crop&auto=format"
+    },
+    "Beads & Stones": { 
+      icon: "💎", 
+      color: "#E8F5E9", 
+      idString: "beads",
+      image: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=400&h=300&fit=crop&auto=format"
+    },
+    "Fabric & Threads": { 
+      icon: "🧵", 
+      color: "#FFF9C4", 
+      idString: "fabric",
+      image: "https://images.unsplash.com/photo-1605647540924-852290f6b0d5?w=400&h=300&fit=crop&auto=format"
+    },
+    "Embroidery": { 
+      icon: "🪡", 
+      color: "#fbeaf5", 
+      idString: "embroidery",
+      image: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=300&fit=crop&auto=format"
+    },
+    "Art Supplies": { 
+      icon: "🎨", 
+      color: "#E8F5E9", 
+      idString: "art",
+      image: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=300&fit=crop&auto=format"
+    },
+    "Acrylic Paints": { 
+      icon: "🖌️", 
+      color: "#FFF9C4", 
+      idString: "paints",
+      image: "https://images.unsplash.com/photo-1526743977-0e9e24b98dcc?w=400&h=300&fit=crop&auto=format"
+    },
+    "Jewelry Making": { 
+      icon: "💍", 
+      color: "#fbeaf5", 
+      idString: "jewelry",
+      image: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=400&h=300&fit=crop&auto=format"
+    },
+    "Clay & Pottery": { 
+      icon: "🏺", 
+      color: "#E8F5E9", 
+      idString: "clay",
+      image: "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=400&h=300&fit=crop&auto=format"
+    },
+    "Packaging": { 
+      icon: "📦", 
+      color: "#FFF9C4", 
+      idString: "packaging",
+      image: "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=400&h=300&fit=crop&auto=format"
+    },
+    "DIY Kits": { 
+      icon: "🎁", 
+      color: "#fbeaf5", 
+      idString: "kits",
+      image: "https://images.unsplash.com/photo-1513201099705-a9746e1e201f?w=400&h=300&fit=crop&auto=format"
+    },
   };
 
   const defaultMap = { icon: "🛍️", color: "#fbeaf5", idString: cat.id ? cat.id.toString() : "" };
@@ -36,7 +86,7 @@ export const mapCategoryData = (cat) => {
     idString: extra.idString || cat.id.toString(),
     icon: extra.icon,
     color: extra.color,
-    image: cat.imageUrl || cat.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=300&fit=crop&auto=format",
+    image: cat.imageUrl || cat.image || extra.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=300&fit=crop&auto=format",
     count: cat.count || 0,
   };
 };
@@ -108,12 +158,27 @@ export const api = {
     login: (email, password) =>
       request("/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ identifier: email, email, password }),
       }),
     googleLogin: (idToken) =>
       request("/auth/google", {
         method: "POST",
         body: JSON.stringify({ idToken }),
+      }),
+    sendOtp: (phone) =>
+      request("/auth/send-otp", {
+        method: "POST",
+        body: JSON.stringify({ phone }),
+      }),
+    verifyOtp: (phone, otp) =>
+      request("/auth/verify-otp", {
+        method: "POST",
+        body: JSON.stringify({ phone, otp }),
+      }),
+    resendOtp: (phone) =>
+      request("/auth/resend-otp", {
+        method: "POST",
+        body: JSON.stringify({ phone }),
       }),
     getProfile: () => request("/users/profile"),
     updateProfile: (data) =>
@@ -121,10 +186,10 @@ export const api = {
         method: "PUT",
         body: JSON.stringify(data),
       }),
-    changePassword: (oldPassword, newPassword) =>
+    changePassword: (currentPassword, newPassword) =>
       request("/users/change-password", {
         method: "PUT",
-        body: JSON.stringify({ oldPassword, newPassword }),
+        body: JSON.stringify({ currentPassword, newPassword }),
       }),
   },
 
@@ -228,10 +293,10 @@ export const api = {
   },
 
   orders: {
-    createOrder: (addressId, paymentMethod) =>
+    createOrder: (addressId) =>
       request("/orders", {
         method: "POST",
-        body: JSON.stringify({ addressId, paymentMethod }),
+        body: JSON.stringify(typeof addressId === "object" ? addressId : { addressId }),
       }),
     getOrders: () => request("/orders"),
     getOrderDetails: (id) => request(`/orders/${id}`),
@@ -260,6 +325,11 @@ export const api = {
   },
 
   admin: {
+    login: (email, password) =>
+      request("/admin/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      }),
     getDashboardMetrics: () => request("/admin/dashboard"),
     listAllOrders: () => request("/admin/orders"),
     getOrderDetails: (id) => request(`/admin/orders/${id}`),

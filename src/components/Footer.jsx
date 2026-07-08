@@ -169,17 +169,21 @@ export function Footer({ navigate }) {
                 Contact Us
               </h4>
               <ul className="space-y-3">
-                <li className="flex items-start gap-2.5 text-white/60 text-sm">
+                <li className="flex items-start gap-2.5 text-white/60 text-sm min-w-0">
                   <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
-                  Ritu Bihar Colony near rai atta chakki infront of radha rani tent house Jhansi
+                  <span className="break-words">Ritu Bihar Colony near rai atta chakki infront of radha rani tent house Jhansi</span>
                 </li>
-                <li className="flex items-center gap-2.5 text-white/60 text-sm">
-                  <Phone className="w-4 h-4 flex-shrink-0 text-primary" />
-                  +91 98765 43210
+                <li className="flex items-start gap-2.5 text-white/60 text-sm min-w-0">
+                  <Phone className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
+                  <span className="break-all">
+                    +91 9648886556
+                    <br />
+                    +91 9450860884
+                  </span>
                 </li>
-                <li className="flex items-center gap-2.5 text-white/60 text-sm">
+                <li className="flex items-center gap-2.5 text-white/60 text-sm min-w-0">
                   <Mail className="w-4 h-4 flex-shrink-0 text-primary" />
-                  hello@lemonhouse.in
+                  <span className="break-all">lemonacademia.in@gmail.com</span>
                 </li>
               </ul>
             </div>

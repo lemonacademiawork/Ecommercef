@@ -33,7 +33,7 @@ export const CATEGORIES = [
     count: 67,
     color: "#fbeaf5",
     image:
-      "https://images.unsplash.com/photo-1617721710888-aef4d0fd1e6b?w=400&h=300&fit=crop&auto=format",
+      "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=300&fit=crop&auto=format",
   },
   {
     id: "art",
@@ -143,9 +143,9 @@ export const PRODUCTS = [
     rating: 4.9,
     reviews: 312,
     image:
-      "https://images.unsplash.com/photo-1617721710888-aef4d0fd1e6b?w=600&h=600&fit=crop&auto=format",
+      "https://images.unsplash.com/photo-1605647540924-852290f6b0d5?w=600&h=600&fit=crop&auto=format",
     images: [
-      "https://images.unsplash.com/photo-1617721710888-aef4d0fd1e6b?w=600&h=600&fit=crop&auto=format",
+      "https://images.unsplash.com/photo-1605647540924-852290f6b0d5?w=600&h=600&fit=crop&auto=format",
     ],
     description:
       "36 vibrant hand-dyed cotton threads for embroidery and cross-stitch. Each skein is individually hand-dyed for unique, rich colors.",

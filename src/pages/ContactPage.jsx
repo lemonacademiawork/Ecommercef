@@ -158,34 +158,34 @@ export function ContactPage() {
                     Icon: MapPin,
                     label: "Our Store",
                     value:
-                      "42 Craft Lane, Koramangala\nBengaluru, Karnataka – 560034",
+                      "Ritu bihar colony near rai atta chakki infront of radha rani tent house Jhansi, Uttar Pradesh",
                   },
                   {
                     Icon: Phone,
                     label: "Phone",
-                    value: "+91 98765 43210\n+91 80 4567 8910",
+                    value: "+91 9648886556 +91 9450860884",
                   },
                   {
                     Icon: Mail,
                     label: "Email",
-                    value: "hello@lemonhouse.in\nsupport@lemonhouse.in",
+                    value: "lemonacademia.in@gmail.com",
                   },
                   {
                     Icon: Clock,
                     label: "Working Hours",
-                    value: "Mon – Sat: 9 AM – 7 PM\nSun: 10 AM – 5 PM",
+                    value: "Mon – Sat: 10 AM – 6 PM\nSun: 10 AM – 5 PM",
                   },
                 ].map(({ Icon, label, value }) => (
-                  <div key={label} className="flex gap-4">
+                  <div key={label} className="flex gap-4 min-w-0">
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{ background: "#fbeaf5" }}
                     >
                       <Icon className="w-4 h-4 text-primary" />
                     </div>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold mb-0.5">{label}</p>
-                      <p className="text-sm text-muted-foreground whitespace-pre-line">
+                      <p className="text-sm text-muted-foreground whitespace-pre-line break-words">
                         {value}
                       </p>
                     </div>
@@ -197,7 +197,7 @@ export function ContactPage() {
             {/* Social Links */}
             <div className="bg-white rounded-2xl border border-border p-5">
               <h3 className="font-semibold mb-3 text-sm">Follow Us</h3>
-              <div className="flex gap-3 flex-wrap">
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4 gap-3">
                 {[
                   {
                     icon: "📸",
@@ -227,11 +227,13 @@ export function ContactPage() {
                   <div
                     key={s.label}
                     onClick={() => window.open(s.href, "_blank")}
-                    className="flex-1 min-w-[80px] text-center p-3 rounded-xl bg-muted hover:bg-primary/10 transition-colors cursor-pointer"
+                    className="text-center p-3 rounded-xl bg-muted hover:bg-primary/10 transition-colors cursor-pointer min-w-0 flex flex-col justify-between"
                   >
-                    <div className="text-2xl mb-1">{s.icon}</div>
-                    <p className="text-xs font-semibold">{s.label}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <div>
+                      <div className="text-2xl mb-1">{s.icon}</div>
+                      <p className="text-xs font-semibold">{s.label}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1 break-all">
                       {s.handle}
                     </p>
                   </div>

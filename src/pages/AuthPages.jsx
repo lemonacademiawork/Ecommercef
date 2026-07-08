@@ -6,13 +6,114 @@ import { api } from "../services/api";
 import { toast } from "sonner";
 
 export function LoginPage({ navigate, onLogin }) {
-  const [loginType, setLoginType] = useState("customer");
-
+  const [loginMethod, setLoginMethod] = useState("password"); // "password" or "otp"
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
+
+  // OTP-specific states
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [timer, setTimer] = useState(0);
+
+  const startResendTimer = () => {
+    setTimer(60);
+    const interval = setInterval(() => {
+      setTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleSendOtp = async (e) => {
+    e.preventDefault();
+    if (!phone) {
+      toast.error("Phone number is required!");
+      return;
+    }
+    if (phone.replace(/\D/g, "").length < 10) {
+      toast.error("Please enter a valid 10-digit phone number!");
+      return;
+    }
+    try {
+      toast.loading("Sending OTP...");
+      const res = await api.auth.sendOtp(phone);
+      toast.dismiss();
+      if (res.success) {
+        toast.success("OTP sent successfully!");
+        setOtpSent(true);
+        startResendTimer();
+      } else {
+        toast.error(res.message || "Failed to send OTP");
+      }
+    } catch (err) {
+      toast.dismiss();
+      toast.error("Failed to send OTP: " + err.message);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (timer > 0) return;
+    try {
+      toast.loading("Resending OTP...");
+      const res = await api.auth.resendOtp(phone);
+      toast.dismiss();
+      if (res.success) {
+        toast.success("OTP resent successfully!");
+        startResendTimer();
+      } else {
+        toast.error(res.message || "Failed to resend OTP");
+      }
+    } catch (err) {
+      toast.dismiss();
+      toast.error("Failed to resend OTP: " + err.message);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    if (!otp) {
+      toast.error("OTP is required!");
+      return;
+    }
+    if (otp.length < 4) {
+      toast.error("Please enter a valid OTP!");
+      return;
+    }
+    try {
+      toast.loading("Verifying OTP...");
+      const response = await api.auth.verifyOtp(phone, otp);
+      toast.dismiss();
+      if (response.success && response.data) {
+        toast.success("Logged in successfully!");
+        const { token, role, email: userEmail, name } = response.data;
+        localStorage.setItem("token", token);
+        const profileRes = await api.auth.getProfile();
+        if (profileRes.success && profileRes.data) {
+          const profileRole = profileRes.data.role || (profileRes.data.roles && profileRes.data.roles[0]) || role;
+          const userProfile = {
+            ...profileRes.data,
+            role: profileRole,
+            roles: profileRes.data.roles || [profileRole],
+          };
+          onLogin(token, role, userProfile);
+        } else {
+          onLogin(token, role, { name, email: userEmail, role, roles: [role] });
+        }
+      } else {
+        toast.error(response.message || "Invalid OTP");
+      }
+    } catch (err) {
+      toast.dismiss();
+      toast.error("Verification failed: " + err.message);
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -25,32 +126,20 @@ export function LoginPage({ navigate, onLogin }) {
       toast.error("Please enter a valid email address!");
       return;
     }
-    if (loginType === "customer") {
-      if (!phone) {
-        toast.error("Phone number is required!");
-        return;
-      }
-      if (phone.replace(/\D/g, "").length < 10) {
-        toast.error("Please enter a valid 10-digit phone number!");
-        return;
-      }
-    }
     if (!password) {
       toast.error("Password is required!");
       return;
     }
     try {
+      toast.loading("Signing in...");
       const response = await api.auth.login(email, password);
+      toast.dismiss();
       console.log("LOGIN RESPONSE", response.data);
       if (response.success && response.data) {
         const { token, role, email: userEmail, name } = response.data;
-        // set token temporarily for profile retrieval
         localStorage.setItem("token", token);
         const profileRes = await api.auth.getProfile();
         if (profileRes.success && profileRes.data) {
-          console.log("TOKEN:", token);
-          console.log("ROLE:", role);
-          console.log("PROFILE:", profileRes.data);
           const profileRole = profileRes.data.role || (profileRes.data.roles && profileRes.data.roles[0]) || role;
           const userProfile = {
             ...profileRes.data,
@@ -65,6 +154,7 @@ export function LoginPage({ navigate, onLogin }) {
         toast.error(response.message || "Login failed");
       }
     } catch (err) {
+      toast.dismiss();
       toast.error(err.message || "An error occurred during login");
     }
   };
@@ -94,7 +184,6 @@ export function LoginPage({ navigate, onLogin }) {
       toast.error("Google login error: " + err.message);
     }
   };
-
 
   return (
     <div className="min-h-screen flex" style={{ background: "#FFFDF7" }}>
@@ -132,7 +221,7 @@ export function LoginPage({ navigate, onLogin }) {
           <div className="mt-10 grid grid-cols-3 gap-4">
             {[
               {
-                src: "https://images.unsplash.com/photo-1617721710888-aef4d0fd1e6b?w=150&h=150&fit=crop&auto=format",
+                src: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=150&h=150&fit=crop&auto=format",
                 alt: "Embroidery",
               },
               {
@@ -186,66 +275,121 @@ export function LoginPage({ navigate, onLogin }) {
             className="text-2xl font-bold mb-1"
             style={{ fontFamily: "Poppins, sans-serif" }}
           >
-            {loginType === "admin" ? "Admin Access" : "Sign In"}
+            Sign In
           </h1>
           <p className="text-muted-foreground text-sm mb-7">
-            {loginType === "admin" ? (
-              "Sign in to access your administrative controls."
-            ) : (
-              <>
-                Don't have an account?{" "}
-                <button
-                  onClick={() => navigate("register")}
-                  className="text-primary font-semibold hover:underline"
-                >
-                  Create one
-                </button>
-              </>
-            )}
+            Don't have an account?{" "}
+            <button
+              onClick={() => navigate("register")}
+              className="text-primary font-semibold hover:underline"
+            >
+              Create one
+            </button>
           </p>
 
-          {/* Tab Switcher */}
-          <div className="flex bg-muted p-1 rounded-2xl mb-6 border border-border/50">
+          {/* Login Method Toggle */}
+          <div className="flex bg-muted p-1 rounded-xl mb-6 text-xs font-semibold">
             <button
               type="button"
-              onClick={() => handleTypeChange("customer")}
-              className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${loginType === "customer"
-                ? "bg-white text-primary shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                setLoginMethod("password");
+                setOtpSent(false);
+              }}
+              className={`flex-1 py-2 rounded-lg transition-all cursor-pointer ${loginMethod === "password"
+                  ? "bg-white text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
                 }`}
             >
-              🛍️ Customer
+              Email Login
             </button>
             <button
               type="button"
-              onClick={() => handleTypeChange("admin")}
-              className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${loginType === "admin"
-                ? "bg-white text-accent shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+              onClick={() => setLoginMethod("otp")}
+              className={`flex-1 py-2 rounded-lg transition-all cursor-pointer ${loginMethod === "otp"
+                  ? "bg-white text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
                 }`}
             >
-              👑 Admin Access
+              Number Login
             </button>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold mb-1.5">
-                Email
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  placeholder="you@example.com"
-                />
+          {loginMethod === "password" ? (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold mb-1.5">
+                  Email
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    placeholder="you@example.com"
+                  />
+                </div>
               </div>
-            </div>
 
-            {loginType === "customer" && (
+              <div>
+                <label className="block text-sm font-semibold mb-1.5">
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    placeholder="••••••••"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                    className="accent-primary w-4 h-4"
+                  />
+                  <span className="text-sm">Remember me</span>
+                </label>
+                <button
+                  type="button"
+                  className="text-sm text-primary font-semibold hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold text-sm transition-all hover:opacity-90 shadow-lg shadow-primary/25 cursor-pointer"
+                style={{
+                  background: "linear-gradient(135deg, #7b1fa2, #e91e63)",
+                }}
+              >
+                Sign In <ArrowRight className="w-4 h-4" />
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={otpSent ? handleVerifyOtp : handleSendOtp} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold mb-1.5">
                   Phone Number
@@ -254,71 +398,71 @@ export function LoginPage({ navigate, onLogin }) {
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
                     type="tel"
+                    disabled={otpSent}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:bg-muted"
                     placeholder="+91 98765 43210"
                   />
                 </div>
               </div>
-            )}
 
-            <div>
-              <label className="block text-sm font-semibold mb-1.5">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  placeholder="••••••••"
-                />
+              {otpSent && (
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="block text-sm font-semibold">
+                      Enter OTP
+                    </label>
+                    <button
+                      type="button"
+                      disabled={timer > 0}
+                      onClick={handleResendOtp}
+                      className="text-xs text-primary font-semibold hover:underline disabled:text-muted-foreground cursor-pointer"
+                    >
+                      {timer > 0 ? `Resend in ${timer}s` : "Resend OTP"}
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      placeholder="Enter 6-digit OTP"
+                    />
+                  </div>
+                </div>
+              )}
 
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            </div>
+              {otpSent && (
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOtpSent(false);
+                      setOtp("");
+                    }}
+                    className="text-xs text-muted-foreground hover:text-foreground font-semibold hover:underline cursor-pointer"
+                  >
+                    Change Phone Number
+                  </button>
+                </div>
+              )}
 
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
-                  className="accent-primary w-4 h-4"
-                />
-                <span className="text-sm">Remember me</span>
-              </label>
               <button
-                type="button"
-                className="text-sm text-primary font-semibold hover:underline"
+                type="submit"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold text-sm transition-all hover:opacity-90 shadow-lg shadow-primary/25 cursor-pointer"
+                style={{
+                  background: "linear-gradient(135deg, #7b1fa2, #e91e63)",
+                }}
               >
-                Forgot password?
+                {otpSent ? "Verify & Sign In" : "Send OTP"} <ArrowRight className="w-4 h-4" />
               </button>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold text-sm transition-all hover:opacity-90 shadow-lg shadow-primary/25"
-              style={{
-                background: "linear-gradient(135deg, #7b1fa2, #e91e63)",
-              }}
-            >
-              Sign In <ArrowRight className="w-4 h-4" />
-            </button>
-          </form>
+            </form>
+          )}
 
           <div className="relative my-5">
             <div className="absolute inset-0 flex items-center">
@@ -334,15 +478,11 @@ export function LoginPage({ navigate, onLogin }) {
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={handleGoogleLogin}
-              className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors w-full col-span-2"
+              className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors w-full col-span-2 cursor-pointer"
             >
               <span>🌐</span> Google
             </button>
           </div>
-
-          <p className="text-xs text-muted-foreground text-center mt-6">
-            Hint: Use <strong>admin@lemonhouse.in</strong> for admin access
-          </p>
         </motion.div>
       </div>
     </div>

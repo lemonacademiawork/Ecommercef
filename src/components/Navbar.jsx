@@ -85,18 +85,6 @@ export function Navbar({
                 {link.label}
               </button>
             ))}
-            {isAdmin && (
-              <button
-                onClick={() => navigate("admin")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  currentPage === "admin"
-                    ? "bg-accent/10 text-accent"
-                    : "text-foreground/70 hover:text-accent hover:bg-accent/10"
-                }`}
-              >
-                Admin
-              </button>
-            )}
           </nav>
 
           {/* Search Bar (desktop) */}

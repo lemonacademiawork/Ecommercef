@@ -179,3 +179,10 @@
     line-height: 1.5;
   }
 }
+
+/* Position toast popup close button to the right instead of left */
+[data-close-button] {
+  left: auto !important;
+  right: 0 !important;
+  transform: translate(35%, -35%) !important;
+}
