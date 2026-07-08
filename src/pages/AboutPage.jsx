@@ -1,4 +1,5 @@
 import { Heart, Star, Users, Package } from "lucide-react";
+import logoImg from "../assets/logo.png";
 
 export function AboutPage({ navigate }) {
   const team = [
@@ -36,7 +37,11 @@ export function AboutPage({ navigate }) {
         style={{ background: "linear-gradient(135deg, #fff0f8, #FFFDF7)" }}
       >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <div className="text-6xl mb-5">🍋</div>
+          <img
+            src={logoImg}
+            alt="Lemon House Logo"
+            className="w-20 h-20 object-contain mx-auto mb-5 rounded-full shadow-md bg-white p-1.5 border border-border/55"
+          />
           <h1
             className="text-4xl sm:text-5xl font-extrabold mb-4"
             style={{ fontFamily: "Poppins, sans-serif", color: "#a61c9b" }}

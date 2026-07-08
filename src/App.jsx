@@ -6,7 +6,9 @@ import { ProductDetailPage } from "./pages/ProductDetailPage";
 import { CartSidebar } from "./components/CartSidebar";
 import { CheckoutPage } from "./pages/CheckoutPage";
 import { CustomerDashboard } from "./pages/CustomerDashboard";
-import { LoginPage, RegisterPage, OAuthSuccessPage, OAuthFailurePage } from "./pages/AuthPages";
+import { LoginPage, RegisterPage } from "./pages/AuthPages";
+import OAuthSuccess from "./components/OAuthSuccess";
+import OAuthFailure from "./components/OAuthFailure";
 import { AboutPage } from "./pages/AboutPage";
 import { ContactPage } from "./pages/ContactPage";
 import { Toaster } from "sonner";
@@ -419,8 +421,8 @@ export default function App() {
         {/* Standalone Customer Auth */}
         <Route path="/login" element={<LoginPage navigate={navigate} onLogin={handleLogin} />} />
         <Route path="/register" element={<RegisterPage navigate={navigate} onLogin={handleLogin} />} />
-        <Route path="/oauth-success" element={<OAuthSuccessPage onLogin={handleLogin} />} />
-        <Route path="/oauth-failure" element={<OAuthFailurePage />} />
+        <Route path="/oauth-success" element={<OAuthSuccess onLogin={handleLogin} />} />
+        <Route path="/oauth-failure" element={<OAuthFailure />} />
 
         {/* Standalone Admin Auth */}
         <Route path="/admin/login" element={<AdminLoginPage onLogin={handleLogin} />} />
