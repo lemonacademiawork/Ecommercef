@@ -4,24 +4,25 @@ import { api } from "../../services/api";
 
 
 export function AdminUsersPage() {
-  const [totalCount, setTotalCount] = useState(0);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadStats() {
-      try {
-        setLoading(true);
-        const res = await api.admin.getDashboardMetrics();
-        if (res.success && res.data) {
-          setTotalCount(res.data.totalUsers || 0);
-        }
-      } catch (err) {
-        console.error("Failed to load user metrics", err);
-      } finally {
-        setLoading(false);
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const res = await api.admin.listAllUsers();
+      if (res.success && res.data) {
+        setUsers(res.data);
       }
+    } catch (err) {
+      console.error("Failed to load users list", err);
+    } finally {
+      setLoading(false);
     }
-    loadStats();
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   if (loading) {
@@ -29,7 +30,7 @@ export function AdminUsersPage() {
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground text-sm">Loading customers metrics...</p>
+          <p className="text-muted-foreground text-sm">Loading customers directory...</p>
         </div>
       </div>
     );
@@ -49,14 +50,14 @@ export function AdminUsersPage() {
         {[
           {
             label: "Total Customers",
-            value: totalCount || mockCustomers.length,
+            value: users.length,
             color: "#1565C0",
             bg: "#E3F2FD",
             Icon: Users,
           },
           {
-            label: "Active Session Users",
-            value: mockCustomers.filter(c => c.status === "Active").length,
+            label: "Active Accounts",
+            value: users.filter(u => u.active !== false).length,
             color: "#2E7D32",
             bg: "#E8F5E9",
             Icon: UserCheck,
@@ -122,35 +123,53 @@ export function AdminUsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {mockCustomers.map((customer) => (
-                <tr
-                  key={customer.id}
-                  className="hover:bg-muted/30 transition-colors"
-                >
-                  <td className="px-4 py-3 font-semibold text-muted-foreground">
-                    #{customer.id}
-                  </td>
-                  <td className="px-4 py-3 font-semibold">
-                    {customer.name}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground flex items-center gap-1.5 py-3.5">
-                    <Mail className="w-3.5 h-3.5" /> {customer.email}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {customer.phone}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {customer.joined}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${customer.status === "Active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}
-                    >
-                      {customer.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {users.map((user) => {
+                const isActive = user.active !== false;
+                return (
+                  <tr
+                    key={user.id}
+                    className="hover:bg-muted/30 transition-colors"
+                  >
+                    <td className="px-4 py-3 font-semibold text-muted-foreground">
+                      #{user.id}
+                    </td>
+                    <td className="px-4 py-3 font-semibold">
+                      <div className="flex items-center gap-2">
+                        {user.name}
+                        {user.role && (
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                              user.role === "ADMIN" || user.role === "ROLE_ADMIN"
+                                ? "bg-purple-100 text-purple-700"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {user.role.replace("ROLE_", "")}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground flex items-center gap-1.5 py-3.5">
+                      <Mail className="w-3.5 h-3.5" /> {user.email}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {user.phone || "N/A"}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
+                        }`}
+                      >
+                        {isActive ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

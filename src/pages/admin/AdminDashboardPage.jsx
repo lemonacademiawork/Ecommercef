@@ -44,15 +44,17 @@ export function AdminDashboardPage() {
   });
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [metricRes, prodRes, catRes] = await Promise.all([
+      const [metricRes, prodRes, catRes, orderRes] = await Promise.all([
         api.admin.getDashboardMetrics(),
         api.products.listProducts({ all: true }),
         api.categories.listCategories(true),
+        api.admin.listAllOrders(),
       ]);
       if (metricRes.success && metricRes.data) {
         setMetrics(metricRes.data);
@@ -62,6 +64,9 @@ export function AdminDashboardPage() {
       }
       if (catRes.success && catRes.data) {
         setCategories(catRes.data);
+      }
+      if (orderRes.success && orderRes.data) {
+        setOrders(orderRes.data);
       }
     } catch (err) {
       console.error("Error loading dashboard data:", err);
@@ -81,6 +86,25 @@ export function AdminDashboardPage() {
         color: colors[i % colors.length],
       })).filter((item) => item.value > 0)
     : categoryData;
+
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const dynamicSalesData = months.map((m) => ({ month: m, revenue: 0, orders: 0 }));
+  let has2026Sales = false;
+
+  orders.forEach((order) => {
+    const date = order.createdAt ? new Date(order.createdAt) : (order.date ? new Date(order.date) : null);
+    if (date && date.getFullYear() === 2026) {
+      const monthIdx = date.getMonth();
+      if (monthIdx >= 0 && monthIdx < 12) {
+        const amount = Number(order.totalAmount || order.total || order.amount || 0);
+        dynamicSalesData[monthIdx].revenue += amount;
+        dynamicSalesData[monthIdx].orders += 1;
+        has2026Sales = true;
+      }
+    }
+  });
+
+  const chartData = dynamicSalesData;
 
   const finalPieData = dynamicCategoryData.length > 0 
     ? dynamicCategoryData 
@@ -190,7 +214,7 @@ export function AdminDashboardPage() {
             Revenue Overview (2026)
           </h2>
           <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={salesData}>
+            <AreaChart data={chartData}>
               <defs>
                 <linearGradient
                   id="revenueGrad"
@@ -288,7 +312,7 @@ export function AdminDashboardPage() {
             Revenue vs Orders
           </h2>
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={salesData}>
+            <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis
                 dataKey="month"

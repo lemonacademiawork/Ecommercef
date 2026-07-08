@@ -331,6 +331,7 @@ export const api = {
         body: JSON.stringify({ email, password }),
       }),
     getDashboardMetrics: () => request("/admin/dashboard"),
+    listAllUsers: () => request("/admin/users"),
     listAllOrders: () => request("/admin/orders"),
     getOrderDetails: (id) => request(`/admin/orders/${id}`),
     updateOrderStatus: (id, status) =>
