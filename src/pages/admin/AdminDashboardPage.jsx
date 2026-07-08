@@ -16,6 +16,12 @@ import {
 } from "recharts";
 import { api } from "../../services/api";
 
+const getOrderTotal = (order) => {
+  const amount = Number(order?.totalAmount || order?.total || order?.amount || 0);
+  if (amount === 0) return 0;
+  return amount > 499 ? amount : amount + 49;
+};
+
 const salesData = [
   { month: "Jan", revenue: 42000, orders: 134 },
   { month: "Feb", revenue: 38000, orders: 118 },
@@ -87,24 +93,30 @@ export function AdminDashboardPage() {
       })).filter((item) => item.value > 0)
     : categoryData;
 
+  const displayYear = orders.length > 0
+    ? Math.max(...orders.map(o => {
+        const d = o.createdAt ? new Date(o.createdAt) : (o.date ? new Date(o.date) : null);
+        return d ? d.getFullYear() : 2026;
+      }))
+    : 2026;
+
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const dynamicSalesData = months.map((m) => ({ month: m, revenue: 0, orders: 0 }));
-  let has2026Sales = false;
 
   orders.forEach((order) => {
     const date = order.createdAt ? new Date(order.createdAt) : (order.date ? new Date(order.date) : null);
-    if (date && date.getFullYear() === 2026) {
+    if (date && date.getFullYear() === displayYear) {
       const monthIdx = date.getMonth();
       if (monthIdx >= 0 && monthIdx < 12) {
-        const amount = Number(order.totalAmount || order.total || order.amount || 0);
+        const amount = getOrderTotal(order);
         dynamicSalesData[monthIdx].revenue += amount;
         dynamicSalesData[monthIdx].orders += 1;
-        has2026Sales = true;
       }
     }
   });
 
   const chartData = dynamicSalesData;
+  const calculatedTotalRevenue = orders.reduce((sum, order) => sum + getOrderTotal(order), 0);
 
   const finalPieData = dynamicCategoryData.length > 0 
     ? dynamicCategoryData 
@@ -139,7 +151,7 @@ export function AdminDashboardPage() {
         {[
           {
             label: "Total Revenue",
-            value: `₹${(metrics.totalRevenue || 0).toLocaleString()}`,
+            value: `₹${calculatedTotalRevenue.toLocaleString()}`,
             change: "Live",
             color: "#a61c9b",
             bg: "#fbeaf5",
@@ -147,7 +159,7 @@ export function AdminDashboardPage() {
           },
           {
             label: "Total Orders",
-            value: metrics.totalOrders || 0,
+            value: orders.length,
             change: "Live",
             color: "#2E7D32",
             bg: "#E8F5E9",
@@ -211,7 +223,7 @@ export function AdminDashboardPage() {
             className="font-bold mb-4"
             style={{ fontFamily: "Poppins, sans-serif" }}
           >
-            Revenue Overview (2026)
+            Revenue Overview ({displayYear})
           </h2>
           <ResponsiveContainer width="100%" height={240}>
             <AreaChart data={chartData}>

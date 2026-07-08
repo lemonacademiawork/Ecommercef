@@ -9,6 +9,12 @@ const statusColors = {
   Cancelled: "bg-red-100 text-red-600",
 };
 
+const getOrderTotal = (order) => {
+  const amount = Number(order?.totalAmount || order?.total || order?.amount || 0);
+  if (amount === 0) return 0;
+  return amount > 499 ? amount : amount + 49;
+};
+
 export function AdminOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -120,7 +126,7 @@ export function AdminOrdersPage() {
                     {order.items?.length || order.items || 0} items
                   </td>
                   <td className="px-4 py-3 font-bold text-foreground">
-                    ₹{order.totalAmount || order.total || order.amount}
+                    ₹{getOrderTotal(order)}
                   </td>
                   <td className="px-4 py-3">
                     <div className="relative inline-block">
@@ -241,7 +247,7 @@ export function AdminOrdersPage() {
             {/* Total Footer */}
             <div className="pt-4 border-t border-border mt-6 flex justify-between items-center">
               <span className="text-sm font-semibold text-muted-foreground">TOTAL AMOUNT</span>
-              <span className="text-xl font-extrabold text-primary">₹{selectedOrder.totalAmount || selectedOrder.total || selectedOrder.amount}</span>
+              <span className="text-xl font-extrabold text-primary">₹{getOrderTotal(selectedOrder)}</span>
             </div>
           </div>
         </div>

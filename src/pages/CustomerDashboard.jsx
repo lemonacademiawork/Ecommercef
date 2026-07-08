@@ -18,6 +18,12 @@ import { PRODUCTS } from "../data";
 import { api } from "../services/api";
 import { toast } from "sonner";
 
+const getOrderTotal = (order) => {
+  const amount = Number(order?.totalAmount || order?.total || order?.amount || 0);
+  if (amount === 0) return 0;
+  return amount > 499 ? amount : amount + 49;
+};
+
 const statusColors = {
   Processing: "bg-yellow-100 text-yellow-700",
   Shipped: "bg-blue-100 text-blue-700",
@@ -446,7 +452,7 @@ export function CustomerDashboard({
 
                         <div className="flex items-center justify-between">
                           <div>
-                            <span className="font-bold">₹{order.totalAmount || order.total || order.amount}</span>
+                            <span className="font-bold">₹{getOrderTotal(order)}</span>
                             {order.trackingNumber && (
                               <p className="text-xs text-muted-foreground mt-0.5">
                                 Tracking: {order.trackingNumber}
