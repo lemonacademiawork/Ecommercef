@@ -127,66 +127,7 @@ export function AboutPage({ navigate }) {
         </div>
       </section>
 
-      {/* Story */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2
-                className="text-3xl font-bold mb-5"
-                style={{ fontFamily: "Poppins, sans-serif" }}
-              >
-                From a Bengaluru Apartment to 200+ Cities
-              </h2>
-              <div className="space-y-4 text-foreground/70 leading-relaxed">
-                <p>
-                  In 2020, Priya Mehta was frustrated. As a passionate crafter,
-                  she kept running into the same problem: quality craft supplies
-                  in India were either impossible to find or outrageously
-                  expensive. She was importing materials from overseas, paying
-                  huge shipping costs, and waiting weeks for her supplies to
-                  arrive.
-                </p>
-                <p>
-                  She knew she wasn't alone. Across India, thousands of crafters
-                  faced the same challenge. So she decided to do something about
-                  it. From her apartment in Koramangala, Bengaluru, she launched
-                  Lemon House with just 50 products and a vision.
-                </p>
-                <p>
-                  Today, Lemon House stocks over 1,000 premium craft products,
-                  ships to 200+ cities across India, and has become home to a
-                  community of 50,000+ passionate crafters. Every product is
-                  personally tested by our craft team before it reaches you.
-                </p>
-              </div>
-            </div>
-            <div className="relative">
-              <div className="rounded-3xl overflow-hidden aspect-[4/3] bg-muted">
-                <img
-                  src="https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=700&h=500&fit=crop&auto=format"
-                  alt="Craft studio"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="absolute -bottom-4 -left-4 bg-white rounded-2xl p-4 shadow-xl border border-border">
-                <p
-                  className="text-2xl font-bold"
-                  style={{
-                    color: "#a61c9b",
-                    fontFamily: "Poppins, sans-serif",
-                  }}
-                >
-                  2020
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Founded in Bengaluru
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+
 
       {/* CTA */}
       <section className="py-14 bg-white text-center">
