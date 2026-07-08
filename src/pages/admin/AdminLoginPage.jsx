@@ -34,35 +34,20 @@ export function AdminLoginPage({ onLogin }) {
       if (response.success && response.data) {
         const { token, role, email: userEmail, name, fullName } = response.data;
         
-        // Temporarily save token for getProfile
-        localStorage.setItem("token", token);
-        const profileRes = await api.auth.getProfile();
-        
-        if (profileRes.success && profileRes.data) {
-          const profileRole = profileRes.data.role || (profileRes.data.roles && profileRes.data.roles[0]) || role;
-          
-          if (profileRole !== "ADMIN" && profileRole !== "ROLE_ADMIN") {
-            localStorage.clear();
-            toast.error("Access Denied: You do not have administrator privileges.");
-            return;
-          }
-
-          const userProfile = {
-            ...profileRes.data,
-            role: profileRole,
-            roles: profileRes.data.roles || [profileRole],
-          };
-          onLogin(token, role, userProfile);
-          navigate("/admin/dashboard");
-        } else {
-          if (role !== "ADMIN" && role !== "ROLE_ADMIN") {
-            localStorage.clear();
-            toast.error("Access Denied: You do not have administrator privileges.");
-            return;
-          }
-          onLogin(token, role, { name: fullName || name, email: userEmail, role, roles: [role] });
-          navigate("/admin/dashboard");
+        if (role !== "ADMIN" && role !== "ROLE_ADMIN") {
+          toast.error("Access Denied: You do not have administrator privileges.");
+          return;
         }
+
+        const userProfile = {
+          name: fullName || name || "Admin",
+          email: userEmail,
+          role: role,
+          roles: [role],
+        };
+        
+        onLogin(token, role, userProfile);
+        navigate("/admin/dashboard");
       } else {
         toast.error(response.message || "Login failed");
       }
@@ -124,7 +109,7 @@ export function AdminLoginPage({ onLogin }) {
               className="text-xl font-bold"
               style={{ fontFamily: "Poppins, sans-serif" }}
             >
-              <span style={{ color: "#a61c9b" }}>Lemon</span>
+              <span style={{ color: "#bd127c" }}>Lemon</span>
               <span style={{ color: "#1b5e20" }}>House</span>
             </span>
           </div>

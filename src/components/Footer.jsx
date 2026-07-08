@@ -176,6 +176,8 @@ export function Footer({ navigate }) {
                 <li className="flex items-start gap-2.5 text-white/60 text-sm min-w-0">
                   <Phone className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
                   <span className="break-all">
+                    +91 7905713069
+                    <br />
                     +91 9648886556
                     <br />
                     +91 9450860884

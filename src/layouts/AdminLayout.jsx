@@ -8,6 +8,7 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
+import logoImg from "../assets/logo.png";
 
 export function AdminLayout({ isLoggedIn, isAdmin, onLogout }) {
   const location = useLocation();
@@ -37,19 +38,17 @@ export function AdminLayout({ isLoggedIn, isAdmin, onLogout }) {
       <aside className="w-56 flex-shrink-0 h-screen sticky top-0 bg-white border-r border-border flex flex-col z-10">
         <div className="p-5 border-b border-border">
           <div className="flex items-center gap-2">
-            <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center text-base"
-              style={{
-                background: "linear-gradient(135deg, #a61c9b, #d82a81)",
-              }}
-            >
-              🍋
-            </div>
+            <img
+              src={logoImg}
+              alt="Lemon House Logo"
+              className="w-8 h-8 object-contain"
+            />
             <span
               className="font-bold text-sm"
-              style={{ fontFamily: "Poppins, sans-serif", color: "#a61c9b" }}
+              style={{ fontFamily: "Poppins, sans-serif" }}
             >
-              LemonHouse
+              <span style={{ color: "#bd127c" }}>Lemon</span>
+              <span style={{ color: "#1b5e20" }}>House</span>
             </span>
           </div>
           <span className="text-xs text-muted-foreground mt-0.5 block">

@@ -6,7 +6,7 @@ import { ProductDetailPage } from "./pages/ProductDetailPage";
 import { CartSidebar } from "./components/CartSidebar";
 import { CheckoutPage } from "./pages/CheckoutPage";
 import { CustomerDashboard } from "./pages/CustomerDashboard";
-import { LoginPage, RegisterPage } from "./pages/AuthPages";
+import { LoginPage, RegisterPage, OAuthSuccessPage, OAuthFailurePage } from "./pages/AuthPages";
 import { AboutPage } from "./pages/AboutPage";
 import { ContactPage } from "./pages/ContactPage";
 import { Toaster } from "sonner";
@@ -92,7 +92,24 @@ export default function App() {
   // Recover session on mount
   useEffect(() => {
     const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
     if (token) {
+      // Direct session recovery for admins to avoid calling profile/cart endpoints
+      if (role === "ADMIN" || role === "ROLE_ADMIN") {
+        try {
+          const storedUserStr = localStorage.getItem("user");
+          if (storedUserStr) {
+            const storedUser = JSON.parse(storedUserStr);
+            setUser(storedUser);
+            setIsLoggedIn(true);
+            setIsAdmin(true);
+            return;
+          }
+        } catch (e) {
+          console.error("Failed to parse stored admin user profile:", e);
+        }
+      }
+
       api.auth.getProfile()
         .then((res) => {
           if (res.success && res.data) {
@@ -123,7 +140,9 @@ export default function App() {
             setUser(updatedUser);
             setIsLoggedIn(true);
             setIsAdmin(isUserAdmin);
-            fetchCart();
+            if (!isUserAdmin) {
+              fetchCart();
+            }
           }
         })
         .catch((err) => {
@@ -261,9 +280,9 @@ export default function App() {
     setIsAdmin(isUserAdmin);
     setUser(userProfile);
 
-    // Sync guest cart to backend
+    // Sync guest cart to backend (only for non-admin customers)
     const guestCart = localStorage.getItem("guestCart");
-    if (guestCart) {
+    if (guestCart && !isUserAdmin) {
       try {
         const items = JSON.parse(guestCart);
         for (const item of items) {
@@ -275,7 +294,9 @@ export default function App() {
       }
     }
 
-    fetchCart();
+    if (!isUserAdmin) {
+      fetchCart();
+    }
     navigate(isUserAdmin ? "admin" : "home");
     toast.success(`Welcome back, ${userProfile.name}! 👋`);
   };
@@ -398,6 +419,8 @@ export default function App() {
         {/* Standalone Customer Auth */}
         <Route path="/login" element={<LoginPage navigate={navigate} onLogin={handleLogin} />} />
         <Route path="/register" element={<RegisterPage navigate={navigate} onLogin={handleLogin} />} />
+        <Route path="/oauth-success" element={<OAuthSuccessPage onLogin={handleLogin} />} />
+        <Route path="/oauth-failure" element={<OAuthFailurePage />} />
 
         {/* Standalone Admin Auth */}
         <Route path="/admin/login" element={<AdminLoginPage onLogin={handleLogin} />} />

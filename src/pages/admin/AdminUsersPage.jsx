@@ -2,13 +2,6 @@ import { useState, useEffect } from "react";
 import { Users, Mail, Phone, Calendar, UserCheck } from "lucide-react";
 import { api } from "../../services/api";
 
-const mockCustomers = [
-  { id: 101, name: "Priya Sharma", email: "priya@gmail.com", phone: "+91 98765 43210", joined: "2026-02-14", status: "Active" },
-  { id: 102, name: "Rahul Verma", email: "rahul.v@yahoo.com", phone: "+91 80456 78910", joined: "2026-03-01", status: "Active" },
-  { id: 103, name: "Sneha Patil", email: "sneha.patil@gmail.com", phone: "+91 91234 56789", joined: "2026-04-18", status: "Inactive" },
-  { id: 104, name: "Amit Gupta", email: "amit.g@outlook.com", phone: "+91 98112 23344", joined: "2026-05-22", status: "Active" },
-  { id: 105, name: "Ananya Iyer", email: "ananya.iyer@gmail.com", phone: "+91 95556 67788", joined: "2026-06-05", status: "Active" },
-];
 
 export function AdminUsersPage() {
   const [totalCount, setTotalCount] = useState(0);

@@ -163,7 +163,7 @@ export function ContactPage() {
                   {
                     Icon: Phone,
                     label: "Phone",
-                    value: "+91 9648886556 +91 9450860884",
+                    value: "+91 7905713069\n+91 9648886556\n+91 9450860884",
                   },
                   {
                     Icon: Mail,
