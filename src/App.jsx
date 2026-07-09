@@ -52,11 +52,18 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  // Clean up dark mode if previously set
+  useEffect(() => {
+    document.documentElement.classList.remove("dark");
+    localStorage.removeItem("theme");
+  }, []);
 
   const reactNavigator = useNavigate();
   const location = useLocation();
 
-  const navigate = (p, id) => {
+  const navigate = (p, id, search = "") => {
     let path = "/";
     if (p === "home") path = "/";
     else if (p === "shop") path = "/shop";
@@ -69,7 +76,7 @@ export default function App() {
     else if (p === "contact") path = "/contact";
     else if (p === "admin") path = "/admin/dashboard";
 
-    reactNavigator(path);
+    reactNavigator(path + search);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -105,6 +112,7 @@ export default function App() {
             setUser(storedUser);
             setIsLoggedIn(true);
             setIsAdmin(true);
+            setLoading(false);
             return;
           }
         } catch (e) {
@@ -146,10 +154,12 @@ export default function App() {
               fetchCart();
             }
           }
+          setLoading(false);
         })
         .catch((err) => {
           console.error("Session recovery failed", err);
           handleLogout();
+          setLoading(false);
         });
     } else {
       // Load local guest cart if present
@@ -161,6 +171,7 @@ export default function App() {
           console.error("Failed to parse guest cart", e);
         }
       }
+      setLoading(false);
     }
   }, []);
 
@@ -299,7 +310,13 @@ export default function App() {
     if (!isUserAdmin) {
       fetchCart();
     }
-    navigate(isUserAdmin ? "admin" : "home");
+    const params = new URLSearchParams(location.search);
+    const redirect = params.get("redirect");
+    if (redirect) {
+      navigate(redirect);
+    } else {
+      navigate(isUserAdmin ? "admin" : "home");
+    }
   };
 
   const handleLogout = () => {
@@ -320,6 +337,17 @@ export default function App() {
   const handleOrderComplete = () => {
     setCartItems([]);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-2">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-muted-foreground font-semibold">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -389,11 +417,15 @@ export default function App() {
           <Route
             path="/checkout"
             element={
-              <CheckoutPage
-                items={cartItems}
-                navigate={navigate}
-                onOrderComplete={handleOrderComplete}
-              />
+              isLoggedIn ? (
+                <CheckoutPage
+                  items={cartItems}
+                  navigate={navigate}
+                  onOrderComplete={handleOrderComplete}
+                />
+              ) : (
+                <Navigate to="/login?redirect=checkout" replace />
+              )
             }
           />
           <Route
@@ -409,7 +441,7 @@ export default function App() {
                   setUser={setUser}
                 />
               ) : (
-                <Navigate to="/login" replace />
+                <Navigate to="/login?redirect=dashboard" replace />
               )
             }
           />

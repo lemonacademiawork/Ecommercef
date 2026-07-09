@@ -225,7 +225,7 @@ export function AdminDashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Revenue Chart */}
-        <div className="bg-white rounded-2xl border border-border p-5 lg:col-span-2">
+        <div className="bg-white rounded-2xl border border-border p-5 lg:col-span-2 min-w-0 overflow-hidden">
           <h2
             className="font-bold mb-4"
             style={{ fontFamily: "Poppins, sans-serif" }}
@@ -271,7 +271,7 @@ export function AdminDashboardPage() {
         </div>
 
         {/* Categories Pie Chart */}
-        <div className="bg-white rounded-2xl border border-border p-5">
+        <div className="bg-white rounded-2xl border border-border p-5 min-w-0 overflow-hidden">
           <h2
             className="font-bold mb-4"
             style={{ fontFamily: "Poppins, sans-serif" }}
@@ -323,7 +323,7 @@ export function AdminDashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue vs Orders Bar Chart */}
-        <div className="bg-white rounded-2xl border border-border p-5">
+        <div className="bg-white rounded-2xl border border-border p-5 min-w-0 overflow-hidden">
           <h2
             className="font-bold mb-4"
             style={{ fontFamily: "Poppins, sans-serif" }}

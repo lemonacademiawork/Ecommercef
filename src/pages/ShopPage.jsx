@@ -209,9 +209,9 @@ export function ShopPage({
   );
 
   return (
-    <div className="min-h-screen" style={{ background: "#FFFDF7" }}>
+    <div className="min-h-screen bg-background transition-colors duration-300">
       {/* Header */}
-      <div className="bg-white border-b border-border py-8">
+      <div className="bg-card border-b border-border/60 py-8 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1
             className="text-3xl font-bold mb-1"
@@ -235,7 +235,7 @@ export function ShopPage({
               placeholder="Search products..."
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm border border-border/60 bg-card focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all dark:text-foreground"
             />
           </div>
 
@@ -244,7 +244,7 @@ export function ShopPage({
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2.5 rounded-xl text-sm border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer"
+              className="appearance-none pl-3 pr-8 py-2.5 rounded-xl text-sm border border-border/60 bg-card focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer transition-all dark:text-foreground"
             >
               {SORT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -258,7 +258,7 @@ export function ShopPage({
           {/* Filter toggle (mobile) */}
           <button
             onClick={() => setFiltersOpen(true)}
-            className="lg:hidden flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm border border-border bg-white font-medium"
+            className="lg:hidden flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm border border-border/60 bg-card font-medium transition-all cursor-pointer dark:text-foreground"
           >
             <SlidersHorizontal className="w-4 h-4" />
             Filters
@@ -273,7 +273,7 @@ export function ShopPage({
         <div className="flex gap-6">
           {/* Desktop Filters Sidebar */}
           <aside className="hidden lg:block w-56 flex-shrink-0">
-            <div className="bg-white rounded-2xl border border-border p-5 sticky top-24">
+            <div className="bg-card rounded-2xl border border-border/60 p-5 sticky top-24 transition-colors duration-300">
               <div className="flex items-center justify-between mb-4">
                 <h2
                   className="font-bold"
@@ -344,7 +344,7 @@ export function ShopPage({
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 25 }}
-              className="fixed left-0 top-0 bottom-0 w-72 bg-white z-50 overflow-y-auto p-5 shadow-2xl"
+              className="fixed left-0 top-0 bottom-0 w-72 bg-card z-50 overflow-y-auto p-5 shadow-2xl transition-colors duration-300"
             >
               <div className="flex items-center justify-between mb-5">
                 <h2

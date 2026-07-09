@@ -12,6 +12,7 @@ import { motion } from "motion/react";
 import { REVIEWS } from "../data";
 import { ProductCard } from "../components/ProductCard";
 import { api } from "../services/api";
+import heroCollageImg from "../assets/hero_collage.jpg";
 
 export function LandingPage({
   navigate,
@@ -52,10 +53,10 @@ export function LandingPage({
     <div className="min-h-screen">
       {/* Hero Section */}
       <section
-        className="relative overflow-hidden"
+        className="relative overflow-hidden transition-colors duration-300"
         style={{
           background:
-            "linear-gradient(135deg, #fff0f8 0%, #FFFDF7 50%, #f0faf0 100%)",
+            "var(--hero-gradient)",
         }}
       >
         {/* Decorative blobs */}
@@ -82,8 +83,8 @@ export function LandingPage({
                 <Sparkles className="w-4 h-4" /> New arrivals every week
               </div>
               <h1
-                className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight mb-5"
-                style={{ fontFamily: "Poppins, sans-serif", color: "#1a1a2e" }}
+                className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight mb-5 text-foreground"
+                style={{ fontFamily: "Poppins, sans-serif" }}
               >
                 Everything You Need To{" "}
                 <span style={{ color: "#a61c9b" }}>Create Something</span>{" "}
@@ -138,48 +139,25 @@ export function LandingPage({
               </div>
             </motion.div>
 
-            {/* Hero Image Grid */}
+            {/* Hero Image Collage */}
             <motion.div
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.15 }}
-              className="hidden lg:grid grid-cols-2 gap-3"
+              className="hidden lg:block w-full max-w-lg justify-self-center rounded-3xl overflow-hidden"
             >
-              {[
-                {
-                  src: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=400&fit=crop&auto=format",
-                  alt: "Art supplies",
-                  span: "row-span-2",
-                },
-                {
-                  src: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=300&h=200&fit=crop&auto=format",
-                  alt: "Beads",
-                  span: "",
-                },
-                {
-                  src: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=300&h=200&fit=crop&auto=format",
-                  alt: "Embroidery",
-                  span: "",
-                },
-              ].map((img, i) => (
-                <div
-                  key={i}
-                  className={`${img.span} rounded-2xl overflow-hidden bg-muted`}
-                >
-                  <img
-                    src={img.src}
-                    alt={img.alt}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
+              <img
+                src={heroCollageImg}
+                alt="Lemon House Crafts Collage"
+                className="w-full h-auto object-cover"
+              />
             </motion.div>
           </div>
         </div>
       </section>
 
       {/* Trust Badges */}
-      <section className="border-y border-border bg-white py-6">
+      <section className="border-y border-border/40 bg-card py-6 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
@@ -224,8 +202,7 @@ export function LandingPage({
       {/* Categories */}
       <section
         id="categories"
-        className="py-16"
-        style={{ background: "#FFFDF7" }}
+        className="py-16 bg-background transition-colors duration-300"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
@@ -248,7 +225,8 @@ export function LandingPage({
             </button>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {/* Desktop/Tablet Categories Grid */}
+          <div className="hidden sm:grid grid-cols-3 lg:grid-cols-5 gap-3">
             {categories.slice(0, 10).map((cat, i) => (
               <motion.button
                 key={cat.id}
@@ -256,7 +234,7 @@ export function LandingPage({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 onClick={() => navigate("shop")}
-                className="flex flex-col items-center gap-3 p-4 rounded-2xl border border-border bg-white hover:border-primary hover:shadow-md transition-all group"
+                className="flex flex-col items-center gap-3 p-4 rounded-2xl border border-border bg-white dark:bg-zinc-900 hover:border-primary hover:shadow-md transition-all group cursor-pointer"
               >
                 <div
                   className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl"
@@ -276,11 +254,32 @@ export function LandingPage({
             ))}
           </div>
 
+          {/* Mobile Categories Swiper */}
+          <div className="flex sm:hidden gap-3 overflow-x-auto pb-3 snap-x -mx-4 px-4">
+            {categories.slice(0, 10).map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => navigate("shop")}
+                className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-border bg-white dark:bg-zinc-900 snap-center flex-shrink-0 cursor-pointer"
+              >
+                <span
+                  className="w-8 h-8 rounded-xl flex items-center justify-center text-lg"
+                  style={{ background: cat.color }}
+                >
+                  {cat.icon}
+                </span>
+                <span className="text-xs font-semibold text-foreground leading-none">
+                  {cat.name}
+                </span>
+              </button>
+            ))}
+          </div>
+
         </div>
       </section>
 
       {/* Best Sellers */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-card transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -371,7 +370,7 @@ export function LandingPage({
       </section>
 
       {/* New Arrivals */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-card transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -408,7 +407,7 @@ export function LandingPage({
       </section>
 
       {/* Reviews */}
-      <section className="py-16" style={{ background: "#fff0f8" }}>
+      <section className="py-16 transition-colors duration-300" style={{ background: "var(--testimonials-bg)" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <h2
@@ -442,7 +441,7 @@ export function LandingPage({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
-                className="bg-white rounded-2xl p-5 border border-border shadow-sm"
+                className="bg-card rounded-2xl p-5 border border-border/60 shadow-sm transition-colors duration-300"
               >
                 <div className="flex mb-3">
                   {[1, 2, 3, 4, 5].map((s) => (
@@ -475,7 +474,7 @@ export function LandingPage({
       </section>
 
       {/* Brand Story */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-card transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="relative">
@@ -486,7 +485,7 @@ export function LandingPage({
                   className="w-full h-full object-cover"
                 />
               </div>
-              <div className="absolute -bottom-4 -right-4 bg-white rounded-2xl p-4 shadow-xl border border-border">
+              <div className="absolute -bottom-4 -right-4 bg-card rounded-2xl p-4 shadow-xl border border-border/60 transition-colors duration-300">
                 <div
                   className="text-2xl font-bold"
                   style={{

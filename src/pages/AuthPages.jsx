@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { useNavigate, useLocation } from "react-router";
 
 export function LoginPage({ navigate, onLogin }) {
+  const location = useLocation();
+  const search = location.search;
   const [loginMethod, setLoginMethod] = useState("password"); // "password" or "otp"
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -266,7 +268,7 @@ export function LoginPage({ navigate, onLogin }) {
           <p className="text-muted-foreground text-sm mb-7">
             Don't have an account?{" "}
             <button
-              onClick={() => navigate("register")}
+              onClick={() => navigate("register", null, search)}
               className="text-primary font-semibold hover:underline"
             >
               Create one
@@ -477,6 +479,8 @@ export function LoginPage({ navigate, onLogin }) {
 
 
 export function RegisterPage({ navigate, onLogin }) {
+  const location = useLocation();
+  const search = location.search;
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -637,7 +641,7 @@ export function RegisterPage({ navigate, onLogin }) {
           <p className="text-muted-foreground text-sm mb-7">
             Already have an account?{" "}
             <button
-              onClick={() => navigate("login")}
+              onClick={() => navigate("login", null, search)}
               className="text-primary font-semibold hover:underline"
             >
               Sign in

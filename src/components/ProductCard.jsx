@@ -23,7 +23,7 @@ export function ProductCard({
       whileHover={{ y: -4 }}
       transition={{ duration: 0.2 }}
       onClick={() => onNavigate(product.id)}
-      className="bg-white rounded-2xl overflow-hidden border border-border cursor-pointer group shadow-sm hover:shadow-lg transition-shadow"
+      className="bg-card rounded-2xl overflow-hidden border border-border/60 cursor-pointer group shadow-sm hover:shadow-lg transition-all duration-300"
     >
       {/* Image */}
       <div className="relative aspect-square overflow-hidden bg-muted">

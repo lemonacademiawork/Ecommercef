@@ -11,6 +11,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { api } from "../services/api";
 import { toast } from "sonner";
+import confetti from "canvas-confetti";
 
 const STEPS = [
   { key: "shipping", label: "Shipping", Icon: MapPin },
@@ -99,6 +100,17 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
         setConfirmedOrderId(orderRes.data?.id || "LH-" + Math.floor(Math.random() * 10000));
         setStep("confirmed");
         onOrderComplete();
+
+        // Trigger visual wow confetti celebration
+        try {
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+          });
+        } catch (confettiErr) {
+          console.error("Failed to run confetti", confettiErr);
+        }
       } else {
         console.error(orderRes.message || "Failed to place order");
       }

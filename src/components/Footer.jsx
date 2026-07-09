@@ -175,17 +175,23 @@ export function Footer({ navigate }) {
                 </li>
                 <li className="flex items-start gap-2.5 text-white/60 text-sm min-w-0">
                   <Phone className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
-                  <span className="break-all">
-                    +91 7905713069
-                    <br />
-                    +91 9648886556
-                    <br />
-                    +91 9450860884
-                  </span>
+                  <div className="flex flex-col gap-0.5">
+                    <a href="tel:+917905713069" className="hover:text-white transition-colors break-all">
+                      +91 7905713069
+                    </a>
+                    <a href="tel:+919648886556" className="hover:text-white transition-colors break-all">
+                      +91 9648886556
+                    </a>
+                    <a href="tel:+919450860884" className="hover:text-white transition-colors break-all">
+                      +91 9450860884
+                    </a>
+                  </div>
                 </li>
                 <li className="flex items-center gap-2.5 text-white/60 text-sm min-w-0">
                   <Mail className="w-4 h-4 flex-shrink-0 text-primary" />
-                  <span className="break-all">lemonacademia.in@gmail.com</span>
+                  <a href="mailto:lemonacademia.in@gmail.com" className="hover:text-white transition-colors break-all">
+                    lemonacademia.in@gmail.com
+                  </a>
                 </li>
               </ul>
             </div>

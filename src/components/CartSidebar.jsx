@@ -54,7 +54,7 @@ export function CartSidebar({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed right-0 top-0 bottom-0 w-full sm:w-96 bg-white z-50 flex flex-col shadow-2xl"
+            className="fixed right-0 top-0 bottom-0 w-full sm:w-96 bg-card z-50 flex flex-col shadow-2xl transition-colors duration-300"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-border">
@@ -120,7 +120,7 @@ export function CartSidebar({
                         ₹{item.price * item.quantity}
                       </p>
                       <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center border border-border rounded-lg bg-white overflow-hidden">
+                        <div className="flex items-center border border-border/60 rounded-lg bg-card overflow-hidden">
                           <button
                             onClick={() =>
                               onUpdateQuantity(item.id, item.quantity - 1, item.cartItemId)

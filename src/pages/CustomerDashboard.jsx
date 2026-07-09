@@ -53,6 +53,8 @@ export function CustomerDashboard({
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [editAddress, setEditAddress] = useState(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [dbProducts, setDbProducts] = useState([]);
   const [addressForm, setAddressForm] = useState({
     fullName: "",
     phone: "",
@@ -82,7 +84,7 @@ export function CustomerDashboard({
     }
   }, [user]);
 
-  // Fetch addresses and orders on mount
+  // Fetch addresses, orders, and products on mount
   useEffect(() => {
     async function loadDashboardData() {
       try {
@@ -106,11 +108,23 @@ export function CustomerDashboard({
       } finally {
         setOrdersLoading(false);
       }
+
+      try {
+        const prodRes = await api.products.listProducts({ all: true });
+        if (prodRes.success && prodRes.data) {
+          setDbProducts(prodRes.data);
+        }
+      } catch (err) {
+        console.error("Error loading products for dashboard:", err);
+      }
     }
     loadDashboardData();
   }, []);
 
-  const wishlistedProducts = PRODUCTS.filter((p) => wishlist.includes(p.id));
+  const wishlistedProducts = [...dbProducts, ...PRODUCTS].filter(
+    (p, index, self) =>
+      wishlist.includes(p.id) && self.findIndex((x) => x.id === p.id) === index
+  );
 
   const handleAddressSubmit = async (e) => {
     e.preventDefault();
@@ -200,17 +214,17 @@ export function CustomerDashboard({
   ];
 
   return (
-    <div className="min-h-screen" style={{ background: "#FFFDF7" }}>
+    <div className="min-h-screen bg-background transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Sidebar */}
           <aside className="lg:w-64 flex-shrink-0">
-            <div className="bg-white rounded-2xl border border-border overflow-hidden">
+            <div className="bg-card rounded-2xl border border-border/60 overflow-hidden transition-colors duration-300">
               {/* Profile Header */}
               <div
-                className="p-5 border-b border-border"
+                className="p-5 border-b border-border/60"
                 style={{
-                  background: "linear-gradient(135deg, #fff0f8, #FFFDF7)",
+                  background: "var(--testimonials-bg)",
                 }}
               >
                 <div className="flex items-center gap-3">
@@ -308,7 +322,7 @@ export function CustomerDashboard({
                   ].map((stat) => (
                     <div
                       key={stat.label}
-                      className="bg-white rounded-2xl border border-border p-4"
+                      className="bg-card rounded-2xl border border-border/60 p-4 transition-colors duration-300"
                     >
                       <div
                         className="text-2xl font-bold mb-1"
@@ -327,8 +341,8 @@ export function CustomerDashboard({
                 </div>
 
                 {/* Recent Orders */}
-                <div className="bg-white rounded-2xl border border-border overflow-hidden">
-                  <div className="flex items-center justify-between p-5 border-b border-border">
+                <div className="bg-card rounded-2xl border border-border/60 overflow-hidden transition-colors duration-300">
+                  <div className="flex items-center justify-between p-5 border-b border-border/60">
                     <h2
                       className="font-bold"
                       style={{ fontFamily: "Poppins, sans-serif" }}
@@ -396,7 +410,7 @@ export function CustomerDashboard({
                         key={order.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-white rounded-2xl border border-border p-5"
+                        className="bg-card rounded-2xl border border-border/60 p-5 transition-colors duration-300"
                       >
                         <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
                           <div>
@@ -459,7 +473,10 @@ export function CustomerDashboard({
                               </p>
                             )}
                           </div>
-                          <button className="text-sm text-primary font-semibold hover:underline">
+                          <button
+                            onClick={() => setSelectedOrder(order)}
+                            className="text-sm text-primary font-semibold hover:underline cursor-pointer"
+                          >
                             View Details
                           </button>
                         </div>
@@ -480,7 +497,7 @@ export function CustomerDashboard({
                   My Wishlist
                 </h1>
                 {wishlistedProducts.length === 0 ? (
-                  <div className="text-center py-16 bg-white rounded-2xl border border-border">
+                  <div className="text-center py-16 bg-card rounded-2xl border border-border/60 transition-colors duration-300">
                     <Heart className="w-14 h-14 text-muted-foreground/30 mx-auto mb-4" />
                     <h3 className="font-semibold mb-2">
                       Your wishlist is empty
@@ -503,7 +520,7 @@ export function CustomerDashboard({
                     {wishlistedProducts.map((product) => (
                       <div
                         key={product.id}
-                        className="bg-white rounded-2xl border border-border overflow-hidden group cursor-pointer"
+                        className="bg-card rounded-2xl border border-border/60 overflow-hidden group cursor-pointer transition-colors duration-300"
                         onClick={() => navigate("product", product.id)}
                       >
                         <div className="relative aspect-square overflow-hidden bg-muted">
@@ -526,9 +543,16 @@ export function CustomerDashboard({
                           <p className="text-sm font-semibold line-clamp-2 mb-1">
                             {product.name}
                           </p>
-                          <p className="text-sm font-bold text-primary">
-                            ₹{product.price}
-                          </p>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-bold text-primary">
+                              ₹{product.price}
+                            </span>
+                            {product.originalPrice && (
+                              <span className="text-xs text-muted-foreground line-through">
+                                ₹{product.originalPrice}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -550,7 +574,7 @@ export function CustomerDashboard({
                   {addresses.map((addr) => (
                     <div
                       key={addr.id}
-                      className={`bg-white rounded-2xl border-2 p-5 relative ${addr.isDefault ? "border-primary" : "border-border"}`}
+                      className={`bg-card rounded-2xl border-2 p-5 relative transition-colors duration-300 ${addr.isDefault ? "border-primary" : "border-border/60"}`}
                     >
                       {addr.isDefault && (
                         <span className="absolute top-3 right-3 text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
@@ -619,7 +643,7 @@ export function CustomerDashboard({
                       });
                       setShowAddressForm(true);
                     }}
-                    className="bg-white rounded-2xl border-2 border-dashed border-border p-5 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors min-h-[180px]"
+                    className="bg-card rounded-2xl border-2 border-dashed border-border/60 p-5 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-all duration-300 min-h-[180px]"
                   >
                     <MapPin className="w-8 h-8" />
                     <span className="text-sm font-medium">Add New Address</span>
@@ -628,7 +652,7 @@ export function CustomerDashboard({
 
                 {showAddressForm && (
                   <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-border shadow-2xl">
+                    <div className="bg-card rounded-3xl p-6 max-w-md w-full border border-border/60 shadow-2xl transition-colors duration-300">
                       <h2 className="text-lg font-bold mb-4" style={{ fontFamily: "Poppins, sans-serif" }}>
                         {editAddress ? "Edit Address" : "Add New Address"}
                       </h2>
@@ -750,8 +774,8 @@ export function CustomerDashboard({
                 >
                   Profile Settings
                 </h1>
-                <div className="bg-white rounded-2xl border border-border p-6">
-                  <div className="flex items-center gap-4 mb-6 pb-6 border-b border-border">
+                <div className="bg-card rounded-2xl border border-border/60 p-6 transition-colors duration-300">
+                  <div className="flex items-center gap-4 mb-6 pb-6 border-b border-border/60">
                     <div
                       className="w-16 h-16 rounded-full flex items-center justify-center text-3xl"
                       style={{
@@ -776,7 +800,7 @@ export function CustomerDashboard({
                           type="text"
                           value={profileForm.name}
                           onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all dark:text-foreground"
                         />
                       </div>
                       <div>
@@ -794,7 +818,7 @@ export function CustomerDashboard({
                           type="text"
                           value={profileForm.phone}
                           onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all dark:text-foreground"
                         />
                       </div>
                     </div>
@@ -808,7 +832,7 @@ export function CustomerDashboard({
                             type="password"
                             value={profileForm.oldPassword}
                             onChange={(e) => setProfileForm({ ...profileForm, oldPassword: e.target.value })}
-                            className="w-full px-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                            className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all dark:text-foreground"
                             placeholder="••••••••"
                           />
                         </div>
@@ -818,7 +842,7 @@ export function CustomerDashboard({
                             type="password"
                             value={profileForm.newPassword}
                             onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
-                            className="w-full px-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                            className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all dark:text-foreground"
                             placeholder="••••••••"
                           />
                         </div>
@@ -867,7 +891,7 @@ export function CustomerDashboard({
                   ].map((notif, i) => (
                     <div
                       key={i}
-                      className={`flex gap-4 p-4 rounded-2xl border transition-all ${notif.unread ? "bg-primary/5 border-primary/20" : "bg-white border-border"}`}
+                      className={`flex gap-4 p-4 rounded-2xl border transition-all ${notif.unread ? "bg-primary/5 border-primary/20" : "bg-card border-border/60"}`}
                     >
                       <span className="text-2xl flex-shrink-0">{notif.icon}</span>
                       <div className="flex-1">
@@ -889,6 +913,97 @@ export function CustomerDashboard({
           </div>
         </div>
       </div>
+
+      {/* Order Details Modal */}
+      {selectedOrder && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-card rounded-3xl p-6 max-w-md w-full border border-border/60 shadow-2xl overflow-y-auto max-h-[90vh] transition-colors duration-300">
+            <div className="flex items-center justify-between pb-4 border-b border-border/60 mb-4">
+              <div>
+                <h2 className="text-lg font-bold text-foreground" style={{ fontFamily: "Poppins, sans-serif" }}>
+                  Order Details
+                </h2>
+                <p className="text-xs text-muted-foreground">ID: #{selectedOrder.id}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedOrder(null)}
+                className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-lg hover:bg-muted cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Status & Date */}
+              <div className="flex justify-between items-center bg-muted/30 p-3 rounded-xl">
+                <div>
+                  <p className="text-xs text-muted-foreground font-semibold">STATUS</p>
+                  <p className="text-sm font-bold capitalize">{selectedOrder.status}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-semibold">DATE</p>
+                  <p className="text-sm font-bold">
+                    {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleDateString() : selectedOrder.date}
+                  </p>
+                </div>
+              </div>
+
+              {/* Items */}
+              <div>
+                <h3 className="text-sm font-semibold mb-3">Items</h3>
+                <div className="space-y-3">
+                  {selectedOrder.items?.map((item) => (
+                    <div key={item.id} className="flex justify-between items-center gap-3 bg-muted/10 p-2.5 rounded-xl border border-border/50">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <img
+                          src={item.product?.imageUrl || item.product?.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format"}
+                          alt={item.product?.name || "Product"}
+                          className="w-10 h-10 object-cover rounded-lg bg-muted flex-shrink-0 border border-border"
+                        />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-foreground truncate">{item.product?.name || "Craft Item"}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">₹{item.price} × {item.quantity}</p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold flex-shrink-0">₹{item.price * item.quantity}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Shipping Address */}
+              {(selectedOrder.address || selectedOrder.shippingAddress) && (
+                <div className="pt-4 border-t border-border">
+                  <h3 className="text-xs font-semibold mb-2 uppercase text-muted-foreground">Shipping Address</h3>
+                  <div className="text-xs space-y-1 text-muted-foreground bg-muted/10 p-3 rounded-xl border border-border/50">
+                    {(() => {
+                      const addr = selectedOrder.address || selectedOrder.shippingAddress;
+                      return (
+                        <>
+                          <p className="font-bold text-foreground">{addr.fullName || addr.name}</p>
+                          <p>{addr.addressLine1 || addr.streetAddress || addr.address}</p>
+                          {addr.addressLine2 && <p>{addr.addressLine2}</p>}
+                          <p>{addr.city}, {addr.state} - {addr.pincode || addr.postalCode || addr.zipCode}</p>
+                          <p className="mt-1">Phone: {addr.phone || addr.phoneNumber}</p>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* Total Summary */}
+              <div className="pt-4 border-t border-border space-y-1.5 text-sm">
+                <div className="flex justify-between font-bold text-base pt-2">
+                  <span>Total Amount</span>
+                  <span className="text-primary">₹{getOrderTotal(selectedOrder)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

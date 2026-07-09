@@ -41,7 +41,7 @@ export function Navbar({
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-border shadow-sm">
+    <header className="sticky top-0 z-50 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-border/50 shadow-sm transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -162,7 +162,7 @@ export function Navbar({
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 8, scale: 0.95 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-0 top-full mt-1 w-48 bg-white rounded-2xl border border-border shadow-xl overflow-hidden z-50"
+                      className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-zinc-950 rounded-2xl border border-border shadow-xl overflow-hidden z-50"
                     >
                       <div className="p-3 border-b border-border">
                         <p className="text-sm font-semibold">{user?.name || "User"}</p>

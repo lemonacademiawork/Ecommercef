@@ -107,7 +107,7 @@ export function ProductDetailPage({
         <div className="grid lg:grid-cols-2 gap-10 mb-16">
           {/* Images */}
           <div className="space-y-3">
-            <div className="relative aspect-square rounded-2xl overflow-hidden bg-white border border-border group">
+            <div className="relative aspect-square rounded-2xl overflow-hidden bg-card border border-border/60 group transition-colors duration-300">
               <AnimatePresence mode="wait">
                 <motion.img
                   key={selectedImage}
@@ -251,7 +251,7 @@ export function ProductDetailPage({
                 Quantity
               </label>
               <div className="flex items-center gap-3">
-                <div className="flex items-center border border-border rounded-xl overflow-hidden bg-white">
+                <div className="flex items-center border border-border/60 rounded-xl overflow-hidden bg-card">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     className="w-10 h-10 flex items-center justify-center hover:bg-muted transition-colors"
@@ -312,7 +312,7 @@ export function ProductDetailPage({
             </div>
 
             {/* Delivery Info */}
-            <div className="space-y-2.5 mb-6 bg-white rounded-2xl border border-border p-4">
+            <div className="space-y-2.5 mb-6 bg-card rounded-2xl border border-border/60 p-4 transition-colors duration-300">
               <div className="flex items-center gap-3 text-sm">
                 <Truck className="w-4 h-4 text-primary flex-shrink-0" />
                 <span>
@@ -340,7 +340,7 @@ export function ProductDetailPage({
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-2xl border border-border overflow-hidden mb-12">
+        <div className="bg-card rounded-2xl border border-border/60 overflow-hidden mb-12 transition-colors duration-300">
           <div className="flex border-b border-border">
             {["description", "materials", "reviews"].map((tab) => (
               <button
