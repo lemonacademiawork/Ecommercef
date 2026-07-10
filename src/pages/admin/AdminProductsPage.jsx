@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, X, Upload } from "lucide-react";
 import { api } from "../../services/api";
+import { toast } from "sonner";
 
 export function AdminProductsPage() {
   const [products, setProducts] = useState([]);
@@ -57,7 +58,7 @@ export function AdminProductsPage() {
         stock: Number(productForm.stock),
         imageUrl: productForm.imageUrl,
         active: productForm.active,
-        categoryId: Number(productForm.categoryId),
+        categoryId: productForm.categoryId,
       };
 
       let res;
@@ -68,6 +69,7 @@ export function AdminProductsPage() {
       }
 
       if (res.success) {
+        toast.success(editProduct ? "Product updated successfully!" : "Product added successfully!");
         setShowProductForm(false);
         setEditProduct(null);
         setProductForm({
@@ -80,9 +82,12 @@ export function AdminProductsPage() {
           categoryId: categories[0]?.id || "",
         });
         loadData();
+      } else {
+        toast.error(res.message || "Failed to save product");
       }
     } catch (err) {
       console.error("Failed to save product: " + err.message);
+      toast.error(err.message || "Failed to save product");
     }
   };
 

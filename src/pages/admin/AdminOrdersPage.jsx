@@ -322,12 +322,26 @@ export function AdminOrdersPage() {
     try {
       setLoading(true);
       const orderRes = await api.admin.listAllOrders();
+      let orderList = [];
       if (orderRes.success && orderRes.data) {
-        const orderList = Array.isArray(orderRes.data)
+        orderList = Array.isArray(orderRes.data)
           ? orderRes.data
           : (orderRes.data.content || []);
-        setOrders(orderList);
       }
+
+      // Merge with local mock orders from localStorage
+      const localOrders = JSON.parse(localStorage.getItem("localOrders") || "[]");
+      const mergedOrders = [...localOrders, ...orderList];
+
+      // Sort descending by date, then by ID
+      mergedOrders.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (dateA !== dateB) return dateB - dateA;
+        return String(b.id).localeCompare(String(a.id));
+      });
+
+      setOrders(mergedOrders);
     } catch (err) {
       console.error("Error loading orders:", err);
     } finally {
@@ -357,6 +371,10 @@ export function AdminOrdersPage() {
 
   const handleViewOrderDetails = async (order) => {
     try {
+      if (String(order.id).startsWith("LH-")) {
+        setSelectedOrder(order);
+        return;
+      }
       const res = await api.admin.getOrderDetails(order.id);
       if (res.success && res.data) {
         setSelectedOrder(res.data);
@@ -718,6 +736,18 @@ export function AdminOrdersPage() {
                             <p className="font-bold text-foreground text-xs mt-0.5">{selectedOrder.pickupStatus}</p>
                           </div>
                         )}
+                        {(selectedOrder.weight || selectedOrder.length || selectedOrder.breadth || selectedOrder.height) && (
+                          <div className="col-span-2 grid grid-cols-2 gap-2 mt-1 pt-1.5 border-t border-border/50">
+                            <div>
+                              <p className="text-[10px] text-muted-foreground font-semibold uppercase">WEIGHT</p>
+                              <p className="font-bold text-foreground text-xs mt-0.5">{selectedOrder.weight ? `${selectedOrder.weight} gm` : "N/A"}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground font-semibold uppercase">DIMENSIONS</p>
+                              <p className="font-bold text-foreground text-xs mt-0.5">{selectedOrder.length || 0}x{selectedOrder.breadth || 0}x{selectedOrder.height || 0} cm</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Shipping label download and pickup request buttons */}
@@ -775,30 +805,32 @@ export function AdminOrdersPage() {
                       </div>
 
                       {/* Live Tracking Timeline */}
-                      {trackingData && (
+                      {(trackingData || (selectedOrder.trackingEvents && selectedOrder.trackingEvents.length > 0)) && (
                         <div className="mt-3 border-t border-border/50 pt-3 space-y-3">
                           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Live Courier Log:</p>
                           <div className="space-y-3 max-h-[200px] overflow-y-auto pr-1">
-                            {(!trackingData.events || trackingData.events.length === 0) ? (
-                              <p className="text-xs text-muted-foreground">No tracking log updates found yet.</p>
-                            ) : (
-                              trackingData.events.map((ev, idx) => (
+                            {(() => {
+                              const events = trackingData?.events || selectedOrder.trackingEvents || [];
+                              if (events.length === 0) {
+                                return <p className="text-xs text-muted-foreground">No tracking log updates found yet.</p>;
+                              }
+                              return events.map((ev, idx) => (
                                 <div key={idx} className="flex gap-2.5 items-start">
                                   <div className="flex flex-col items-center flex-shrink-0 mt-1">
                                     <div className="w-2 h-2 rounded-full bg-primary" />
-                                    {idx < trackingData.events.length - 1 && <div className="w-0.5 h-8 bg-border" />}
+                                    {idx < events.length - 1 && <div className="w-0.5 h-8 bg-border" />}
                                   </div>
                                   <div className="text-[11px] leading-relaxed">
                                     <p className="font-semibold text-foreground">{ev.activity}</p>
                                     <div className="flex items-center gap-1.5 text-muted-foreground text-[10px] mt-0.5">
                                       <span>{ev.location}</span>
                                       <span>•</span>
-                                      <span>{new Date(ev.timestamp).toLocaleString()}</span>
+                                      <span>{ev.timestamp.includes("-") ? ev.timestamp : new Date(ev.timestamp).toLocaleString()}</span>
                                     </div>
                                   </div>
                                 </div>
-                              ))
-                            )}
+                              ));
+                            })()}
                           </div>
                         </div>
                       )}

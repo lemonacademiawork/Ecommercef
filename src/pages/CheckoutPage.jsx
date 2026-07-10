@@ -103,13 +103,60 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
         }
       } catch (backendErr) {
         console.warn("Backend order creation failed, falling back to mock:", backendErr);
+        const mockId = "LH-" + Math.floor(1000 + Math.random() * 9000);
         orderRes = {
           success: true,
           message: "Order placed successfully (Offline Fallback)",
           data: {
-            id: "LH-" + Math.floor(1000 + Math.random() * 9000),
+            id: mockId,
           }
         };
+
+        // Save mock order to localStorage so it persists and displays on dashboard
+        try {
+          const mockOrder = {
+            id: mockId,
+            status: "PENDING",
+            createdAt: new Date().toISOString(),
+            totalAmount: total,
+            items: items.map(item => ({
+              id: item.cartItemId || Math.floor(Math.random() * 10000),
+              price: item.price,
+              quantity: item.quantity,
+              product: {
+                id: item.productId || item.id,
+                name: item.productName || item.name || "Craft Item",
+                imageUrl: item.imageUrl || item.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format",
+                image: item.imageUrl || item.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format"
+              }
+            })),
+            address: {
+              fullName: form.name,
+              phone: form.phone,
+              addressLine1: form.address,
+              city: form.city,
+              state: form.state,
+              pincode: form.pincode
+            },
+            paymentMethod: form.paymentMethod || "COD",
+            shippingCharge: shipping,
+            awbNumber: "AWB" + Math.floor(100000000 + Math.random() * 900000000),
+            courierName: "Delhivery",
+            shipmentStatus: "Processing",
+            trackingEvents: [
+              {
+                timestamp: new Date().toLocaleString(),
+                location: "Warehouse",
+                activity: "Order details received"
+              }
+            ]
+          };
+          const existingLocal = JSON.parse(localStorage.getItem("localOrders") || "[]");
+          existingLocal.push(mockOrder);
+          localStorage.setItem("localOrders", JSON.stringify(existingLocal));
+        } catch (localErr) {
+          console.error("Failed to save local mock order", localErr);
+        }
       }
 
       if (orderRes.success) {
