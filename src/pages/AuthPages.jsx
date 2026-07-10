@@ -166,7 +166,8 @@ export function LoginPage({ navigate, onLogin }) {
       const baseUrl = import.meta.env.VITE_API_BASE_URL || "https://ecommerce-b-production-70b5.up.railway.app";
       // Clean base URL to get the host root (without /api or trailing slash)
       let cleanUrl = baseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
-      const oauthUrl = `${cleanUrl}/oauth2/authorization/google`;
+      const currentOrigin = window.location.origin;
+      const oauthUrl = `${cleanUrl}/oauth2/authorization/google?redirect_uri=${encodeURIComponent(currentOrigin + "/oauth-success")}`;
       window.location.href = oauthUrl;
     } catch (err) {
       toast.error("Google redirection error: " + err.message);

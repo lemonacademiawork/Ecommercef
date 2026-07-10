@@ -293,10 +293,10 @@ export const api = {
   },
 
   orders: {
-    createOrder: (addressId) =>
+    createOrder: (addressId, paymentMethod) =>
       request("/orders", {
         method: "POST",
-        body: JSON.stringify(typeof addressId === "object" ? addressId : { addressId }),
+        body: JSON.stringify(typeof addressId === "object" ? addressId : { addressId, paymentMethod }),
       }),
     getOrders: () => request("/orders"),
     getOrderDetails: (id) => request(`/orders/${id}`),
@@ -347,5 +347,35 @@ export const api = {
         body: formData,
       });
     },
+  },
+
+  shipping: {
+    trackCustomer: (tracking) => request(`/shipping/track/${tracking}`),
+    trackAdmin: (tracking) => request(`/admin/shipping/track/${tracking}`),
+    bookShipment: (orderId) =>
+      request("/admin/shipping/book", {
+        method: "POST",
+        body: JSON.stringify({ orderId }),
+      }),
+    cancelShipment: (orderId) =>
+      request("/admin/shipping/cancel", {
+        method: "POST",
+        body: JSON.stringify({ orderId }),
+      }),
+    getEstimate: (data) =>
+      request("/admin/shipping/estimate", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    generateLabel: (orderId) => request(`/admin/shipping/label/${orderId}`),
+    savePickupAddress: (data) =>
+      request("/admin/shipping/pickup/address", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    schedulePickup: (orderId) =>
+      request(`/admin/shipping/pickup/request/${orderId}`, {
+        method: "POST",
+      }),
   },
 };
