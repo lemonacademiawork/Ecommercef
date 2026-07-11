@@ -108,15 +108,9 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
   }, []);
 
   const activeRate = shippingRates.find(r => r.courierName === form.deliveryMethod);
-  const shipping = activeRate
-    ? Number(activeRate.rate)
-    : form.deliveryMethod === "express"
-    ? 99
-    : form.deliveryMethod === "standard"
-    ? (subtotal > 499 ? 0 : 49)
-    : (shippingRates.length > 0 ? Number(shippingRates[0].rate) : (subtotal > 499 ? 0 : 49));
+  const shipping = 0;
 
-  const total = subtotal + shipping;
+  const total = subtotal;
 
   const placeOrder = async () => {
     setIsPlacing(true);
@@ -789,16 +783,6 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
               <div className="flex justify-between text-muted-foreground">
                 <span>Subtotal</span>
                 <span>₹{subtotal}</span>
-              </div>
-              <div className="flex justify-between text-muted-foreground">
-                <span>Shipping</span>
-                <span>
-                  {shipping === 0 ? (
-                    <span className="text-accent">FREE</span>
-                  ) : (
-                    `₹${shipping}`
-                  )}
-                </span>
               </div>
               <div className="flex justify-between font-bold text-base pt-2 border-t border-border">
                 <span>Total</span>
