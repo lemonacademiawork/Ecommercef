@@ -43,6 +43,12 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
   const [loadingRates, setLoadingRates] = useState(false);
   const [ratesError, setRatesError] = useState("");
 
+  const updateForm = (key, value) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  const stepIndex = STEPS.findIndex((s) => s.key === step);
+  const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
   const selectedSavedAddress = addresses.find((a) => a.id === selectedAddressId);
   const destinationPincode = useSavedAddress && selectedSavedAddress 
     ? selectedSavedAddress.pincode 
@@ -101,9 +107,6 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
     }
   }, []);
 
-  const stepIndex = STEPS.findIndex((s) => s.key === step);
-  const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-
   const activeRate = shippingRates.find(r => r.courierName === form.deliveryMethod);
   const shipping = activeRate
     ? Number(activeRate.rate)
@@ -114,9 +117,6 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
     : (shippingRates.length > 0 ? Number(shippingRates[0].rate) : (subtotal > 499 ? 0 : 49));
 
   const total = subtotal + shipping;
-
-  const updateForm = (key, value) =>
-    setForm((prev) => ({ ...prev, [key]: value }));
 
   const placeOrder = async () => {
     setIsPlacing(true);
