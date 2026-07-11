@@ -926,30 +926,6 @@ export function CustomerDashboard({
                       </div>
                     </div>
 
-                    <div className="border-t border-border pt-5 mt-5">
-                      <h3 className="font-bold text-sm mb-3">Change Password</h3>
-                      <div className="grid sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-semibold mb-1.5">Old Password</label>
-                          <input
-                            type="password"
-                            value={profileForm.oldPassword}
-                            onChange={(e) => setProfileForm({ ...profileForm, oldPassword: e.target.value })}
-                            className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all dark:text-foreground"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-semibold mb-1.5">New Password</label>
-                          <input
-                            type="password"
-                            value={profileForm.newPassword}
-                            onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
-                            className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all dark:text-foreground"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
                     <button
                       type="submit"
                       className="mt-6 px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
