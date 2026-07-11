@@ -383,4 +383,13 @@ export const api = {
         method: "POST",
       }),
   },
+
+  payments: {
+    getQrDetails: () => request("/payments/qr"),
+    submitQrPayment: (orderId, transactionId, paymentScreenshot = "") =>
+      request(`/payments/qr/submit?orderId=${orderId}&transactionId=${transactionId}`, {
+        method: "POST",
+        body: JSON.stringify({ paymentScreenshot }),
+      }),
+  },
 };
