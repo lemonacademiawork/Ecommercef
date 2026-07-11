@@ -108,9 +108,123 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
   }, []);
 
   const activeRate = shippingRates.find(r => r.courierName === form.deliveryMethod);
-  const shipping = 0;
+  const shipping = activeRate 
+    ? Number(activeRate.rate) 
+    : (form.deliveryMethod === "express" 
+        ? 99 
+        : (subtotal > 499 ? 0 : 49)
+      );
 
-  const total = subtotal;
+  const total = subtotal + shipping;
+
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const executeOrderCreation = async (finalAddressId, transactionId = null) => {
+    let orderRes;
+    try {
+      orderRes = await api.orders.createOrder({
+        addressId: finalAddressId,
+        paymentMethod: form.paymentMethod,
+        shippingCharge: shipping,
+        courierName: activeRate?.courierName || (form.deliveryMethod === "express" ? "Express Delivery" : "Standard Delivery"),
+        transactionId: transactionId,
+      });
+      if (!orderRes.success) {
+        throw new Error(orderRes.message || "Failed to create order");
+      }
+    } catch (backendErr) {
+      console.warn("Backend order creation failed, falling back to mock:", backendErr);
+      const mockId = "LH-" + Math.floor(1000 + Math.random() * 9000);
+      orderRes = {
+        success: true,
+        message: "Order placed successfully (Offline Fallback)",
+        data: {
+          id: mockId,
+        }
+      };
+
+      // Save mock order to localStorage so it persists and displays on dashboard
+      try {
+        const mockOrder = {
+          id: mockId,
+          status: "PENDING",
+          createdAt: new Date().toISOString(),
+          totalAmount: total,
+          items: items.map(item => ({
+            id: item.cartItemId || Math.floor(Math.random() * 10000),
+            price: item.price,
+            quantity: item.quantity,
+            product: {
+              id: item.productId || item.id,
+              name: item.productName || item.name || "Craft Item",
+              imageUrl: item.imageUrl || item.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format",
+              image: item.imageUrl || item.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format"
+            }
+          })),
+          address: {
+            fullName: form.name,
+            phone: form.phone,
+            addressLine1: form.address,
+            city: form.city,
+            state: form.state,
+            pincode: form.pincode
+          },
+          paymentMethod: form.paymentMethod || "COD",
+          shippingCharge: shipping,
+          awbNumber: "AWB" + Math.floor(100000000 + Math.random() * 900000000),
+          courierName: activeRate?.courierName || (form.deliveryMethod === "express" ? "Express Delivery" : "Delhivery"),
+          shipmentStatus: "Processing",
+          trackingEvents: [
+            {
+              timestamp: new Date().toLocaleString(),
+              location: "Warehouse",
+              activity: "Order details received"
+            }
+          ],
+          transactionId: transactionId
+        };
+        const existingLocal = JSON.parse(localStorage.getItem("localOrders") || "[]");
+        existingLocal.push(mockOrder);
+        localStorage.setItem("localOrders", JSON.stringify(existingLocal));
+      } catch (localErr) {
+        console.error("Failed to save local mock order", localErr);
+      }
+    }
+
+    if (orderRes.success) {
+      setConfirmedOrderTotal(total);
+      try {
+        await api.cart.clearCart();
+      } catch (cartErr) {
+        console.error("Cart clear error", cartErr);
+      }
+
+      setConfirmedOrderId(orderRes.data?.id || "LH-" + Math.floor(Math.random() * 10000));
+      setStep("confirmed");
+      onOrderComplete();
+
+      // Trigger visual wow confetti celebration
+      try {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      } catch (confettiErr) {
+        console.error("Failed to run confetti", confettiErr);
+      }
+    } else {
+      throw new Error(orderRes.message || "Failed to place order");
+    }
+  };
 
   const placeOrder = async () => {
     setIsPlacing(true);
@@ -140,104 +254,55 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
         }
       }
 
-      let orderRes;
-      try {
-        orderRes = await api.orders.createOrder({
-          addressId: finalAddressId,
-          paymentMethod: form.paymentMethod,
-          shippingCharge: shipping,
-          courierName: activeRate?.courierName || (form.deliveryMethod === "express" ? "Express Delivery" : "Standard Delivery"),
-        });
-        if (!orderRes.success) {
-          throw new Error(orderRes.message || "Failed to create order");
+      if (form.paymentMethod === "razorpay") {
+        const loaded = await loadRazorpayScript();
+        if (!loaded) {
+          toast.error("Failed to load Razorpay SDK. Please check your connection.");
+          setIsPlacing(false);
+          return;
         }
-      } catch (backendErr) {
-        console.warn("Backend order creation failed, falling back to mock:", backendErr);
-        const mockId = "LH-" + Math.floor(1000 + Math.random() * 9000);
-        orderRes = {
-          success: true,
-          message: "Order placed successfully (Offline Fallback)",
-          data: {
-            id: mockId,
+
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_3q8YnZaNl2n2G3",
+          amount: Math.round(total * 100),
+          currency: "INR",
+          name: "Lemon House",
+          description: "Order Payment",
+          image: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format",
+          handler: async function (response) {
+            try {
+              setIsPlacing(true);
+              await executeOrderCreation(finalAddressId, response.razorpay_payment_id);
+            } catch (err) {
+              console.error("Order creation after payment failed: " + err.message);
+              toast.error(err.message || "Failed to place order after payment.");
+            } finally {
+              setIsPlacing(false);
+            }
+          },
+          prefill: {
+            name: form.name || (selectedSavedAddress?.fullName) || "",
+            contact: form.phone || (selectedSavedAddress?.phone) || "",
+          },
+          theme: {
+            color: "#a61c9b",
+          },
+          modal: {
+            ondismiss: function () {
+              setIsPlacing(false);
+              toast.error("Payment cancelled by user.");
+            }
           }
         };
 
-        // Save mock order to localStorage so it persists and displays on dashboard
-        try {
-          const mockOrder = {
-            id: mockId,
-            status: "PENDING",
-            createdAt: new Date().toISOString(),
-            totalAmount: total,
-            items: items.map(item => ({
-              id: item.cartItemId || Math.floor(Math.random() * 10000),
-              price: item.price,
-              quantity: item.quantity,
-              product: {
-                id: item.productId || item.id,
-                name: item.productName || item.name || "Craft Item",
-                imageUrl: item.imageUrl || item.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format",
-                image: item.imageUrl || item.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format"
-              }
-            })),
-            address: {
-              fullName: form.name,
-              phone: form.phone,
-              addressLine1: form.address,
-              city: form.city,
-              state: form.state,
-              pincode: form.pincode
-            },
-            paymentMethod: form.paymentMethod || "COD",
-            shippingCharge: shipping,
-            awbNumber: "AWB" + Math.floor(100000000 + Math.random() * 900000000),
-            courierName: activeRate?.courierName || (form.deliveryMethod === "express" ? "Express Delivery" : "Delhivery"),
-            shipmentStatus: "Processing",
-            trackingEvents: [
-              {
-                timestamp: new Date().toLocaleString(),
-                location: "Warehouse",
-                activity: "Order details received"
-              }
-            ]
-          };
-          const existingLocal = JSON.parse(localStorage.getItem("localOrders") || "[]");
-          existingLocal.push(mockOrder);
-          localStorage.setItem("localOrders", JSON.stringify(existingLocal));
-        } catch (localErr) {
-          console.error("Failed to save local mock order", localErr);
-        }
-      }
-
-      if (orderRes.success) {
-        setConfirmedOrderTotal(total);
-        try {
-          await api.cart.clearCart();
-        } catch (cartErr) {
-          console.error("Cart clear error", cartErr);
-        }
-
-        setConfirmedOrderId(orderRes.data?.id || "LH-" + Math.floor(Math.random() * 10000));
-        setStep("confirmed");
-        onOrderComplete();
-
-        // Trigger visual wow confetti celebration
-        try {
-          confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: { y: 0.6 }
-          });
-        } catch (confettiErr) {
-          console.error("Failed to run confetti", confettiErr);
-        }
+        const rzp = new window.Razorpay(options);
+        rzp.open();
       } else {
-        throw new Error(orderRes.message || "Failed to place order");
+        await executeOrderCreation(finalAddressId);
       }
     } catch (err) {
       console.error("Order creation failed: " + err.message);
       toast.error(err.message || "Failed to place order.");
-    } finally {
       setIsPlacing(false);
     }
   };
@@ -601,6 +666,12 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                     <div className="space-y-3">
                       {[
                         {
+                          value: "razorpay",
+                          label: "Razorpay (Cards, UPI, Netbanking)",
+                          sub: "Pay securely via Razorpay gateway",
+                          icon: "💳",
+                        },
+                        {
                           value: "upi",
                           label: "UPI",
                           sub: "Pay via GPay, PhonePe, Paytm",
@@ -700,7 +771,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                       <div className="flex justify-between text-muted-foreground">
                         <span>Delivery</span>
                         <span className="font-medium text-foreground capitalize">
-                          {form.deliveryMethod}
+                          {form.deliveryMethod} ({shipping === 0 ? "FREE" : `₹${shipping}`})
                         </span>
                       </div>
                       <div className="flex justify-between text-muted-foreground">
@@ -783,6 +854,10 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
               <div className="flex justify-between text-muted-foreground">
                 <span>Subtotal</span>
                 <span>₹{subtotal}</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground">
+                <span>Shipping</span>
+                <span>{shipping === 0 ? "FREE" : `₹${shipping}`}</span>
               </div>
               <div className="flex justify-between font-bold text-base pt-2 border-t border-border">
                 <span>Total</span>
