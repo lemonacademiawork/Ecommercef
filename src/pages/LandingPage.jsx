@@ -471,67 +471,6 @@ export function LandingPage({
             ))}
           </div>
         </div>
-      </section>
-
-      {/* Brand Story */}
-      <section className="py-16 bg-card transition-colors duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="relative">
-              <div className="aspect-video rounded-3xl overflow-hidden bg-muted">
-                <img
-                  src="https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&h=500&fit=crop&auto=format"
-                  alt="Craft studio"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="absolute -bottom-4 -right-4 bg-card rounded-2xl p-4 shadow-xl border border-border/60 transition-colors duration-300">
-                <div
-                  className="text-2xl font-bold"
-                  style={{
-                    color: "#a61c9b",
-                    fontFamily: "Poppins, sans-serif",
-                  }}
-                >
-                  5+ Years
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Crafting happiness
-                </div>
-              </div>
-            </div>
-            <div>
-              <span className="text-sm font-semibold text-primary">
-                Our Story
-              </span>
-              <h2
-                className="text-3xl font-bold mt-2 mb-4"
-                style={{ fontFamily: "Poppins, sans-serif" }}
-              >
-                Born from a Passion for Crafting
-              </h2>
-              <p className="text-foreground/70 leading-relaxed mb-4">
-                Lemon House started in 2020 in a small Bengaluru apartment, born
-                from founder Priya's frustration with finding quality craft
-                supplies in India. What started as a hobby became a mission: to
-                make premium creative materials accessible to every crafter.
-              </p>
-              <p className="text-foreground/70 leading-relaxed mb-6">
-                Today we serve 50,000+ crafters across 200+ cities, curating
-                only the best materials from trusted manufacturers worldwide.
-                Every product is tested by our in-house craft team before it
-                reaches you.
-              </p>
-              <button
-                onClick={() => navigate("about")}
-                className="inline-flex items-center gap-2 text-primary font-semibold hover:gap-3 transition-all"
-              >
-                Read our full story <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

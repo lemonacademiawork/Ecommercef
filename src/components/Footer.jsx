@@ -27,41 +27,6 @@ const WhatsApp = (props) => (
 export function Footer({ navigate }) {
   return (
     <footer style={{ background: "#1a1a2e" }} className="text-white">
-      {/* Newsletter */}
-      <div
-        style={{ background: "linear-gradient(135deg, #7b1fa2, #e91e63)" }}
-        className="py-14"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <img
-            src={logoImg}
-            alt="Lemon House Logo"
-            className="w-14 h-14 object-contain mx-auto mb-3 rounded-full bg-white/10 p-0.5"
-          />
-          <h3
-            className="text-2xl font-bold mb-2"
-            style={{ fontFamily: "Poppins, sans-serif" }}
-          >
-            Join the Lemon House Community
-          </h3>
-          <p className="text-white/80 mb-6 text-sm">
-            Get exclusive deals, craft inspiration, and early access to new
-            arrivals.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-            <input
-              type="email"
-              placeholder="your@email.com"
-              className="flex-1 px-4 py-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50 text-sm"
-            />
-
-            <button className="px-6 py-3 bg-white text-primary rounded-xl font-semibold text-sm hover:bg-secondary transition-all hover:text-foreground">
-              Subscribe
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Main Footer */}
       <div className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

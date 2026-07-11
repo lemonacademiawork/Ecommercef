@@ -936,7 +936,6 @@ export function CustomerDashboard({
                             value={profileForm.oldPassword}
                             onChange={(e) => setProfileForm({ ...profileForm, oldPassword: e.target.value })}
                             className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all dark:text-foreground"
-                            placeholder="••••••••"
                           />
                         </div>
                         <div>
@@ -946,7 +945,6 @@ export function CustomerDashboard({
                             value={profileForm.newPassword}
                             onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
                             className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all dark:text-foreground"
-                            placeholder="••••••••"
                           />
                         </div>
                       </div>
