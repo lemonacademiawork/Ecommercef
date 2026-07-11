@@ -180,15 +180,19 @@ export function CustomerDashboard({
         setAddressesLoading(false);
       }
 
+      let orderList = [];
       try {
         const orderRes = await api.orders.getOrders();
-        let orderList = [];
-        if (orderRes.success && orderRes.data) {
+        if (orderRes && orderRes.success && orderRes.data) {
           orderList = Array.isArray(orderRes.data)
             ? orderRes.data
             : (orderRes.data.content || []);
         }
+      } catch (backendErr) {
+        console.warn("Failed to fetch orders from backend, using local storage fallback:", backendErr);
+      }
 
+      try {
         // Merge with local mock orders from localStorage
         const localOrders = JSON.parse(localStorage.getItem("localOrders") || "[]");
         const mergedOrders = [...localOrders, ...orderList];

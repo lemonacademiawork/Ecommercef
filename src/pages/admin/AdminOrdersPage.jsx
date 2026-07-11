@@ -324,12 +324,16 @@ export function AdminOrdersPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const orderRes = await api.admin.listAllOrders();
       let orderList = [];
-      if (orderRes.success && orderRes.data) {
-        orderList = Array.isArray(orderRes.data)
-          ? orderRes.data
-          : (orderRes.data.content || []);
+      try {
+        const orderRes = await api.admin.listAllOrders();
+        if (orderRes && orderRes.success && orderRes.data) {
+          orderList = Array.isArray(orderRes.data)
+            ? orderRes.data
+            : (orderRes.data.content || []);
+        }
+      } catch (backendErr) {
+        console.warn("Failed to fetch orders from backend, using local storage fallback:", backendErr);
       }
 
       // Merge with local mock orders from localStorage

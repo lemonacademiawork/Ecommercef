@@ -24,8 +24,7 @@ export function CartSidebar({
 
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const discount = appliedCoupon === "LEMON20" ? Math.round(subtotal * 0.2) : 0;
-  const shipping = subtotal > 499 ? 0 : 49;
-  const total = subtotal - discount + shipping;
+  const total = subtotal - discount;
 
   const handleCoupon = () => {
     if (coupon.trim().toUpperCase() === "LEMON20") {
@@ -201,16 +200,6 @@ export function CartSidebar({
                       <span>-₹{discount}</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>Shipping</span>
-                    <span>
-                      {shipping === 0 ? (
-                        <span className="text-accent">Free</span>
-                      ) : (
-                        `₹${shipping}`
-                      )}
-                    </span>
-                  </div>
                   <div className="flex justify-between font-bold text-base pt-2 border-t border-border">
                     <span>Total</span>
                     <span>₹{total}</span>
