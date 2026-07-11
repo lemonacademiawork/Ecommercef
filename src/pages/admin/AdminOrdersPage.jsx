@@ -13,6 +13,9 @@ const statusColors = {
 const getOrderTotal = (order) => {
   const amount = Number(order?.totalAmount || order?.total || order?.amount || 0);
   if (amount === 0) return 0;
+  if (order?.shippingCharge !== undefined && order?.shippingCharge !== null) {
+    return amount;
+  }
   return amount > 499 ? amount : amount + 49;
 };
 

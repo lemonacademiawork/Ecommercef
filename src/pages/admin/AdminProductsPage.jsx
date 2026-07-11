@@ -19,6 +19,9 @@ export function AdminProductsPage() {
     imageUrl: "",
     active: true,
     categoryId: "",
+    weight: "",
+    length: "",
+    breadth: "",
   });
 
   const loadData = async () => {
@@ -59,6 +62,9 @@ export function AdminProductsPage() {
         imageUrl: productForm.imageUrl,
         active: productForm.active,
         categoryId: productForm.categoryId,
+        weight: productForm.weight !== "" ? Number(productForm.weight) : null,
+        length: productForm.length !== "" ? Number(productForm.length) : null,
+        breadth: productForm.breadth !== "" ? Number(productForm.breadth) : null,
       };
 
       let res;
@@ -80,6 +86,9 @@ export function AdminProductsPage() {
           imageUrl: "",
           active: true,
           categoryId: categories[0]?.id || "",
+          weight: "",
+          length: "",
+          breadth: "",
         });
         loadData();
       } else {
@@ -101,6 +110,9 @@ export function AdminProductsPage() {
       imageUrl: product.imageUrl || product.image || "",
       active: product.active !== undefined ? product.active : true,
       categoryId: product.categoryId || (categories[0]?.id || ""),
+      weight: product.weight !== undefined && product.weight !== null ? product.weight : "",
+      length: product.length !== undefined && product.length !== null ? product.length : "",
+      breadth: product.breadth !== undefined && product.breadth !== null ? product.breadth : "",
     });
     setShowProductForm(true);
   };
@@ -161,6 +173,9 @@ export function AdminProductsPage() {
               imageUrl: "",
               active: true,
               categoryId: categories[0]?.id || "",
+              weight: "",
+              length: "",
+              breadth: "",
             });
             setShowProductForm(true);
           }}
@@ -229,6 +244,38 @@ export function AdminProductsPage() {
                     required
                     value={productForm.stock}
                     onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-border text-sm"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Weight (g)</label>
+                  <input
+                    type="number"
+                    value={productForm.weight}
+                    onChange={(e) => setProductForm({ ...productForm, weight: e.target.value })}
+                    placeholder="e.g. 500"
+                    className="w-full px-3 py-2 rounded-xl border border-border text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Length (cm)</label>
+                  <input
+                    type="number"
+                    value={productForm.length}
+                    onChange={(e) => setProductForm({ ...productForm, length: e.target.value })}
+                    placeholder="e.g. 15"
+                    className="w-full px-3 py-2 rounded-xl border border-border text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Breadth (cm)</label>
+                  <input
+                    type="number"
+                    value={productForm.breadth}
+                    onChange={(e) => setProductForm({ ...productForm, breadth: e.target.value })}
+                    placeholder="e.g. 10"
                     className="w-full px-3 py-2 rounded-xl border border-border text-sm"
                   />
                 </div>

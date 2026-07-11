@@ -39,6 +39,49 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
     paymentMethod: "upi",
   });
 
+  const [shippingRates, setShippingRates] = useState([]);
+  const [loadingRates, setLoadingRates] = useState(false);
+  const [ratesError, setRatesError] = useState("");
+
+  const selectedSavedAddress = addresses.find((a) => a.id === selectedAddressId);
+  const destinationPincode = useSavedAddress && selectedSavedAddress 
+    ? selectedSavedAddress.pincode 
+    : form.pincode;
+
+  useEffect(() => {
+    if (step === "delivery" && destinationPincode) {
+      setLoadingRates(true);
+      setRatesError("");
+      api.shipping.getCustomerEstimate({
+        destinationPincode: destinationPincode,
+        weight: 500,
+        length: 10,
+        breadth: 10,
+        height: 10,
+        parcelValue: subtotal,
+      })
+        .then((res) => {
+          if (res.success && res.data && res.data.length > 0) {
+            setShippingRates(res.data);
+            const currentIsValid = res.data.some(opt => opt.courierName === form.deliveryMethod);
+            if (!currentIsValid) {
+              updateForm("deliveryMethod", res.data[0].courierName);
+            }
+          } else {
+            setShippingRates([]);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to fetch shipping rates:", err);
+          setRatesError(err.message || "Failed to load shipping rates");
+          setShippingRates([]);
+        })
+        .finally(() => {
+          setLoadingRates(false);
+        });
+    }
+  }, [step, destinationPincode, subtotal]);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -60,8 +103,16 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
 
   const stepIndex = STEPS.findIndex((s) => s.key === step);
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const shipping =
-    form.deliveryMethod === "express" ? 99 : subtotal > 499 ? 0 : 49;
+
+  const activeRate = shippingRates.find(r => r.courierName === form.deliveryMethod);
+  const shipping = activeRate
+    ? Number(activeRate.rate)
+    : form.deliveryMethod === "express"
+    ? 99
+    : form.deliveryMethod === "standard"
+    ? (subtotal > 499 ? 0 : 49)
+    : (shippingRates.length > 0 ? Number(shippingRates[0].rate) : (subtotal > 499 ? 0 : 49));
+
   const total = subtotal + shipping;
 
   const updateForm = (key, value) =>
@@ -97,7 +148,12 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
 
       let orderRes;
       try {
-        orderRes = await api.orders.createOrder(finalAddressId, form.paymentMethod);
+        orderRes = await api.orders.createOrder({
+          addressId: finalAddressId,
+          paymentMethod: form.paymentMethod,
+          shippingCharge: shipping,
+          courierName: activeRate?.courierName || (form.deliveryMethod === "express" ? "Express Delivery" : "Standard Delivery"),
+        });
         if (!orderRes.success) {
           throw new Error(orderRes.message || "Failed to create order");
         }
@@ -141,7 +197,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
             paymentMethod: form.paymentMethod || "COD",
             shippingCharge: shipping,
             awbNumber: "AWB" + Math.floor(100000000 + Math.random() * 900000000),
-            courierName: "Delhivery",
+            courierName: activeRate?.courierName || (form.deliveryMethod === "express" ? "Express Delivery" : "Delhivery"),
             shipmentStatus: "Processing",
             trackingEvents: [
               {
@@ -255,7 +311,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
     );
   }
 
-  const selectedSavedAddress = addresses.find((a) => a.id === selectedAddressId);
+
 
   return (
     <div className="min-h-screen" style={{ background: "#FFFDF7" }}>
@@ -448,51 +504,89 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                       Delivery Method
                     </h2>
                     <div className="space-y-3">
-                      {[
-                        {
-                          value: "standard",
-                          label: "Standard Delivery",
-                          sub: "3–5 business days",
-                          price: subtotal > 499 ? "FREE" : "₹49",
-                        },
-                        {
-                          value: "express",
-                          label: "Express Delivery",
-                          sub: "1–2 business days",
-                          price: "₹99",
-                        },
-                      ].map((opt) => (
-                        <label
-                          key={opt.value}
-                          className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                            form.deliveryMethod === opt.value
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:border-primary/40"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="delivery"
-                            value={opt.value}
-                            checked={form.deliveryMethod === opt.value}
-                            onChange={(e) =>
-                              updateForm("deliveryMethod", e.target.value)
-                            }
-                            className="accent-primary"
-                          />
-                          <div className="flex-1">
-                            <p className="font-semibold text-sm">{opt.label}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {opt.sub}
-                            </p>
-                          </div>
-                          <span
-                            className={`font-bold text-sm ${opt.price === "FREE" ? "text-accent" : ""}`}
+                      {loadingRates ? (
+                        <div className="flex flex-col items-center justify-center py-6 text-center">
+                          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-2" />
+                          <p className="text-xs text-muted-foreground">Calculating delivery charges from backend...</p>
+                        </div>
+                      ) : shippingRates.length > 0 ? (
+                        shippingRates.map((opt) => (
+                          <label
+                            key={opt.courierId}
+                            className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                              form.deliveryMethod === opt.courierName
+                                ? "border-primary bg-primary/5"
+                                : "border-border hover:border-primary/40"
+                            }`}
                           >
-                            {opt.price}
-                          </span>
-                        </label>
-                      ))}
+                            <input
+                              type="radio"
+                              name="delivery"
+                              value={opt.courierName}
+                              checked={form.deliveryMethod === opt.courierName}
+                              onChange={(e) =>
+                                updateForm("deliveryMethod", e.target.value)
+                              }
+                              className="accent-primary"
+                            />
+                            <div className="flex-1">
+                              <p className="font-semibold text-sm">{opt.courierName}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Expected delivery: {opt.eta || "3-5 days"}
+                              </p>
+                            </div>
+                            <span className="font-bold text-sm">
+                              ₹{opt.rate}
+                            </span>
+                          </label>
+                        ))
+                      ) : (
+                        [
+                          {
+                            value: "standard",
+                            label: "Standard Delivery",
+                            sub: "3–5 business days",
+                            price: subtotal > 499 ? "FREE" : "₹49",
+                          },
+                          {
+                            value: "express",
+                            label: "Express Delivery",
+                            sub: "1–2 business days",
+                            price: "₹99",
+                          },
+                        ].map((opt) => (
+                          <label
+                            key={opt.value}
+                            className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                              form.deliveryMethod === opt.value
+                                ? "border-primary bg-primary/5"
+                                : "border-border hover:border-primary/40"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="delivery"
+                              value={opt.value}
+                              checked={form.deliveryMethod === opt.value}
+                              onChange={(e) =>
+                                updateForm("deliveryMethod", e.target.value)
+                              }
+                              className="accent-primary"
+                            />
+                            <div className="flex-1">
+                              <p className="font-semibold text-sm">{opt.label}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {opt.sub}
+                              </p>
+                            </div>
+                            <span
+                              className={`font-bold text-sm ${opt.price === "FREE" ? "text-accent" : ""}`}
+                            >
+                              {opt.price}
+                            </span>
+                          </label>
+                        ))
+                      )}
                     </div>
                   </motion.div>
                 )}

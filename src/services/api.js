@@ -367,6 +367,11 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+    getCustomerEstimate: (data) =>
+      request("/shipping/estimate", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
     generateLabel: (orderId) => request(`/admin/shipping/label/${orderId}`),
     savePickupAddress: (data) =>
       request("/admin/shipping/pickup/address", {
