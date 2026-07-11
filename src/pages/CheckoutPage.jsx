@@ -419,113 +419,13 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
     }
   };
 
-  if (qrPaymentOrder) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "#FFFDF7" }}>
-        <div className="bg-white rounded-3xl border border-border p-6 sm:p-8 max-w-md w-full shadow-xl">
-          <h2 className="text-2xl font-bold text-center mb-2" style={{ fontFamily: "Poppins, sans-serif" }}>
-            PhonePe QR / UPI Payment
-          </h2>
-          <p className="text-sm text-center text-muted-foreground mb-6">
-            Order ID: <strong>#{qrPaymentOrder.id}</strong> • Amount: <strong>₹{qrPaymentOrder.total}</strong>
-          </p>
-
-          <div className="bg-muted/30 rounded-2xl p-5 mb-6 text-center border border-border/50">
-            {loadingQr ? (
-              <div className="flex flex-col items-center justify-center py-6">
-                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-2" />
-                <p className="text-xs text-muted-foreground">Loading QR Code...</p>
-              </div>
-            ) : qrDetails ? (
-              <div>
-                <img
-                  src={qrDetails.qrImageUrl || "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=" + qrDetails.upiId}
-                  alt="UPI QR Code"
-                  className="w-44 h-44 mx-auto object-contain bg-white p-2 rounded-xl shadow-inner mb-4"
-                />
-                <p className="font-bold text-sm mb-1">{qrDetails.merchantName || "Lemon House"}</p>
-                <p className="text-xs text-muted-foreground select-all bg-muted py-1 px-3 rounded-lg inline-block font-mono">
-                  {qrDetails.upiId}
-                </p>
-              </div>
-            ) : (
-              <div>
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=lemonacademia.in@okaxis%26pn=Lemon%26am=${qrPaymentOrder.total}`}
-                  alt="Backup UPI QR Code"
-                  className="w-44 h-44 mx-auto object-contain bg-white p-2 rounded-xl shadow-inner mb-4"
-                />
-                <p className="font-bold text-sm mb-1">Lemon Academia</p>
-                <p className="text-xs text-muted-foreground select-all bg-muted py-1 px-3 rounded-lg inline-block font-mono">
-                  lemonacademia.in@okaxis
-                </p>
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground mt-4 leading-relaxed">
-              Open your UPI App (PhonePe, GPay, Paytm) and scan the QR code to pay <strong>₹{qrPaymentOrder.total}</strong>.
-            </p>
-          </div>
-
-          <form onSubmit={handleQrSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                Transaction ID / UTR (12 digits) *
-              </label>
-              <input
-                type="text"
-                required
-                maxLength={20}
-                placeholder="Enter 12-digit UPI Ref/UTR No."
-                value={qrForm.transactionId}
-                onChange={(e) => setQrForm({ ...qrForm, transactionId: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-border bg-muted/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                Payment Screenshot URL / Proof (Optional)
-              </label>
-              <input
-                type="text"
-                placeholder="Paste link to screenshot or proof"
-                value={qrForm.screenshot}
-                onChange={(e) => setQrForm({ ...qrForm, screenshot: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-border bg-muted/20 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-              />
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setQrPaymentOrder(null)}
-                className="flex-1 py-3 rounded-2xl text-sm font-semibold border border-border hover:bg-muted transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submittingQr}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold text-sm disabled:opacity-50"
-                style={{
-                  background: "linear-gradient(135deg, #2E7D32, #388e3c)",
-                }}
-              >
-                {submittingQr ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  "Confirm Payment"
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  }
+  const handleContinue = () => {
+    if (step === "payment" && form.paymentMethod === "upi" && !qrForm.transactionId) {
+      toast.error("Please enter the 12-digit UPI UTR/Transaction ID to proceed.");
+      return;
+    }
+    setStep(STEPS[stepIndex + 1].key);
+  };
 
   if (step === "confirmed") {
     return (
@@ -893,49 +793,109 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                         },
                         {
                           value: "upi",
-                          label: "UPI",
-                          sub: "Pay via GPay, PhonePe, Paytm",
+                          label: "PhonePe QR / UPI",
+                          sub: "Scan QR code to pay instantly",
                           icon: "📱",
                         },
-                        {
-                          value: "card",
-                          label: "Credit / Debit Card",
-                          sub: "Visa, Mastercard, RuPay",
-                          icon: "💳",
-                        },
-                        {
-                          value: "cod",
-                          label: "Cash on Delivery",
-                          sub: "Pay when you receive",
-                          icon: "💵",
-                        },
                       ].map((opt) => (
-                        <label
-                          key={opt.value}
-                          className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                            form.paymentMethod === opt.value
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:border-primary/40"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="payment"
-                            value={opt.value}
-                            checked={form.paymentMethod === opt.value}
-                            onChange={(e) =>
-                              updateForm("paymentMethod", e.target.value)
-                            }
-                            className="accent-primary"
-                          />
-                          <span className="text-xl">{opt.icon}</span>
-                          <div className="flex-1">
-                            <p className="font-semibold text-sm">{opt.label}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {opt.sub}
-                            </p>
-                          </div>
-                        </label>
+                        <div key={opt.value} className="space-y-3">
+                          <label
+                            className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                              form.paymentMethod === opt.value
+                                ? "border-primary bg-primary/5"
+                                : "border-border hover:border-primary/40"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="payment"
+                              value={opt.value}
+                              checked={form.paymentMethod === opt.value}
+                              onChange={(e) =>
+                                updateForm("paymentMethod", e.target.value)
+                              }
+                              className="accent-primary"
+                            />
+                            <span className="text-xl">{opt.icon}</span>
+                            <div className="flex-1">
+                              <p className="font-semibold text-sm">{opt.label}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {opt.sub}
+                              </p>
+                            </div>
+                          </label>
+
+                          {opt.value === "upi" && form.paymentMethod === "upi" && (
+                            <div className="border border-border/85 rounded-2xl p-5 bg-card/60 space-y-4 ml-6 transition-all duration-300 shadow-inner">
+                              <p className="text-xs font-semibold text-muted-foreground">
+                                Scan the QR code below to pay <strong>₹{total}</strong>:
+                              </p>
+
+                              <div className="bg-white rounded-xl p-4 text-center border border-border/40 max-w-[240px] mx-auto shadow-sm">
+                                {loadingQr ? (
+                                  <div className="flex flex-col items-center justify-center py-4">
+                                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mb-1" />
+                                    <p className="text-[10px] text-muted-foreground">Loading QR Code...</p>
+                                  </div>
+                                ) : qrDetails ? (
+                                  <div>
+                                    <img
+                                      src={qrDetails.qrImageUrl || "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=" + qrDetails.upiId}
+                                      alt="UPI QR Code"
+                                      className="w-40 h-40 mx-auto object-contain bg-white p-1 rounded-lg mb-2"
+                                    />
+                                    <p className="font-bold text-xs mb-0.5">{qrDetails.merchantName || "Lemon House"}</p>
+                                    <p className="text-[10px] text-muted-foreground select-all bg-muted py-0.5 px-2 rounded font-mono inline-block">
+                                      {qrDetails.upiId}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <img
+                                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=lemonacademia.in@okaxis%26pn=Lemon%26am=${total}`}
+                                      alt="Backup UPI QR Code"
+                                      className="w-40 h-40 mx-auto object-contain bg-white p-1 rounded-lg mb-2"
+                                    />
+                                    <p className="font-bold text-xs mb-0.5">Lemon Academia</p>
+                                    <p className="text-[10px] text-muted-foreground select-all bg-muted py-0.5 px-2 rounded font-mono inline-block">
+                                      lemonacademia.in@okaxis
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="space-y-3">
+                                <div>
+                                  <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                                    Transaction ID / UTR (12 digits) *
+                                  </label>
+                                  <input
+                                    type="text"
+                                    required
+                                    maxLength={20}
+                                    placeholder="Enter 12-digit UPI UTR"
+                                    value={qrForm.transactionId}
+                                    onChange={(e) => setQrForm({ ...qrForm, transactionId: e.target.value })}
+                                    className="w-full px-3 py-2 rounded-lg border border-border bg-muted/20 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                                    Payment Screenshot URL (Optional)
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="Link to screenshot or proof"
+                                    value={qrForm.screenshot}
+                                    onChange={(e) => setQrForm({ ...qrForm, screenshot: e.target.value })}
+                                    className="w-full px-3 py-2 rounded-lg border border-border bg-muted/20 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </motion.div>
@@ -1017,7 +977,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                 )}
                 {stepIndex < STEPS.length - 1 ? (
                   <button
-                    onClick={() => setStep(STEPS[stepIndex + 1].key)}
+                    onClick={handleContinue}
                     className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold text-sm"
                     style={{
                       background: "linear-gradient(135deg, #a61c9b, #d82a81)",
