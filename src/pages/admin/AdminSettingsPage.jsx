@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Settings, Save, Bell, Shield, Sliders, MapPin } from "lucide-react";
+import { Settings, Save, Bell, Sliders, MapPin } from "lucide-react";
 import { api } from "../../services/api";
 import { toast } from "sonner";
 
@@ -106,9 +106,6 @@ export function AdminSettingsPage() {
                 className="w-full px-3 py-2 rounded-xl border border-border text-sm bg-white"
               >
                 <option>INR (₹)</option>
-                <option>USD ($)</option>
-                <option>EUR (€)</option>
-                <option>GBP (£)</option>
               </select>
             </div>
           </div>
@@ -135,29 +132,7 @@ export function AdminSettingsPage() {
           </div>
         </div>
 
-        {/* Maintenance / Safety Section */}
-        <div className="bg-white rounded-2xl border border-border p-5 shadow-sm space-y-4">
-          <h2 className="text-sm font-bold flex items-center gap-2" style={{ fontFamily: "Poppins, sans-serif" }}>
-            <Shield className="w-4 h-4 text-primary" /> Maintenance & Control
-          </h2>
-          <div className="flex items-center justify-between pt-2">
-            <div>
-              <p className="text-xs font-semibold">Store Maintenance Mode</p>
-              <p className="text-[10px] text-muted-foreground max-w-sm mt-0.5">
-                Temporarily disable the store front-end for users. Admin dashboard access will remain active.
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={maintenance}
-                onChange={(e) => setMaintenance(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-            </label>
-          </div>
-        </div>
+
 
         {/* Action Button */}
         <div className="flex justify-end">
