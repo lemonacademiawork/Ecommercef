@@ -147,6 +147,9 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
     }
   }, [step]);
 
+  const activeRate = shippingRates.find(r => r.courierName === form.deliveryMethod);
+  const shipping = activeRate ? Number(activeRate.rate) : 0;
+
   const total = subtotal + shipping;
 
   const loadRazorpayScript = () => {
