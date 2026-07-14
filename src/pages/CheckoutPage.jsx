@@ -147,14 +147,6 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
     }
   }, [step]);
 
-  const activeRate = shippingRates.find(r => r.courierName === form.deliveryMethod);
-  const shipping = activeRate
-    ? Number(activeRate.rate)
-    : (form.deliveryMethod === "express"
-      ? 99
-      : (subtotal > 499 ? 0 : 49)
-    );
-
   const total = subtotal + shipping;
 
   const loadRazorpayScript = () => {
@@ -530,10 +522,10 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                 <div className="flex flex-col items-center">
                   <div
                     className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${done
-                        ? "bg-accent"
-                        : active
-                          ? "bg-primary"
-                          : "bg-muted border border-border"
+                      ? "bg-accent"
+                      : active
+                        ? "bg-primary"
+                        : "bg-muted border border-border"
                       }`}
                   >
                     {done ? (
@@ -610,8 +602,8 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                               <label
                                 key={addr.id}
                                 className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedAddressId === addr.id
-                                    ? "border-primary bg-primary/5"
-                                    : "border-border hover:border-primary/40"
+                                  ? "border-primary bg-primary/5"
+                                  : "border-border hover:border-primary/40"
                                   }`}
                               >
                                 <input
@@ -708,8 +700,8 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                           <label
                             key={opt.courierId}
                             className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${form.deliveryMethod === opt.courierName
-                                ? "border-primary bg-primary/5"
-                                : "border-border hover:border-primary/40"
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-primary/40"
                               }`}
                           >
                             <input
@@ -774,8 +766,8 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                         <div key={opt.value} className="space-y-3">
                           <label
                             className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${form.paymentMethod === opt.value
-                                ? "border-primary bg-primary/5"
-                                : "border-border hover:border-primary/40"
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-primary/40"
                               }`}
                           >
                             <input
