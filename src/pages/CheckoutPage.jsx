@@ -83,13 +83,30 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
               updateForm("deliveryMethod", res.data[0].courierName);
             }
           } else {
-            setShippingRates([]);
+            const fallbackRates = [
+              {
+                courierId: "fallback_standard",
+                courierName: "Standard Delivery",
+                rate: subtotal > 499 ? 0 : 49,
+                eta: "3–5 business days"
+              }
+            ];
+            setShippingRates(fallbackRates);
+            updateForm("deliveryMethod", fallbackRates[0].courierName);
           }
         })
         .catch((err) => {
           console.error("Failed to fetch shipping rates:", err);
-          setRatesError(err.message || "Failed to load shipping rates");
-          setShippingRates([]);
+          const fallbackRates = [
+            {
+              courierId: "fallback_standard",
+              courierName: "Standard Delivery",
+              rate: subtotal > 499 ? 0 : 49,
+              eta: "3–5 business days"
+            }
+          ];
+          setShippingRates(fallbackRates);
+          updateForm("deliveryMethod", fallbackRates[0].courierName);
         })
         .finally(() => {
           setLoadingRates(false);
