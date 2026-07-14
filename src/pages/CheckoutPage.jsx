@@ -59,8 +59,8 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
   const selectedSavedAddress = addresses.find((a) => a.id === selectedAddressId);
-  const destinationPincode = useSavedAddress && selectedSavedAddress 
-    ? selectedSavedAddress.pincode 
+  const destinationPincode = useSavedAddress && selectedSavedAddress
+    ? selectedSavedAddress.pincode
     : form.pincode;
 
   useEffect(() => {
@@ -131,12 +131,12 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
   }, [step]);
 
   const activeRate = shippingRates.find(r => r.courierName === form.deliveryMethod);
-  const shipping = activeRate 
-    ? Number(activeRate.rate) 
-    : (form.deliveryMethod === "express" 
-        ? 99 
-        : (subtotal > 499 ? 0 : 49)
-      );
+  const shipping = activeRate
+    ? Number(activeRate.rate)
+    : (form.deliveryMethod === "express"
+      ? 99
+      : (subtotal > 499 ? 0 : 49)
+    );
 
   const total = subtotal + shipping;
 
@@ -264,7 +264,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
       );
       if (res.success) {
         toast.success("Payment details submitted successfully!");
-        
+
         // Finalize order screen
         setConfirmedOrderTotal(qrPaymentOrder.total);
         try {
@@ -275,7 +275,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
         setConfirmedOrderId(qrPaymentOrder.id);
         setStep("confirmed");
         onOrderComplete();
-        
+
         // Confetti celebration
         try {
           confetti({
@@ -283,7 +283,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
             spread: 70,
             origin: { y: 0.6 }
           });
-        } catch (cErr) {}
+        } catch (cErr) { }
       } else {
         throw new Error(res.message || "Failed to submit payment details.");
       }
@@ -293,7 +293,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
       setConfirmedOrderTotal(qrPaymentOrder.total);
       try {
         await api.cart.clearCart();
-      } catch (cartErr) {}
+      } catch (cartErr) { }
       setConfirmedOrderId(qrPaymentOrder.id);
       setStep("confirmed");
       onOrderComplete();
@@ -512,13 +512,12 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
               <div key={s.key} className="flex items-center">
                 <div className="flex flex-col items-center">
                   <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-                      done
+                    className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${done
                         ? "bg-accent"
                         : active
                           ? "bg-primary"
                           : "bg-muted border border-border"
-                    }`}
+                      }`}
                   >
                     {done ? (
                       <Check className="w-4 h-4 text-white" />
@@ -593,11 +592,10 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                             {addresses.map((addr) => (
                               <label
                                 key={addr.id}
-                                className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                                  selectedAddressId === addr.id
+                                className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedAddressId === addr.id
                                     ? "border-primary bg-primary/5"
                                     : "border-border hover:border-primary/40"
-                                }`}
+                                  }`}
                               >
                                 <input
                                   type="radio"
@@ -692,11 +690,10 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                         shippingRates.map((opt) => (
                           <label
                             key={opt.courierId}
-                            className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                              form.deliveryMethod === opt.courierName
+                            className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${form.deliveryMethod === opt.courierName
                                 ? "border-primary bg-primary/5"
                                 : "border-border hover:border-primary/40"
-                            }`}
+                              }`}
                           >
                             <input
                               type="radio"
@@ -736,11 +733,10 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                         ].map((opt) => (
                           <label
                             key={opt.value}
-                            className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                              form.deliveryMethod === opt.value
+                            className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${form.deliveryMethod === opt.value
                                 ? "border-primary bg-primary/5"
                                 : "border-border hover:border-primary/40"
-                            }`}
+                              }`}
                           >
                             <input
                               type="radio"
@@ -800,11 +796,10 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                       ].map((opt) => (
                         <div key={opt.value} className="space-y-3">
                           <label
-                            className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                              form.paymentMethod === opt.value
+                            className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${form.paymentMethod === opt.value
                                 ? "border-primary bg-primary/5"
                                 : "border-border hover:border-primary/40"
-                            }`}
+                              }`}
                           >
                             <input
                               type="radio"
