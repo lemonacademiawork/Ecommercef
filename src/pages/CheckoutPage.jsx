@@ -717,50 +717,10 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                           </label>
                         ))
                       ) : (
-                        [
-                          {
-                            value: "standard",
-                            label: "Standard Delivery",
-                            sub: "3–5 business days",
-                            price: subtotal > 499 ? "FREE" : "₹49",
-                          },
-                          {
-                            value: "express",
-                            label: "Express Delivery",
-                            sub: "1–2 business days",
-                            price: "₹99",
-                          },
-                        ].map((opt) => (
-                          <label
-                            key={opt.value}
-                            className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${form.deliveryMethod === opt.value
-                                ? "border-primary bg-primary/5"
-                                : "border-border hover:border-primary/40"
-                              }`}
-                          >
-                            <input
-                              type="radio"
-                              name="delivery"
-                              value={opt.value}
-                              checked={form.deliveryMethod === opt.value}
-                              onChange={(e) =>
-                                updateForm("deliveryMethod", e.target.value)
-                              }
-                              className="accent-primary"
-                            />
-                            <div className="flex-1">
-                              <p className="font-semibold text-sm">{opt.label}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {opt.sub}
-                              </p>
-                            </div>
-                            <span
-                              className={`font-bold text-sm ${opt.price === "FREE" ? "text-accent" : ""}`}
-                            >
-                              {opt.price}
-                            </span>
-                          </label>
-                        ))
+                        <div className="text-center py-6 border-2 border-dashed border-border rounded-2xl">
+                          <p className="text-sm text-red-500 font-semibold mb-1">Could not load shipping rates</p>
+                          <p className="text-xs text-muted-foreground">{ratesError || "Please ensure your PIN code is correct or try again."}</p>
+                        </div>
                       )}
                     </div>
                   </motion.div>
