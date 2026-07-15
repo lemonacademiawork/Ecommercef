@@ -58,6 +58,14 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
   const stepIndex = STEPS.findIndex((s) => s.key === step);
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
+  // Calculate dynamic total weight based on items in the cart (default to 150g per item if weight is not specified)
+  const totalWeight = items.reduce((sum, item) => {
+    const itemWeight = (item.weight && item.weight > 0) ? Number(item.weight) : 150;
+    return sum + (itemWeight * item.quantity);
+  }, 0) || 500;
+
+  const totalWeightKg = (totalWeight / 1000).toFixed(2);
+
   const selectedSavedAddress = addresses.find((a) => a.id === selectedAddressId);
   const destinationPincode = useSavedAddress && selectedSavedAddress
     ? selectedSavedAddress.pincode
@@ -69,7 +77,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
       setRatesError("");
       api.shipping.getCustomerEstimate({
         destinationPincode: destinationPincode,
-        weight: 500,
+        weight: totalWeight,
         length: 10,
         breadth: 10,
         height: 10,
@@ -112,7 +120,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
           setLoadingRates(false);
         });
     }
-  }, [step, destinationPincode, subtotal]);
+  }, [step, destinationPincode, subtotal, totalWeight]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -171,6 +179,10 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
         shippingCharge: shipping,
         courierName: activeRate?.courierName || (form.deliveryMethod === "express" ? "Express Delivery" : "Standard Delivery"),
         transactionId: transactionId,
+        weight: totalWeight,
+        length: 10,
+        breadth: 10,
+        height: 10,
       });
       if (!orderRes.success) {
         throw new Error(orderRes.message || "Failed to create order");
@@ -396,6 +408,10 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
             paymentMethod: "upi",
             shippingCharge: shipping,
             courierName: activeRate?.courierName || (form.deliveryMethod === "express" ? "Express Delivery" : "Standard Delivery"),
+            weight: totalWeight,
+            length: 10,
+            breadth: 10,
+            height: 10,
           });
           if (!orderRes.success) {
             throw new Error(orderRes.message || "Failed to create order");
@@ -730,12 +746,17 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                   >
-                    <h2
-                      className="font-bold text-lg mb-5"
-                      style={{ fontFamily: "Poppins, sans-serif" }}
-                    >
-                      Delivery Method
-                    </h2>
+                    <div className="flex justify-between items-center mb-5">
+                      <h2
+                        className="font-bold text-lg"
+                        style={{ fontFamily: "Poppins, sans-serif" }}
+                      >
+                        Delivery Method
+                      </h2>
+                      <span className="text-xs font-semibold px-2.5 py-1 bg-muted rounded-full text-muted-foreground">
+                        Total Weight: {totalWeightKg} kg
+                      </span>
+                    </div>
                     <div className="space-y-3">
                       {loadingRates ? (
                         <div className="flex flex-col items-center justify-center py-6 text-center">
