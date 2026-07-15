@@ -432,6 +432,40 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
   };
 
   const handleContinue = () => {
+    if (step === "shipping") {
+      if (!useSavedAddress || addresses.length === 0) {
+        if (!form.name.trim()) {
+          toast.error("Please enter your full name.");
+          return;
+        }
+        if (!form.phone.trim()) {
+          toast.error("Please enter your phone number.");
+          return;
+        }
+        if (!form.address.trim()) {
+          toast.error("Please enter your shipping address.");
+          return;
+        }
+        if (!form.city.trim()) {
+          toast.error("Please enter your city.");
+          return;
+        }
+        if (!form.state.trim()) {
+          toast.error("Please enter your state.");
+          return;
+        }
+        if (!/^\d{6}$/.test(form.pincode)) {
+          toast.error("Please enter a valid 6-digit PIN code.");
+          return;
+        }
+      } else {
+        if (!selectedAddressId) {
+          toast.error("Please select a shipping address.");
+          return;
+        }
+      }
+    }
+
     if (step === "payment" && form.paymentMethod === "upi" && !qrForm.transactionId) {
       toast.error("Please enter the 12-digit UPI UTR/Transaction ID to proceed.");
       return;
@@ -669,7 +703,17 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                             <input
                               type={f.type}
                               value={form[f.key]}
-                              onChange={(e) => updateForm(f.key, e.target.value)}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (f.key === "pincode") {
+                                  if (/^\d*$/.test(val) && val.length <= 6) {
+                                    updateForm(f.key, val);
+                                  }
+                                } else {
+                                  updateForm(f.key, val);
+                                }
+                              }}
+                              maxLength={f.key === "pincode" ? 6 : undefined}
                               className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                             />
                           </div>
