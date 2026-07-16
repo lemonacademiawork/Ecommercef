@@ -93,11 +93,37 @@ export const mapCategoryData = (cat) => {
 
 export const mapProductData = (product) => {
   if (!product) return product;
+  
+  let parsedImages = [];
+  if (product.images) {
+    if (Array.isArray(product.images)) {
+      parsedImages = product.images;
+    } else if (typeof product.images === "string") {
+      try {
+        const parsed = JSON.parse(product.images);
+        if (Array.isArray(parsed)) {
+          parsedImages = parsed;
+        } else {
+          parsedImages = product.images.split(",").map((s) => s.trim());
+        }
+      } catch (err) {
+        parsedImages = product.images.split(",").map((s) => s.trim());
+      }
+    }
+  }
+
+  // Filter out any empty strings
+  parsedImages = parsedImages.filter(img => img && img.trim() !== "");
+
+  if (parsedImages.length === 0) {
+    parsedImages = [product.imageUrl || product.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&h=600&fit=crop&auto=format"];
+  }
+
   return {
     ...product,
     id: product.id,
-    image: product.imageUrl || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&h=600&fit=crop&auto=format",
-    images: product.images || [product.imageUrl || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&h=600&fit=crop&auto=format"],
+    image: product.imageUrl || parsedImages[0] || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&h=600&fit=crop&auto=format",
+    images: parsedImages,
     inStock: product.stock > 0,
     tags: product.tags || [],
     materials: product.materials || [],
