@@ -70,7 +70,7 @@ export function ProductDetailPage({
         if (res.success && res.data) {
           setProduct(res.data);
           setSelectedImage(0); // reset image index
-          
+
           // load related products
           const relatedRes = await api.products.listProducts();
           if (relatedRes.success && relatedRes.data) {
@@ -194,9 +194,8 @@ export function ProductDetailPage({
                         setDirection(i > selectedImage ? 1 : -1);
                         setSelectedImage(i);
                       }}
-                      className={`w-2 h-2 rounded-full transition-all ${
-                        selectedImage === i ? "bg-white scale-125" : "bg-white/50 hover:bg-white/80"
-                      }`}
+                      className={`w-2 h-2 rounded-full transition-all ${selectedImage === i ? "bg-white scale-125" : "bg-white/50 hover:bg-white/80"
+                        }`}
                     />
                   ))}
                 </div>
@@ -233,11 +232,10 @@ export function ProductDetailPage({
               {/* Wishlist */}
               <button
                 onClick={() => onToggleWishlist(product.id)}
-                className={`absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center transition-all z-10 ${
-                  wishlist.includes(product.id)
+                className={`absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center transition-all z-10 ${wishlist.includes(product.id)
                     ? "bg-primary text-white"
                     : "bg-white/90 text-foreground hover:bg-primary hover:text-white"
-                }`}
+                  }`}
               >
                 <Heart
                   className={`w-5 h-5 ${wishlist.includes(product.id) ? "fill-current" : ""}`}
@@ -255,11 +253,10 @@ export function ProductDetailPage({
                       setDirection(i > selectedImage ? 1 : -1);
                       setSelectedImage(i);
                     }}
-                    className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
-                      selectedImage === i
+                    className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${selectedImage === i
                         ? "border-primary"
                         : "border-border hover:border-primary/50"
-                    }`}
+                      }`}
                   >
                     <img
                       src={img}
@@ -370,16 +367,15 @@ export function ProductDetailPage({
                 whileTap={{ scale: 0.97 }}
                 onClick={handleAddToCart}
                 disabled={!product.inStock}
-                className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm transition-all ${
-                  addedToCart
+                className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm transition-all ${addedToCart
                     ? "bg-accent text-white"
                     : "text-white hover:opacity-90"
-                }`}
+                  }`}
                 style={
                   !addedToCart
                     ? {
-                        background: "linear-gradient(135deg, #a61c9b, #d82a81)",
-                      }
+                      background: "linear-gradient(135deg, #a61c9b, #d82a81)",
+                    }
                     : {}
                 }
               >
@@ -398,19 +394,6 @@ export function ProductDetailPage({
               </button>
             </div>
 
-            {/* Delivery Info */}
-            <div className="space-y-2.5 mb-6 bg-card rounded-2xl border border-border/60 p-4 transition-colors duration-300">
-              <div className="flex items-center gap-3 text-sm">
-                <Truck className="w-4 h-4 text-primary flex-shrink-0" />
-                <span>
-                  Free delivery on orders above <strong>₹499</strong>
-                </span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <Shield className="w-4 h-4 text-primary flex-shrink-0" />
-                <span>7-day easy returns & exchange</span>
-              </div>
-            </div>
 
             {/* Tags */}
             <div className="flex flex-wrap gap-2">
@@ -426,118 +409,46 @@ export function ProductDetailPage({
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-card rounded-2xl border border-border/60 overflow-hidden mb-12 transition-colors duration-300">
-          <div className="flex border-b border-border">
-            {["description", "materials", "reviews"].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-4 text-sm font-semibold capitalize transition-all relative ${
-                  activeTab === tab
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {tab === "reviews"
-                  ? `Reviews (${product.reviews})`
-                  : tab.charAt(0).toUpperCase() + tab.slice(1)}
-                {activeTab === tab && (
-                  <motion.div
-                    layoutId="tab-indicator"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-                  />
-                )}
-              </button>
-            ))}
-          </div>
-
-          <div className="p-6">
-            {activeTab === "description" && (
-              <div className="space-y-4">
-                <p className="text-foreground/70 leading-relaxed whitespace-pre-line">
-                  {product.description}
-                </p>
-                {(product.weight || product.length || product.breadth || product.height) && (
-                  <div className="pt-5 border-t border-border/60">
-                    <h4 className="font-bold text-sm mb-3 text-foreground" style={{ fontFamily: "Poppins, sans-serif" }}>
-                      Product Specifications
-                    </h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-muted/30 p-4 rounded-2xl text-xs">
-                      {product.weight ? (
-                        <div>
-                          <span className="text-muted-foreground block mb-0.5">Weight</span>
-                          <span className="font-semibold text-foreground">{product.weight} g</span>
-                        </div>
-                      ) : null}
-                      {product.length ? (
-                        <div>
-                          <span className="text-muted-foreground block mb-0.5">Length</span>
-                          <span className="font-semibold text-foreground">{product.length} cm</span>
-                        </div>
-                      ) : null}
-                      {product.breadth ? (
-                        <div>
-                          <span className="text-muted-foreground block mb-0.5">Breadth</span>
-                          <span className="font-semibold text-foreground">{product.breadth} cm</span>
-                        </div>
-                      ) : null}
-                      {product.height ? (
-                        <div>
-                          <span className="text-muted-foreground block mb-0.5">Height</span>
-                          <span className="font-semibold text-foreground">{product.height} cm</span>
-                        </div>
-                      ) : null}
+        {/* Description & Specifications */}
+        <div className="bg-card rounded-2xl border border-border/60 p-6 mb-12 transition-colors duration-300">
+          <div className="space-y-4">
+            <h3 className="font-bold text-base text-foreground" style={{ fontFamily: "Poppins, sans-serif" }}>
+              Description
+            </h3>
+            <p className="text-foreground/70 leading-relaxed whitespace-pre-line text-sm">
+              {product.description}
+            </p>
+            {(product.weight || product.length || product.breadth || product.height) && (
+              <div className="pt-5 border-t border-border/60">
+                <h4 className="font-bold text-sm mb-3 text-foreground" style={{ fontFamily: "Poppins, sans-serif" }}>
+                  Product Specifications
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-muted/30 p-4 rounded-2xl text-xs">
+                  {product.weight ? (
+                    <div>
+                      <span className="text-muted-foreground block mb-0.5">Weight</span>
+                      <span className="font-semibold text-foreground">{product.weight} g</span>
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
-            {activeTab === "materials" && (
-              <ul className="space-y-2">
-                {product.materials.map((m, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
-                    {m}
-                  </li>
-                ))}
-              </ul>
-            )}
-            {activeTab === "reviews" && (
-              <div className="space-y-5">
-                {REVIEWS.slice(0, 3).map((review) => (
-                  <div
-                    key={review.id}
-                    className="flex gap-4 pb-5 border-b border-border last:border-0"
-                  >
-                    <img
-                      src={review.avatar}
-                      alt={review.author}
-                      className="w-10 h-10 rounded-full object-cover flex-shrink-0 bg-muted"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-semibold text-sm">
-                          {review.author}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {review.date}
-                        </span>
-                      </div>
-                      <div className="flex mb-2">
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <Star
-                            key={s}
-                            className={`w-3.5 h-3.5 ${s <= review.rating ? "text-secondary fill-current" : "text-muted-foreground"}`}
-                          />
-                        ))}
-                      </div>
-                      <p className="text-sm text-foreground/70">
-                        {review.comment}
-                      </p>
+                  ) : null}
+                  {product.length ? (
+                    <div>
+                      <span className="text-muted-foreground block mb-0.5">Length</span>
+                      <span className="font-semibold text-foreground">{product.length} cm</span>
                     </div>
-                  </div>
-                ))}
+                  ) : null}
+                  {product.breadth ? (
+                    <div>
+                      <span className="text-muted-foreground block mb-0.5">Breadth</span>
+                      <span className="font-semibold text-foreground">{product.breadth} cm</span>
+                    </div>
+                  ) : null}
+                  {product.height ? (
+                    <div>
+                      <span className="text-muted-foreground block mb-0.5">Height</span>
+                      <span className="font-semibold text-foreground">{product.height} cm</span>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             )}
           </div>
