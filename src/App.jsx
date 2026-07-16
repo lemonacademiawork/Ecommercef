@@ -321,6 +321,9 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    const role = localStorage.getItem("role");
+    const isAdminUser = role === "ADMIN" || role === "ROLE_ADMIN" || location.pathname.startsWith("/admin");
+
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("user");
@@ -331,7 +334,12 @@ export default function App() {
     setIsAdmin(false);
     setUser(null);
     setCartItems([]);
-    navigate("home");
+
+    if (isAdminUser) {
+      reactNavigator("/admin/login");
+    } else {
+      navigate("home");
+    }
     toast.info("You've been signed out.");
   };
 

@@ -165,7 +165,9 @@ export function Navbar({
                       className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-zinc-950 rounded-2xl border border-border shadow-xl overflow-hidden z-50"
                     >
                       <div className="p-3 border-b border-border">
-                        <p className="text-sm font-semibold">{user?.name || "User"}</p>
+                        <p className="text-sm font-semibold">
+                          {user?.name === "default admin" || user?.name === "admin" ? "Administrator" : (user?.name || "User")}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           {user?.email || ""}
                         </p>
