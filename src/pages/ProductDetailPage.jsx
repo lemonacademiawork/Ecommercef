@@ -396,7 +396,7 @@ export function ProductDetailPage({
 
 
             {/* Tags */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 mb-6">
               {product.tags.map((tag) => (
                 <span
                   key={tag}
@@ -406,51 +406,51 @@ export function ProductDetailPage({
                 </span>
               ))}
             </div>
-          </div>
-        </div>
 
-        {/* Description & Specifications */}
-        <div className="bg-card rounded-2xl border border-border/60 p-6 mb-12 transition-colors duration-300">
-          <div className="space-y-4">
-            <h3 className="font-bold text-base text-foreground" style={{ fontFamily: "Poppins, sans-serif" }}>
-              Description
-            </h3>
-            <p className="text-foreground/70 leading-relaxed whitespace-pre-line text-sm">
-              {product.description}
-            </p>
-            {(product.weight || product.length || product.breadth || product.height) && (
-              <div className="pt-5 border-t border-border/60">
-                <h4 className="font-bold text-sm mb-3 text-foreground" style={{ fontFamily: "Poppins, sans-serif" }}>
-                  Product Specifications
-                </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-muted/30 p-4 rounded-2xl text-xs">
-                  {product.weight ? (
-                    <div>
-                      <span className="text-muted-foreground block mb-0.5">Weight</span>
-                      <span className="font-semibold text-foreground">{product.weight} g</span>
+            {/* Description & Specifications */}
+            <div className="bg-card rounded-2xl border border-border/60 p-5 transition-colors duration-300">
+              <div className="space-y-3">
+                <h3 className="font-bold text-sm text-foreground" style={{ fontFamily: "Poppins, sans-serif" }}>
+                  Description
+                </h3>
+                <p className="text-foreground/70 leading-relaxed whitespace-pre-line text-xs">
+                  {product.description}
+                </p>
+                {(product.weight || product.length || product.breadth || product.height) && (
+                  <div className="pt-4 border-t border-border/60">
+                    <h4 className="font-bold text-xs mb-2 text-foreground" style={{ fontFamily: "Poppins, sans-serif" }}>
+                      Product Specifications
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3 bg-muted/30 p-3 rounded-xl text-[10px]">
+                      {product.weight ? (
+                        <div>
+                          <span className="text-muted-foreground block mb-0.5">Weight</span>
+                          <span className="font-semibold text-foreground">{product.weight} g</span>
+                        </div>
+                      ) : null}
+                      {product.length ? (
+                        <div>
+                          <span className="text-muted-foreground block mb-0.5">Length</span>
+                          <span className="font-semibold text-foreground">{product.length} cm</span>
+                        </div>
+                      ) : null}
+                      {product.breadth ? (
+                        <div>
+                          <span className="text-muted-foreground block mb-0.5">Breadth</span>
+                          <span className="font-semibold text-foreground">{product.breadth} cm</span>
+                        </div>
+                      ) : null}
+                      {product.height ? (
+                        <div>
+                          <span className="text-muted-foreground block mb-0.5">Height</span>
+                          <span className="font-semibold text-foreground">{product.height} cm</span>
+                        </div>
+                      ) : null}
                     </div>
-                  ) : null}
-                  {product.length ? (
-                    <div>
-                      <span className="text-muted-foreground block mb-0.5">Length</span>
-                      <span className="font-semibold text-foreground">{product.length} cm</span>
-                    </div>
-                  ) : null}
-                  {product.breadth ? (
-                    <div>
-                      <span className="text-muted-foreground block mb-0.5">Breadth</span>
-                      <span className="font-semibold text-foreground">{product.breadth} cm</span>
-                    </div>
-                  ) : null}
-                  {product.height ? (
-                    <div>
-                      <span className="text-muted-foreground block mb-0.5">Height</span>
-                      <span className="font-semibold text-foreground">{product.height} cm</span>
-                    </div>
-                  ) : null}
-                </div>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
 
