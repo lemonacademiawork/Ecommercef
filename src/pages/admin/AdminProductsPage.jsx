@@ -17,6 +17,7 @@ export function AdminProductsPage() {
     price: "",
     stock: "",
     imageUrl: "",
+    images: ["", "", "", ""],
     active: true,
     categoryId: "",
     weight: "",
@@ -54,12 +55,14 @@ export function AdminProductsPage() {
   const handleProductSubmit = async (e) => {
     e.preventDefault();
     try {
+      const firstImage = productForm.images.find(img => img !== "") || productForm.imageUrl || "";
       const payload = {
         name: productForm.name,
         description: productForm.description,
         price: Number(productForm.price),
         stock: Number(productForm.stock),
-        imageUrl: productForm.imageUrl,
+        imageUrl: firstImage,
+        images: productForm.images.filter(img => img !== ""),
         active: productForm.active,
         categoryId: productForm.categoryId,
         weight: productForm.weight !== "" ? Number(productForm.weight) : null,
@@ -84,6 +87,7 @@ export function AdminProductsPage() {
           price: "",
           stock: "",
           imageUrl: "",
+          images: ["", "", "", ""],
           active: true,
           categoryId: categories[0]?.id || "",
           weight: "",
@@ -102,12 +106,23 @@ export function AdminProductsPage() {
 
   const handleEditProductClick = (product) => {
     setEditProduct(product);
+    let existingImages = product.images || [];
+    if (!Array.isArray(existingImages)) {
+      existingImages = [product.imageUrl || product.image || ""];
+    }
+    const paddedImages = [...existingImages];
+    while (paddedImages.length < 4) {
+      paddedImages.push("");
+    }
+    const imagesToUse = paddedImages.slice(0, 4);
+
     setProductForm({
       name: product.name,
       description: product.description || "",
       price: product.price,
       stock: product.stock || 0,
       imageUrl: product.imageUrl || product.image || "",
+      images: imagesToUse,
       active: product.active !== undefined ? product.active : true,
       categoryId: product.categoryId || (categories[0]?.id || ""),
       weight: product.weight !== undefined && product.weight !== null ? product.weight : "",
@@ -129,17 +144,37 @@ export function AdminProductsPage() {
     }
   };
 
-  const handleImageUpload = async (e) => {
+  const handleSlotImageUpload = async (e, index) => {
     const file = e.target.files[0];
     if (!file) return;
     try {
       const res = await api.admin.uploadImage(file);
       if (res.success && res.data) {
-        setProductForm((prev) => ({ ...prev, imageUrl: res.data.imageUrl }));
+        setProductForm((prev) => {
+          const updatedImages = [...prev.images];
+          updatedImages[index] = res.data.imageUrl;
+          return {
+            ...prev,
+            images: updatedImages,
+          };
+        });
+        toast.success(`Slot ${index + 1} image uploaded successfully!`);
       }
     } catch (err) {
       console.error("Image upload failed: " + err.message);
+      toast.error("Failed to upload image");
     }
+  };
+
+  const removeSlotImage = (index) => {
+    setProductForm((prev) => {
+      const updatedImages = [...prev.images];
+      updatedImages[index] = "";
+      return {
+        ...prev,
+        images: updatedImages,
+      };
+    });
   };
 
   if (loading) {
@@ -171,6 +206,7 @@ export function AdminProductsPage() {
               price: "",
               stock: "",
               imageUrl: "",
+              images: ["", "", "", ""],
               active: true,
               categoryId: categories[0]?.id || "",
               weight: "",
@@ -295,32 +331,66 @@ export function AdminProductsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1">Product Image</label>
-                <div className="flex gap-3 items-center">
-                  <input
-                    type="text"
-                    placeholder="Image URL"
-                    value={productForm.imageUrl}
-                    onChange={(e) => setProductForm({ ...productForm, imageUrl: e.target.value })}
-                    className="flex-1 px-3 py-2 rounded-xl border border-border text-sm"
-                  />
-                  <label className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border hover:bg-muted text-xs font-semibold cursor-pointer">
-                    <Upload className="w-3.5 h-3.5" /> Upload
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                  </label>
+                <label className="block text-xs font-semibold mb-2">Product Images (4 Sides)</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: "Front View (Main)", index: 0 },
+                    { label: "Back View", index: 1 },
+                    { label: "Side View", index: 2 },
+                    { label: "Top/Detail View", index: 3 },
+                  ].map(({ label, index }) => {
+                    const imgUrl = productForm.images[index];
+                    return (
+                      <div key={index} className="border border-border rounded-xl p-2.5 bg-muted/20 relative flex flex-col justify-between min-h-[140px]">
+                        <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">{label}</span>
+                        {imgUrl ? (
+                          <div className="relative group rounded-lg overflow-hidden flex-1 bg-black/5 min-h-[80px]">
+                            <img
+                              src={imgUrl}
+                              alt={label}
+                              className="w-full h-full object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeSlotImage(index)}
+                              className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 transition-colors z-10 cursor-pointer"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-primary/50 rounded-lg p-2 transition-colors cursor-pointer bg-white relative min-h-[80px]">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleSlotImageUpload(e, index)}
+                              className="absolute inset-0 opacity-0 cursor-pointer"
+                            />
+                            <Upload className="w-5 h-5 text-muted-foreground mb-1" />
+                            <span className="text-[10px] text-muted-foreground font-semibold">Upload Photo</span>
+                          </div>
+                        )}
+                        <input
+                          type="text"
+                          placeholder="Or paste URL..."
+                          value={imgUrl || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setProductForm((prev) => {
+                              const updatedImages = [...prev.images];
+                              updatedImages[index] = val;
+                              return {
+                                ...prev,
+                                images: updatedImages,
+                              };
+                            });
+                          }}
+                          className="w-full mt-1.5 px-2 py-1 rounded-lg border border-border text-[10px] bg-white"
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
-                {productForm.imageUrl && (
-                  <img
-                    src={productForm.imageUrl}
-                    alt="preview"
-                    className="w-16 h-16 object-cover rounded-lg mt-2 border border-border"
-                  />
-                )}
               </div>
               <div className="flex items-center gap-2">
                 <input
