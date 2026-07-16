@@ -9,11 +9,30 @@ import {
   Shield,
   Truck,
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { REVIEWS } from "../data";
 import { ProductCard } from "../components/ProductCard";
 import { api } from "../services/api";
+
+const slideVariants = {
+  enter: (direction) => ({
+    x: direction > 0 ? 300 : -300,
+    opacity: 0,
+  }),
+  center: {
+    zIndex: 1,
+    x: 0,
+    opacity: 1,
+  },
+  exit: (direction) => ({
+    zIndex: 0,
+    x: direction < 0 ? 300 : -300,
+    opacity: 0,
+  }),
+};
 
 export function ProductDetailPage({
   productId,
@@ -26,9 +45,22 @@ export function ProductDetailPage({
   const [related, setRelated] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [direction, setDirection] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("description");
   const [addedToCart, setAddedToCart] = useState(false);
+
+  const handleNextImage = () => {
+    if (!product || !product.images || product.images.length <= 1) return;
+    setDirection(1);
+    setSelectedImage((prev) => (prev + 1) % product.images.length);
+  };
+
+  const handlePrevImage = () => {
+    if (!product || !product.images || product.images.length <= 1) return;
+    setDirection(-1);
+    setSelectedImage((prev) => (prev - 1 + product.images.length) % product.images.length);
+  };
 
   useEffect(() => {
     async function loadProduct() {
@@ -108,20 +140,70 @@ export function ProductDetailPage({
           {/* Images */}
           <div className="space-y-3">
             <div className="relative aspect-square rounded-2xl overflow-hidden bg-card border border-border/60 group transition-colors duration-300">
-              <AnimatePresence mode="wait">
-                <motion.img
-                  key={selectedImage}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  src={product.images[selectedImage] || product.image}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
-              </AnimatePresence>
+              <div className="w-full h-full relative overflow-hidden">
+                <AnimatePresence initial={false} custom={direction}>
+                  <motion.img
+                    key={selectedImage}
+                    src={product.images[selectedImage] || product.image}
+                    custom={direction}
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{
+                      x: { type: "spring", stiffness: 300, damping: 30 },
+                      opacity: { duration: 0.2 },
+                    }}
+                    alt={product.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                </AnimatePresence>
+              </div>
+
+              {/* Navigation Arrows */}
+              {product.images && product.images.length > 1 && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePrevImage();
+                    }}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white text-foreground flex items-center justify-center shadow-md transition-all z-10 hover:scale-105 cursor-pointer"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleNextImage();
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white text-foreground flex items-center justify-center shadow-md transition-all z-10 hover:scale-105 cursor-pointer"
+                  >
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                </>
+              )}
+
+              {/* Dots / Indicators */}
+              {product.images && product.images.length > 1 && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 bg-black/30 px-3 py-1.5 rounded-full backdrop-blur-sm">
+                  {product.images.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setDirection(i > selectedImage ? 1 : -1);
+                        setSelectedImage(i);
+                      }}
+                      className={`w-2 h-2 rounded-full transition-all ${
+                        selectedImage === i ? "bg-white scale-125" : "bg-white/50 hover:bg-white/80"
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
 
               {/* Badges */}
-              <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+              <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
                 {product.isBestSeller && (
                   <span
                     className="px-2.5 py-1 text-xs font-semibold rounded-full text-white"
@@ -151,7 +233,7 @@ export function ProductDetailPage({
               {/* Wishlist */}
               <button
                 onClick={() => onToggleWishlist(product.id)}
-                className={`absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                className={`absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center transition-all z-10 ${
                   wishlist.includes(product.id)
                     ? "bg-primary text-white"
                     : "bg-white/90 text-foreground hover:bg-primary hover:text-white"
@@ -164,12 +246,15 @@ export function ProductDetailPage({
             </div>
 
             {/* Thumbnails */}
-            {product.images.length > 1 && (
+            {product.images && product.images.length > 1 && (
               <div className="flex gap-2">
                 {product.images.map((img, i) => (
                   <button
                     key={i}
-                    onClick={() => setSelectedImage(i)}
+                    onClick={() => {
+                      setDirection(i > selectedImage ? 1 : -1);
+                      setSelectedImage(i);
+                    }}
                     className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
                       selectedImage === i
                         ? "border-primary"
