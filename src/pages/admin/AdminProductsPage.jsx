@@ -56,13 +56,17 @@ export function AdminProductsPage() {
     e.preventDefault();
     try {
       const firstImage = productForm.images.find(img => img !== "") || productForm.imageUrl || "";
+      const extraImages = productForm.images.filter(img => img !== "");
+      const finalDescription = extraImages.length > 0 
+        ? `${productForm.description}\n\n[IMAGES:${extraImages.join(",")}]`
+        : productForm.description;
+
       const payload = {
         name: productForm.name,
-        description: productForm.description,
+        description: finalDescription,
         price: Number(productForm.price),
         stock: Number(productForm.stock),
         imageUrl: firstImage,
-        images: productForm.images.filter(img => img !== ""),
         active: productForm.active,
         categoryId: productForm.categoryId,
         weight: productForm.weight !== "" ? Number(productForm.weight) : null,

@@ -94,8 +94,19 @@ export const mapCategoryData = (cat) => {
 export const mapProductData = (product) => {
   if (!product) return product;
   
+  let desc = product.description || "";
   let parsedImages = [];
-  if (product.images) {
+
+  // Extract images from description if present
+  const match = desc.match(/\[IMAGES:([\s\S]*?)\]/);
+  if (match) {
+    parsedImages = match[1].split(",").map(img => img.trim()).filter(Boolean);
+    // Remove the metadata from the description
+    desc = desc.replace(/\[IMAGES:[\s\S]*?\]/, "").trim();
+  }
+
+  // Fallback to product.images if it exists
+  if (parsedImages.length === 0 && product.images) {
     if (Array.isArray(product.images)) {
       parsedImages = product.images;
     } else if (typeof product.images === "string") {
@@ -122,6 +133,7 @@ export const mapProductData = (product) => {
   return {
     ...product,
     id: product.id,
+    description: desc,
     image: product.imageUrl || parsedImages[0] || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&h=600&fit=crop&auto=format",
     images: parsedImages,
     inStock: product.stock > 0,
