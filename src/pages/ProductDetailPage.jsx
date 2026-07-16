@@ -454,9 +454,44 @@ export function ProductDetailPage({
 
           <div className="p-6">
             {activeTab === "description" && (
-              <p className="text-foreground/70 leading-relaxed">
-                {product.description}
-              </p>
+              <div className="space-y-4">
+                <p className="text-foreground/70 leading-relaxed whitespace-pre-line">
+                  {product.description}
+                </p>
+                {(product.weight || product.length || product.breadth || product.height) && (
+                  <div className="pt-5 border-t border-border/60">
+                    <h4 className="font-bold text-sm mb-3 text-foreground" style={{ fontFamily: "Poppins, sans-serif" }}>
+                      Product Specifications
+                    </h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-muted/30 p-4 rounded-2xl text-xs">
+                      {product.weight ? (
+                        <div>
+                          <span className="text-muted-foreground block mb-0.5">Weight</span>
+                          <span className="font-semibold text-foreground">{product.weight} g</span>
+                        </div>
+                      ) : null}
+                      {product.length ? (
+                        <div>
+                          <span className="text-muted-foreground block mb-0.5">Length</span>
+                          <span className="font-semibold text-foreground">{product.length} cm</span>
+                        </div>
+                      ) : null}
+                      {product.breadth ? (
+                        <div>
+                          <span className="text-muted-foreground block mb-0.5">Breadth</span>
+                          <span className="font-semibold text-foreground">{product.breadth} cm</span>
+                        </div>
+                      ) : null}
+                      {product.height ? (
+                        <div>
+                          <span className="text-muted-foreground block mb-0.5">Height</span>
+                          <span className="font-semibold text-foreground">{product.height} cm</span>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
             {activeTab === "materials" && (
               <ul className="space-y-2">

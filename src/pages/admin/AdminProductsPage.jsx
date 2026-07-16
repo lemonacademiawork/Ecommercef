@@ -23,6 +23,7 @@ export function AdminProductsPage() {
     weight: "",
     length: "",
     breadth: "",
+    height: "",
   });
 
   const loadData = async () => {
@@ -72,6 +73,7 @@ export function AdminProductsPage() {
         weight: productForm.weight !== "" ? Number(productForm.weight) : null,
         length: productForm.length !== "" ? Number(productForm.length) : null,
         breadth: productForm.breadth !== "" ? Number(productForm.breadth) : null,
+        height: productForm.height !== "" ? Number(productForm.height) : null,
       };
 
       let res;
@@ -97,6 +99,7 @@ export function AdminProductsPage() {
           weight: "",
           length: "",
           breadth: "",
+          height: "",
         });
         loadData();
       } else {
@@ -132,6 +135,7 @@ export function AdminProductsPage() {
       weight: product.weight !== undefined && product.weight !== null ? product.weight : "",
       length: product.length !== undefined && product.length !== null ? product.length : "",
       breadth: product.breadth !== undefined && product.breadth !== null ? product.breadth : "",
+      height: product.height !== undefined && product.height !== null ? product.height : "",
     });
     setShowProductForm(true);
   };
@@ -288,7 +292,7 @@ export function AdminProductsPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <label className="block text-xs font-semibold mb-1">Weight (g)</label>
                   <input
@@ -316,6 +320,16 @@ export function AdminProductsPage() {
                     value={productForm.breadth}
                     onChange={(e) => setProductForm({ ...productForm, breadth: e.target.value })}
                     placeholder="e.g. 10"
+                    className="w-full px-3 py-2 rounded-xl border border-border text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Height (cm)</label>
+                  <input
+                    type="number"
+                    value={productForm.height}
+                    onChange={(e) => setProductForm({ ...productForm, height: e.target.value })}
+                    placeholder="e.g. 5"
                     className="w-full px-3 py-2 rounded-xl border border-border text-sm"
                   />
                 </div>

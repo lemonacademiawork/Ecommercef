@@ -71,6 +71,11 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
     ? selectedSavedAddress.pincode
     : form.pincode;
 
+  // Calculate dynamic package dimensions based on items
+  const packageLength = Math.max(...items.map((item) => Number(item.length) || 10));
+  const packageBreadth = Math.max(...items.map((item) => Number(item.breadth) || 10));
+  const packageHeight = items.reduce((sum, item) => sum + ((Number(item.height) || 2) * item.quantity), 0) || 10;
+
   useEffect(() => {
     if (step === "delivery" && destinationPincode) {
       setLoadingRates(true);
@@ -78,9 +83,9 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
       api.shipping.getCustomerEstimate({
         destinationPincode: destinationPincode,
         weight: totalWeight,
-        length: 10,
-        breadth: 10,
-        height: 10,
+        length: packageLength,
+        breadth: packageBreadth,
+        height: packageHeight,
         parcelValue: subtotal,
       })
         .then((res) => {
@@ -180,9 +185,9 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
         courierName: activeRate?.courierName || (form.deliveryMethod === "express" ? "Express Delivery" : "Standard Delivery"),
         transactionId: transactionId,
         weight: totalWeight,
-        length: 10,
-        breadth: 10,
-        height: 10,
+        length: packageLength,
+        breadth: packageBreadth,
+        height: packageHeight,
       });
       if (!orderRes.success) {
         throw new Error(orderRes.message || "Failed to create order");
@@ -409,9 +414,9 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
             shippingCharge: shipping,
             courierName: activeRate?.courierName || (form.deliveryMethod === "express" ? "Express Delivery" : "Standard Delivery"),
             weight: totalWeight,
-            length: 10,
-            breadth: 10,
-            height: 10,
+            length: packageLength,
+            breadth: packageBreadth,
+            height: packageHeight,
           });
           if (!orderRes.success) {
             throw new Error(orderRes.message || "Failed to create order");

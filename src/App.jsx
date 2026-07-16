@@ -188,6 +188,9 @@ export default function App() {
             image: item.product?.imageUrl || item.imageUrl || item.image || item.product?.image,
             quantity: item.quantity,
             weight: item.product?.weight || item.weight || 0,
+            length: item.product?.length || item.length || 0,
+            breadth: item.product?.breadth || item.breadth || 0,
+            height: item.product?.height || item.height || 0,
           }));
           setCartItems(mappedItems);
         }

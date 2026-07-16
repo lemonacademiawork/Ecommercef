@@ -247,7 +247,7 @@ export function LandingPage({
                     {cat.name}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {cat.count} items
+                    {products.filter(p => p.category?.toLowerCase() === cat.idString?.toLowerCase() || p.categoryId?.toString()?.toLowerCase() === cat.id?.toString()?.toLowerCase()).length} items
                   </p>
                 </div>
               </motion.button>
