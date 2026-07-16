@@ -176,22 +176,31 @@ export default function App() {
   }, []);
 
   const fetchCart = () => {
-    api.cart.getCart()
-      .then((res) => {
-        if (res.success && res.data) {
-          const items = res.data.items || res.data || [];
-          const mappedItems = items.map((item) => ({
-            id: item.product?.id || item.productId || item.id,
-            cartItemId: item.id || item.cartItemId,
-            name: item.product?.name || item.productName || item.name,
-            price: item.product?.price || item.price,
-            image: item.product?.imageUrl || item.imageUrl || item.image || item.product?.image,
-            quantity: item.quantity,
-            weight: item.product?.weight || item.weight || 0,
-            length: item.product?.length || item.length || 0,
-            breadth: item.product?.breadth || item.breadth || 0,
-            height: item.product?.height || item.height || 0,
-          }));
+    Promise.all([
+      api.cart.getCart(),
+      api.products.listProducts({ all: true }).catch(() => ({ success: false, data: [] }))
+    ])
+      .then(([cartRes, prodRes]) => {
+        if (cartRes.success && cartRes.data) {
+          const items = cartRes.data.items || cartRes.data || [];
+          const catalog = prodRes.success && prodRes.data ? prodRes.data : [];
+          
+          const mappedItems = items.map((item) => {
+            const prodId = item.product?.id || item.productId;
+            const catProd = catalog.find(p => p.id === prodId);
+            return {
+              id: prodId || item.id,
+              cartItemId: item.id || item.cartItemId,
+              name: item.product?.name || catProd?.name || item.productName || item.name,
+              price: item.product?.price || catProd?.price || item.price,
+              image: item.product?.imageUrl || catProd?.imageUrl || item.imageUrl || item.image || item.product?.image,
+              quantity: item.quantity,
+              weight: catProd?.weight || item.product?.weight || item.weight || 0,
+              length: catProd?.length || item.product?.length || item.length || 0,
+              breadth: catProd?.breadth || item.product?.breadth || item.breadth || 0,
+              height: catProd?.height || item.product?.height || item.height || 0,
+            };
+          });
           setCartItems(mappedItems);
         }
       })

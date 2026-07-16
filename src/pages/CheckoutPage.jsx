@@ -82,7 +82,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
       setRatesError("");
       api.shipping.getCustomerEstimate({
         destinationPincode: destinationPincode,
-        weight: totalWeight,
+        weight: totalWeight / 1000,
         length: packageLength,
         breadth: packageBreadth,
         height: packageHeight,
@@ -184,7 +184,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
         shippingCharge: shipping,
         courierName: activeRate?.courierName || (form.deliveryMethod === "express" ? "Express Delivery" : "Standard Delivery"),
         transactionId: transactionId,
-        weight: totalWeight,
+        weight: totalWeight / 1000,
         length: packageLength,
         breadth: packageBreadth,
         height: packageHeight,
@@ -413,7 +413,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
             paymentMethod: "upi",
             shippingCharge: shipping,
             courierName: activeRate?.courierName || (form.deliveryMethod === "express" ? "Express Delivery" : "Standard Delivery"),
-            weight: totalWeight,
+            weight: totalWeight / 1000,
             length: packageLength,
             breadth: packageBreadth,
             height: packageHeight,
