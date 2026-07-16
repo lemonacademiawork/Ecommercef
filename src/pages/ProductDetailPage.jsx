@@ -274,9 +274,11 @@ export function ProductDetailPage({
 
           {/* Info */}
           <div>
-            <p className="text-sm text-muted-foreground capitalize mb-2">
-              {product.category.replace("-", " ")}
-            </p>
+            {product.category && !/^[0-9a-fA-F-]{36}$/.test(product.category) && (
+              <p className="text-sm text-muted-foreground capitalize mb-2">
+                {product.category.replace("-", " ")}
+              </p>
+            )}
             <h1
               className="text-2xl sm:text-3xl font-bold mb-3 leading-tight"
               style={{ fontFamily: "Poppins, sans-serif" }}

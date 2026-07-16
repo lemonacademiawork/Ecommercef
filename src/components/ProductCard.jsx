@@ -88,9 +88,11 @@ export function ProductCard({
 
       {/* Info */}
       <div className="p-3">
-        <p className="text-xs text-muted-foreground capitalize mb-1">
-          {product.category}
-        </p>
+        {product.category && !/^[0-9a-fA-F-]{36}$/.test(product.category) && (
+          <p className="text-xs text-muted-foreground capitalize mb-1">
+            {product.category}
+          </p>
+        )}
         <h3 className="text-sm font-semibold line-clamp-2 leading-snug mb-2 group-hover:text-primary transition-colors">
           {product.name}
         </h3>
