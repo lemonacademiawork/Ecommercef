@@ -23,11 +23,17 @@ export function ShopPage({
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [priceRange, setPriceRange] = useState([0, 2000]);
+  const [priceRange, setPriceRange] = useState([0, 100000]);
   const [sortBy, setSortBy] = useState("popular");
   const [onlyInStock, setOnlyInStock] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [localSearch, setLocalSearch] = useState(searchQuery);
+
+  const maxProductPrice = useMemo(() => {
+    if (products.length === 0) return 2000;
+    const maxVal = Math.max(...products.map((p) => p.price || 0));
+    return maxVal > 2000 ? Math.ceil(maxVal / 1000) * 1000 : 2000;
+  }, [products]);
 
   useEffect(() => {
     async function loadData() {
@@ -66,9 +72,9 @@ export function ShopPage({
     if (selectedCategory !== "all") {
       list = list.filter(
         (p) =>
-          p.category === selectedCategory ||
-          p.categoryId?.toString() === selectedCategory.toString() ||
-          p.category?.toString() === selectedCategory.toString()
+          p.category?.toLowerCase() === selectedCategory.toLowerCase() ||
+          p.categoryId?.toString()?.toLowerCase() === selectedCategory.toString()?.toLowerCase() ||
+          p.category?.toString()?.toLowerCase() === selectedCategory.toString()?.toLowerCase()
       );
     }
     list = list.filter(
@@ -100,7 +106,7 @@ export function ShopPage({
 
   const activeFiltersCount = [
     selectedCategory !== "all",
-    priceRange[0] > 0 || priceRange[1] < 2000,
+    priceRange[0] > 0 || (priceRange[1] < 100000 && priceRange[1] < maxProductPrice),
     onlyInStock,
   ].filter(Boolean).length;
 
@@ -145,8 +151,8 @@ export function ShopPage({
               }`}
             >
               {cat.icon} {cat.name}
-              <span className="float-right text-xs text-muted-foreground">
-                {products.filter(p => p.category === cat.idString || p.categoryId?.toString() === cat.id?.toString()).length || cat.count}
+               <span className="float-right text-xs text-muted-foreground">
+                {products.filter(p => p.category?.toLowerCase() === cat.idString?.toLowerCase() || p.categoryId?.toString()?.toLowerCase() === cat.id?.toString()?.toLowerCase()).length || cat.count}
               </span>
             </button>
           ))}
@@ -160,8 +166,8 @@ export function ShopPage({
           <input
             type="range"
             min={0}
-            max={2000}
-            value={priceRange[1]}
+            max={maxProductPrice}
+            value={priceRange[1] > maxProductPrice ? maxProductPrice : priceRange[1]}
             onChange={(e) =>
               setPriceRange([priceRange[0], Number(e.target.value)])
             }
@@ -171,7 +177,7 @@ export function ShopPage({
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>₹0</span>
             <span className="font-semibold text-foreground">
-              ₹{priceRange[1]}
+              ₹{priceRange[1] > maxProductPrice ? maxProductPrice : priceRange[1]}
             </span>
           </div>
         </div>
