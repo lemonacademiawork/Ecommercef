@@ -1,4 +1,8 @@
-let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://ecommerce-b-production-70b5.up.railway.app";
+let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://ecommerce-b-production-70b5.up.railway.app/swagger-ui/index.html#/";
+
+// Clean Swagger UI paths if present to extract the base domain
+API_BASE_URL = API_BASE_URL.replace(/\/swagger-ui\/index\.html#\/?$/, "").replace(/\/swagger-ui\/?$/, "");
+
 // Ensure the base URL ends with /api to resolve endpoints correctly
 if (!API_BASE_URL.endsWith("/api") && !API_BASE_URL.endsWith("/api/")) {
   API_BASE_URL = API_BASE_URL.endsWith("/") ? `${API_BASE_URL}api` : `${API_BASE_URL}/api`;
