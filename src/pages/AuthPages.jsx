@@ -163,9 +163,7 @@ export function LoginPage({ navigate, onLogin }) {
 
   const handleGoogleLogin = () => {
     try {
-      let baseUrl = import.meta.env.VITE_API_BASE_URL || "https://ecommerce-b-production-70b5.up.railway.app/swagger-ui/index.html#/";
-      // Clean Swagger UI paths if present
-      baseUrl = baseUrl.replace(/\/swagger-ui\/index\.html#\/?$/, "").replace(/\/swagger-ui\/?$/, "");
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || "https://ecommerce-b-production-70b5.up.railway.app";
       // Clean base URL to get the host root (without /api or trailing slash)
       let cleanUrl = baseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
       const currentOrigin = window.location.origin;
