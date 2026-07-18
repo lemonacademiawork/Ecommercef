@@ -540,12 +540,12 @@ export function AdminOrdersPage() {
                       <div key={item.id} className="flex gap-3 justify-between items-start">
                         <div className="flex gap-2.5">
                           <img
-                            src={item.product?.imageUrl || item.product?.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format"}
-                            alt={item.product?.name || "Product"}
+                            src={item.product?.imageUrl || item.product?.image || item.imageUrl || item.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format"}
+                            alt={item.product?.name || item.productName || item.name || "Product"}
                             className="w-11 h-11 object-cover rounded-lg bg-muted flex-shrink-0 border border-border"
                           />
                           <div>
-                            <p className="text-xs font-bold text-foreground line-clamp-1">{item.product?.name || "Craft Item"}</p>
+                            <p className="text-xs font-bold text-foreground line-clamp-1">{item.product?.name || item.productName || item.name || "Craft Item"}</p>
                             <p className="text-xs text-muted-foreground mt-0.5">₹{item.price} × {item.quantity}</p>
                           </div>
                         </div>

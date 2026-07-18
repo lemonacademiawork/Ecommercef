@@ -321,53 +321,7 @@ export function LandingPage({
         </div>
       </section>
 
-      {/* Banner */}
-      <section className="py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div
-            className="rounded-3xl overflow-hidden relative p-8 sm:p-12"
-            style={{ background: "linear-gradient(135deg, #2E7D32, #388e3c)" }}
-          >
-            <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-10">
-              <div
-                className="w-full h-full"
-                style={{
-                  backgroundImage:
-                    "radial-gradient(circle, white 1px, transparent 1px)",
-                  backgroundSize: "20px 20px",
-                }}
-              />
-            </div>
-            <div className="relative z-10 max-w-lg">
-              <span className="text-white/70 text-sm font-medium uppercase tracking-wider">
-                Limited Time Offer
-              </span>
-              <h3
-                className="text-3xl sm:text-4xl font-bold text-white mt-2 mb-3"
-                style={{ fontFamily: "Poppins, sans-serif" }}
-              >
-                Complete Resin Starter Kit
-              </h3>
-              <p className="text-white/80 mb-6">
-                Get everything you need to start your resin art journey at 28%
-                off. Limited stock available!
-              </p>
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => navigate("product", "p9")}
-                  className="px-6 py-3 rounded-2xl bg-white font-semibold text-sm transition-all hover:bg-secondary"
-                  style={{ color: "#2E7D32" }}
-                >
-                  Shop Now – ₹1,299
-                </button>
-                <span className="text-white/60 text-sm line-through">
-                  ₹1,799
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+
 
       {/* New Arrivals */}
       <section className="py-16 bg-card transition-colors duration-300">

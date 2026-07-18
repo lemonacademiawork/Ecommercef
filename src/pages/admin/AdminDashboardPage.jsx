@@ -110,15 +110,16 @@ export function AdminDashboardPage() {
     // Exclude cancelled orders from dashboard metrics
     if (order.status === "Cancelled") return;
 
+    const amount = getOrderTotal(order);
+    calculatedTotalRevenue += amount;
+    calculatedTotalOrders += 1;
+
     const date = order.createdAt ? new Date(order.createdAt) : (order.date ? new Date(order.date) : null);
     if (date && date.getFullYear() === displayYear) {
       const monthIdx = date.getMonth();
       if (monthIdx >= 0 && monthIdx < 12) {
-        const amount = getOrderTotal(order);
         dynamicSalesData[monthIdx].revenue += amount;
         dynamicSalesData[monthIdx].orders += 1;
-        calculatedTotalRevenue += amount;
-        calculatedTotalOrders += 1;
       }
     }
   });

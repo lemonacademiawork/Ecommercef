@@ -138,11 +138,10 @@ export function AdminUsersPage() {
                         {user.name}
                         {user.role && (
                           <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
-                              user.role === "ADMIN" || user.role === "ROLE_ADMIN"
+                            className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${user.role === "ADMIN" || user.role === "ROLE_ADMIN"
                                 ? "bg-purple-100 text-purple-700"
                                 : "bg-gray-100 text-gray-600"
-                            }`}
+                              }`}
                           >
                             {user.role.replace("ROLE_", "")}
                           </span>
@@ -160,9 +159,8 @@ export function AdminUsersPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span
-                        className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                          isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
-                        }`}
+                        className={`text-xs px-2 py-0.5 rounded-full font-medium ${isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
+                          }`}
                       >
                         {isActive ? "Active" : "Inactive"}
                       </span>

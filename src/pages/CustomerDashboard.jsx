@@ -1034,12 +1034,12 @@ export function CustomerDashboard({
                     <div key={item.id} className="flex justify-between items-center gap-3 bg-muted/10 p-2.5 rounded-xl border border-border/50">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <img
-                          src={item.product?.imageUrl || item.product?.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format"}
-                          alt={item.product?.name || "Product"}
+                          src={item.product?.imageUrl || item.product?.image || item.imageUrl || item.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format"}
+                          alt={item.product?.name || item.productName || item.name || "Product"}
                           className="w-10 h-10 object-cover rounded-lg bg-muted flex-shrink-0 border border-border"
                         />
                         <div className="min-w-0">
-                          <p className="text-xs font-bold text-foreground truncate">{item.product?.name || "Craft Item"}</p>
+                          <p className="text-xs font-bold text-foreground truncate">{item.product?.name || item.productName || item.name || "Craft Item"}</p>
                           <p className="text-xs text-muted-foreground mt-0.5">₹{item.price} × {item.quantity}</p>
                         </div>
                       </div>
