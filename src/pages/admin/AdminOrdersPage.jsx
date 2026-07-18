@@ -11,6 +11,9 @@ const statusColors = {
 };
 
 const getOrderTotal = (order) => {
+  if (order?.items && Array.isArray(order.items) && order.items.length > 0) {
+    return order.items.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 0)), 0);
+  }
   const amount = Number(order?.totalAmount || order?.total || order?.amount || 0);
   if (amount === 0) return 0;
   if (order?.shippingCharge !== undefined && order?.shippingCharge !== null) {

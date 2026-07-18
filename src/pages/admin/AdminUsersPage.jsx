@@ -46,7 +46,7 @@ export function AdminUsersPage() {
       </h1>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {[
           {
             label: "Total Customers",
@@ -61,13 +61,6 @@ export function AdminUsersPage() {
             color: "#2E7D32",
             bg: "#E8F5E9",
             Icon: UserCheck,
-          },
-          {
-            label: "Registration Growth",
-            value: "+24% MoM",
-            color: "#E65100",
-            bg: "#FFF3E0",
-            Icon: Calendar,
           },
         ].map((kpi) => (
           <div
