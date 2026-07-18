@@ -9,6 +9,7 @@ export function CustomerLayout({
   cartItems,
   wishlistCount,
   isLoggedIn,
+  isAdmin,
   user,
   onCartOpen,
   onLogout,
@@ -25,7 +26,7 @@ export function CustomerLayout({
         cartItems={cartItems}
         wishlistCount={wishlistCount}
         isLoggedIn={isLoggedIn}
-        isAdmin={false} // Customer side has no Admin navigation
+        isAdmin={isAdmin}
         user={user}
         onCartOpen={onCartOpen}
         onLogout={onLogout}
@@ -59,7 +60,7 @@ export function CustomerLayout({
             <span>Shop</span>
           </button>
           <button
-            onClick={() => navigate("dashboard")}
+            onClick={() => navigate(isAdmin ? "admin" : "dashboard")}
             className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold transition-all cursor-pointer ${
               currentPage === "dashboard" ? "text-primary scale-105" : "text-foreground/60 hover:text-primary"
             }`}
@@ -80,13 +81,13 @@ export function CustomerLayout({
             )}
           </button>
           <button
-            onClick={() => navigate("dashboard")}
+            onClick={() => navigate(isAdmin ? "admin" : "dashboard")}
             className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold transition-all cursor-pointer ${
               currentPage === "dashboard" ? "text-primary scale-105" : "text-foreground/60 hover:text-primary"
             }`}
           >
             <User className="w-5 h-5" />
-            <span>Account</span>
+            <span>{isAdmin ? "Admin" : "Account"}</span>
           </button>
         </div>
       )}

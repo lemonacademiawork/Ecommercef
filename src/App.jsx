@@ -393,6 +393,7 @@ export default function App() {
               cartItems={cartItems}
               wishlistCount={wishlist.length}
               isLoggedIn={isLoggedIn}
+              isAdmin={isAdmin}
               user={user}
               onCartOpen={() => setCartOpen(true)}
               onLogout={handleLogout}
@@ -439,11 +440,15 @@ export default function App() {
             path="/checkout"
             element={
               isLoggedIn ? (
-                <CheckoutPage
-                  items={cartItems}
-                  navigate={navigate}
-                  onOrderComplete={handleOrderComplete}
-                />
+                isAdmin ? (
+                  <Navigate to="/admin/dashboard" replace />
+                ) : (
+                  <CheckoutPage
+                    items={cartItems}
+                    navigate={navigate}
+                    onOrderComplete={handleOrderComplete}
+                  />
+                )
               ) : (
                 <Navigate to="/login?redirect=checkout" replace />
               )
@@ -453,14 +458,18 @@ export default function App() {
             path="/dashboard"
             element={
               isLoggedIn ? (
-                <CustomerDashboard
-                  navigate={navigate}
-                  wishlist={wishlist}
-                  onToggleWishlist={handleToggleWishlist}
-                  onLogout={handleLogout}
-                  user={user}
-                  setUser={setUser}
-                />
+                isAdmin ? (
+                  <Navigate to="/admin/dashboard" replace />
+                ) : (
+                  <CustomerDashboard
+                    navigate={navigate}
+                    wishlist={wishlist}
+                    onToggleWishlist={handleToggleWishlist}
+                    onLogout={handleLogout}
+                    user={user}
+                    setUser={setUser}
+                  />
+                )
               ) : (
                 <Navigate to="/login?redirect=dashboard" replace />
               )
@@ -471,13 +480,40 @@ export default function App() {
         </Route>
 
         {/* Standalone Customer Auth */}
-        <Route path="/login" element={<LoginPage navigate={navigate} onLogin={handleLogin} />} />
-        <Route path="/register" element={<RegisterPage navigate={navigate} onLogin={handleLogin} />} />
+        <Route
+          path="/login"
+          element={
+            isLoggedIn ? (
+              <Navigate to={isAdmin ? "/admin/dashboard" : "/"} replace />
+            ) : (
+              <LoginPage navigate={navigate} onLogin={handleLogin} />
+            )
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            isLoggedIn ? (
+              <Navigate to={isAdmin ? "/admin/dashboard" : "/"} replace />
+            ) : (
+              <RegisterPage navigate={navigate} onLogin={handleLogin} />
+            )
+          }
+        />
         <Route path="/oauth-success" element={<OAuthSuccess onLogin={handleLogin} />} />
         <Route path="/oauth-failure" element={<OAuthFailure />} />
 
         {/* Standalone Admin Auth */}
-        <Route path="/admin/login" element={<AdminLoginPage onLogin={handleLogin} />} />
+        <Route
+          path="/admin/login"
+          element={
+            isLoggedIn && isAdmin ? (
+              <Navigate to="/admin/dashboard" replace />
+            ) : (
+              <AdminLoginPage onLogin={handleLogin} />
+            )
+          }
+        />
 
         {/* Protected Admin Routes with Layout */}
         <Route element={<AdminLayout isLoggedIn={isLoggedIn} isAdmin={isAdmin} onLogout={handleLogout} />}>

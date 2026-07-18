@@ -233,8 +233,8 @@ export function ProductDetailPage({
               <button
                 onClick={() => onToggleWishlist(product.id)}
                 className={`absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center transition-all z-10 ${wishlist.includes(product.id)
-                    ? "bg-primary text-white"
-                    : "bg-white/90 text-foreground hover:bg-primary hover:text-white"
+                  ? "bg-primary text-white"
+                  : "bg-white/90 text-foreground hover:bg-primary hover:text-white"
                   }`}
               >
                 <Heart
@@ -254,8 +254,8 @@ export function ProductDetailPage({
                       setSelectedImage(i);
                     }}
                     className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${selectedImage === i
-                        ? "border-primary"
-                        : "border-border hover:border-primary/50"
+                      ? "border-primary"
+                      : "border-border hover:border-primary/50"
                       }`}
                   >
                     <img
@@ -368,8 +368,8 @@ export function ProductDetailPage({
                 onClick={handleAddToCart}
                 disabled={!product.inStock}
                 className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm transition-all ${addedToCart
-                    ? "bg-accent text-white"
-                    : "text-white hover:opacity-90"
+                  ? "bg-accent text-white"
+                  : "text-white hover:opacity-90"
                   }`}
                 style={
                   !addedToCart

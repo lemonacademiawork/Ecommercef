@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   ChevronDown,
+  Sliders,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -114,7 +115,7 @@ export function Navbar({
 
             {/* Wishlist */}
             <button
-              onClick={() => navigate("dashboard")}
+              onClick={() => navigate(isAdmin ? "admin" : "dashboard")}
               className="relative p-2 rounded-xl hover:bg-muted transition-colors text-foreground/70"
             >
               <Heart className="w-5 h-5" />
@@ -173,24 +174,38 @@ export function Navbar({
                         </p>
                       </div>
                       <div className="py-1">
-                        <button
-                          onClick={() => {
-                            navigate("dashboard");
-                            setUserMenuOpen(false);
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
-                        >
-                          <Package className="w-4 h-4 text-primary" /> My Orders
-                        </button>
-                        <button
-                          onClick={() => {
-                            navigate("dashboard");
-                            setUserMenuOpen(false);
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
-                        >
-                          <Settings className="w-4 h-4 text-primary" /> Settings
-                        </button>
+                        {isAdmin ? (
+                          <button
+                            onClick={() => {
+                              navigate("admin");
+                              setUserMenuOpen(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors font-medium text-primary"
+                          >
+                            <Sliders className="w-4 h-4 text-primary" /> Admin Panel
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => {
+                                navigate("dashboard");
+                                setUserMenuOpen(false);
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
+                            >
+                              <Package className="w-4 h-4 text-primary" /> My Orders
+                            </button>
+                            <button
+                              onClick={() => {
+                                navigate("dashboard");
+                                setUserMenuOpen(false);
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
+                            >
+                              <Settings className="w-4 h-4 text-primary" /> Settings
+                            </button>
+                          </>
+                        )}
                         <button
                           onClick={() => {
                             onLogout();
