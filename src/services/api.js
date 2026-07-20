@@ -1,4 +1,4 @@
-let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://ecommerce-b-production-70b5.up.railway.app";
+let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://ecommerce-backend-861245237403.asia-south1.run.app";
 
 // Ensure the base URL ends with /api to resolve endpoints correctly
 if (!API_BASE_URL.endsWith("/api") && !API_BASE_URL.endsWith("/api/")) {
