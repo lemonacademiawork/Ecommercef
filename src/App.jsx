@@ -104,7 +104,7 @@ export default function App() {
     const role = localStorage.getItem("role");
     if (token) {
       // Direct session recovery for admins to avoid calling profile/cart endpoints
-      if (role === "ADMIN" || role === "ROLE_ADMIN") {
+      if (role && (role.toUpperCase() === "ADMIN" || role.toUpperCase() === "ROLE_ADMIN")) {
         try {
           const storedUserStr = localStorage.getItem("user");
           if (storedUserStr) {
@@ -138,8 +138,14 @@ export default function App() {
             const profileRole = res.data.role || (res.data.roles && res.data.roles[0]);
             const finalRole = profileRole || storedRole || "CUSTOMER";
 
-            const isUserAdmin = finalRole === "ADMIN" || finalRole === "ROLE_ADMIN" ||
-                                (res.data.roles && (res.data.roles.includes("ADMIN") || res.data.roles.includes("ROLE_ADMIN")));
+            const isUserAdmin = finalRole && (
+              finalRole.toUpperCase() === "ADMIN" || 
+              finalRole.toUpperCase() === "ROLE_ADMIN" ||
+              (res.data.roles && (
+                res.data.roles.map(r => r.toUpperCase()).includes("ADMIN") || 
+                res.data.roles.map(r => r.toUpperCase()).includes("ROLE_ADMIN")
+              ))
+            );
 
             const updatedUser = {
               ...res.data,
@@ -149,7 +155,7 @@ export default function App() {
 
             setUser(updatedUser);
             setIsLoggedIn(true);
-            setIsAdmin(isUserAdmin);
+            setIsAdmin(!!isUserAdmin);
             if (!isUserAdmin) {
               fetchCart();
             }
@@ -293,9 +299,12 @@ export default function App() {
   };
 
   const handleLogin = async (token, role, userProfile) => {
-    const isUserAdmin = role === "ADMIN" || role === "ROLE_ADMIN" || 
-                        userProfile.role === "ADMIN" || userProfile.role === "ROLE_ADMIN" || 
-                        (userProfile.roles && (userProfile.roles.includes("ADMIN") || userProfile.roles.includes("ROLE_ADMIN")));
+    const isUserAdmin = (role && (role.toUpperCase() === "ADMIN" || role.toUpperCase() === "ROLE_ADMIN")) || 
+                        (userProfile.role && (userProfile.role.toUpperCase() === "ADMIN" || userProfile.role.toUpperCase() === "ROLE_ADMIN")) || 
+                        (userProfile.roles && (
+                          userProfile.roles.map(r => r.toUpperCase()).includes("ADMIN") || 
+                          userProfile.roles.map(r => r.toUpperCase()).includes("ROLE_ADMIN")
+                        ));
 
     localStorage.setItem("token", token);
     localStorage.setItem("role", role);
@@ -303,7 +312,7 @@ export default function App() {
     localStorage.setItem("auth", JSON.stringify({ token, role, user: userProfile }));
 
     setIsLoggedIn(true);
-    setIsAdmin(isUserAdmin);
+    setIsAdmin(!!isUserAdmin);
     setUser(userProfile);
 
     // Sync guest cart to backend (only for non-admin customers)
@@ -334,7 +343,7 @@ export default function App() {
 
   const handleLogout = () => {
     const role = localStorage.getItem("role");
-    const isAdminUser = role === "ADMIN" || role === "ROLE_ADMIN" || location.pathname.startsWith("/admin");
+    const isAdminUser = (role && (role.toUpperCase() === "ADMIN" || role.toUpperCase() === "ROLE_ADMIN")) || location.pathname.startsWith("/admin");
 
     localStorage.removeItem("token");
     localStorage.removeItem("role");

@@ -21,7 +21,7 @@ export function AdminLayout({ isLoggedIn, isAdmin, onLogout }) {
   // Guard: check localStorage first to prevent flash redirects during session recovery
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
-  const isLocalStorageAdmin = role === "ADMIN" || role === "ROLE_ADMIN";
+  const isLocalStorageAdmin = role && (role.toUpperCase() === "ADMIN" || role.toUpperCase() === "ROLE_ADMIN");
 
   if (!token || !isLocalStorageAdmin) {
     return <Navigate to="/admin/login" replace state={{ from: location }} />;
