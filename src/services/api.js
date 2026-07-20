@@ -386,6 +386,33 @@ export const api = {
         body: formData,
       });
     },
+    // Payment management
+    approvePayment: (orderId) =>
+      request(`/admin/payments/${orderId}/approve`, {
+        method: "PUT",
+      }),
+    rejectPayment: (orderId) =>
+      request(`/admin/payments/${orderId}/reject`, {
+        method: "PUT",
+      }),
+    getPaymentDetails: (orderId) => request(`/admin/payments/${orderId}`),
+    getPendingPayments: () => request("/admin/payments/pending"),
+    // Variant management
+    getVariants: (productId) => request(`/admin/products/${productId}/variants`),
+    addVariant: (productId, data) =>
+      request(`/admin/products/${productId}/variants`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    updateVariant: (id, data) =>
+      request(`/admin/variants/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    deleteVariant: (id) =>
+      request(`/admin/variants/${id}`, {
+        method: "DELETE",
+      }),
   },
 
   shipping: {
