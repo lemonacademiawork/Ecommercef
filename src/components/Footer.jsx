@@ -95,6 +95,16 @@ export function Footer({ navigate }) {
                     </button>
                   </li>
                 ))}
+                <li>
+                  <a
+                    href="https://ecommerce-backend-861245237403.asia-south1.run.app/swagger-ui/index.html#/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-white/60 hover:text-white text-sm transition-colors inline-block"
+                  >
+                    API Docs
+                  </a>
+                </li>
               </ul>
             </div>
 

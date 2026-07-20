@@ -39,6 +39,7 @@ export function Navbar({
     { label: "Shop", page: "shop" },
     { label: "About", page: "about" },
     { label: "Contact", page: "contact" },
+    { label: "API Docs", href: "https://ecommerce-backend-861245237403.asia-south1.run.app/swagger-ui/index.html#/" },
   ];
 
   return (
@@ -73,19 +74,34 @@ export function Navbar({
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <button
-                key={link.page}
-                onClick={() => navigate(link.page)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  currentPage === link.page
-                    ? "bg-primary/10 text-primary"
-                    : "text-foreground/70 hover:text-foreground hover:bg-muted"
-                }`}
-              >
-                {link.label}
-              </button>
-            ))}
+            {navLinks.map((link) => {
+              if (link.href) {
+                return (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all text-foreground/70 hover:text-foreground hover:bg-muted"
+                  >
+                    {link.label}
+                  </a>
+                );
+              }
+              return (
+                <button
+                  key={link.page}
+                  onClick={() => navigate(link.page)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    currentPage === link.page
+                      ? "bg-primary/10 text-primary"
+                      : "text-foreground/70 hover:text-foreground hover:bg-muted"
+                  }`}
+                >
+                  {link.label}
+                </button>
+              );
+            })}
           </nav>
 
           {/* Search Bar (desktop) */}
@@ -282,22 +298,38 @@ export function Navbar({
               exit={{ height: 0, opacity: 0 }}
               className="md:hidden overflow-hidden border-t border-border pb-3 pt-2"
             >
-              {navLinks.map((link) => (
-                <button
-                  key={link.page}
-                  onClick={() => {
-                    navigate(link.page);
-                    setMobileOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                    currentPage === link.page
-                      ? "bg-primary/10 text-primary"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  {link.label}
-                </button>
-              ))}
+              {navLinks.map((link) => {
+                if (link.href) {
+                  return (
+                    <a
+                      key={link.label}
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block px-4 py-3 rounded-xl text-sm font-medium transition-all text-foreground/70 hover:text-foreground hover:bg-muted"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      {link.label}
+                    </a>
+                  );
+                }
+                return (
+                  <button
+                    key={link.page}
+                    onClick={() => {
+                      navigate(link.page);
+                      setMobileOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                      currentPage === link.page
+                        ? "bg-primary/10 text-primary"
+                        : "hover:bg-muted"
+                    }`}
+                  >
+                    {link.label}
+                  </button>
+                );
+              })}
               {!isLoggedIn && (
                 <button
                   onClick={() => {
