@@ -19,28 +19,15 @@ import { api } from "../../services/api";
 const getOrderTotal = (order) => {
   if (!order) return 0;
 
-  // If totalAmount / grandTotal / total is explicitly provided and greater than 0, use it
-  if (order.totalAmount !== undefined && order.totalAmount !== null && Number(order.totalAmount) > 0) {
-    return Number(order.totalAmount);
-  }
-  if (order.grandTotal !== undefined && order.grandTotal !== null && Number(order.grandTotal) > 0) {
-    return Number(order.grandTotal);
-  }
-  if (order.total !== undefined && order.total !== null && Number(order.total) > 0) {
-    return Number(order.total);
-  }
-
-  // Calculate items subtotal
+  // 1. Calculate items subtotal
   let itemsSubtotal = 0;
   if (order.items && Array.isArray(order.items) && order.items.length > 0) {
     itemsSubtotal = order.items.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 0)), 0);
   } else {
-    itemsSubtotal = Number(order.amount || 0);
+    itemsSubtotal = Number(order.subtotal || order.amount || 0);
   }
 
-  if (itemsSubtotal === 0) return 0;
-
-  // Calculate shipping charges
+  // 2. Determine shipping charges
   let shipping = 0;
   if (order.shippingCharge !== undefined && order.shippingCharge !== null) {
     shipping = Number(order.shippingCharge);
@@ -50,11 +37,54 @@ const getOrderTotal = (order) => {
     shipping = Number(order.shippingCost);
   } else if (order.shipping !== undefined && order.shipping !== null) {
     shipping = Number(order.shipping);
-  } else {
+  } else if (itemsSubtotal > 0) {
     shipping = itemsSubtotal > 499 ? 0 : 49;
   }
 
+  // 3. If totalAmount/grandTotal/total is provided and greater than itemsSubtotal, use it
+  const rawTotal = Number(order.totalAmount || order.grandTotal || order.total || 0);
+  if (rawTotal > itemsSubtotal) {
+    return rawTotal;
+  }
+
   return itemsSubtotal + shipping;
+};
+
+const isPaymentSuccessful = (order) => {
+  if (!order) return false;
+
+  const statusUpper = String(order.status || order.orderStatus || "").toUpperCase();
+  if (statusUpper === "CANCELLED" || statusUpper === "FAILED" || statusUpper === "REJECTED") {
+    return false;
+  }
+
+  // Check explicit pending flags
+  if (order.isPaymentPending === true) return false;
+  if (order.paymentApproved === false || order.isPaid === false || order.paid === false) return false;
+
+  const paymentStatusUpper = String(
+    order.paymentStatus || 
+    order.payment_status || 
+    order.paymentState || 
+    order.payment_state || 
+    ""
+  ).toUpperCase();
+
+  if (
+    paymentStatusUpper === "PENDING" ||
+    paymentStatusUpper === "PAYMENT_PENDING" ||
+    paymentStatusUpper === "UNPAID" ||
+    paymentStatusUpper === "AWAITING_PAYMENT" ||
+    paymentStatusUpper === "FAILED" ||
+    statusUpper === "PENDING" ||
+    statusUpper === "PAYMENT_PENDING" ||
+    statusUpper === "UNPAID" ||
+    statusUpper === "AWAITING_PAYMENT"
+  ) {
+    return false;
+  }
+
+  return true;
 };
 
 const salesData = [
@@ -142,8 +172,8 @@ export function AdminDashboardPage() {
   let calculatedTotalOrders = 0;
 
   orders.forEach((order) => {
-    // Exclude cancelled orders from dashboard metrics
-    if (order.status === "Cancelled") return;
+    // Only calculate revenue for orders with successful payments
+    if (!isPaymentSuccessful(order)) return;
 
     const amount = getOrderTotal(order);
     calculatedTotalRevenue += amount;

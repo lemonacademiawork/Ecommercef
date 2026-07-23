@@ -14,28 +14,15 @@ const statusColors = {
 const getOrderTotal = (order) => {
   if (!order) return 0;
 
-  // If totalAmount / grandTotal / total is explicitly provided and greater than 0, use it
-  if (order.totalAmount !== undefined && order.totalAmount !== null && Number(order.totalAmount) > 0) {
-    return Number(order.totalAmount);
-  }
-  if (order.grandTotal !== undefined && order.grandTotal !== null && Number(order.grandTotal) > 0) {
-    return Number(order.grandTotal);
-  }
-  if (order.total !== undefined && order.total !== null && Number(order.total) > 0) {
-    return Number(order.total);
-  }
-
-  // Calculate items subtotal
+  // 1. Calculate items subtotal
   let itemsSubtotal = 0;
   if (order.items && Array.isArray(order.items) && order.items.length > 0) {
     itemsSubtotal = order.items.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 0)), 0);
   } else {
-    itemsSubtotal = Number(order.amount || 0);
+    itemsSubtotal = Number(order.subtotal || order.amount || 0);
   }
 
-  if (itemsSubtotal === 0) return 0;
-
-  // Calculate shipping charges
+  // 2. Determine shipping charges
   let shipping = 0;
   if (order.shippingCharge !== undefined && order.shippingCharge !== null) {
     shipping = Number(order.shippingCharge);
@@ -45,8 +32,14 @@ const getOrderTotal = (order) => {
     shipping = Number(order.shippingCost);
   } else if (order.shipping !== undefined && order.shipping !== null) {
     shipping = Number(order.shipping);
-  } else {
+  } else if (itemsSubtotal > 0) {
     shipping = itemsSubtotal > 499 ? 0 : 49;
+  }
+
+  // 3. If totalAmount/grandTotal/total is provided and greater than itemsSubtotal, use it
+  const rawTotal = Number(order.totalAmount || order.grandTotal || order.total || 0);
+  if (rawTotal > itemsSubtotal) {
+    return rawTotal;
   }
 
   return itemsSubtotal + shipping;
