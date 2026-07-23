@@ -17,15 +17,44 @@ import {
 import { api } from "../../services/api";
 
 const getOrderTotal = (order) => {
-  if (order?.items && Array.isArray(order.items) && order.items.length > 0) {
-    return order.items.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 0)), 0);
+  if (!order) return 0;
+
+  // If totalAmount / grandTotal / total is explicitly provided and greater than 0, use it
+  if (order.totalAmount !== undefined && order.totalAmount !== null && Number(order.totalAmount) > 0) {
+    return Number(order.totalAmount);
   }
-  const amount = Number(order?.totalAmount || order?.total || order?.amount || 0);
-  if (amount === 0) return 0;
-  if (order?.shippingCharge !== undefined && order?.shippingCharge !== null) {
-    return amount;
+  if (order.grandTotal !== undefined && order.grandTotal !== null && Number(order.grandTotal) > 0) {
+    return Number(order.grandTotal);
   }
-  return amount > 499 ? amount : amount + 49;
+  if (order.total !== undefined && order.total !== null && Number(order.total) > 0) {
+    return Number(order.total);
+  }
+
+  // Calculate items subtotal
+  let itemsSubtotal = 0;
+  if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+    itemsSubtotal = order.items.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 0)), 0);
+  } else {
+    itemsSubtotal = Number(order.amount || 0);
+  }
+
+  if (itemsSubtotal === 0) return 0;
+
+  // Calculate shipping charges
+  let shipping = 0;
+  if (order.shippingCharge !== undefined && order.shippingCharge !== null) {
+    shipping = Number(order.shippingCharge);
+  } else if (order.shippingFee !== undefined && order.shippingFee !== null) {
+    shipping = Number(order.shippingFee);
+  } else if (order.shippingCost !== undefined && order.shippingCost !== null) {
+    shipping = Number(order.shippingCost);
+  } else if (order.shipping !== undefined && order.shipping !== null) {
+    shipping = Number(order.shipping);
+  } else {
+    shipping = itemsSubtotal > 499 ? 0 : 49;
+  }
+
+  return itemsSubtotal + shipping;
 };
 
 const salesData = [
