@@ -454,16 +454,39 @@ export function AdminOrdersPage() {
   const handleStatusChange = async (orderId, newStatus) => {
     try {
       const res = await api.admin.updateOrderStatus(orderId, newStatus);
-      if (res.success) {
+      if (res.success || res.status === newStatus || res) {
+        if (newStatus === "PAID") {
+          try {
+            await api.admin.approvePayment(orderId);
+          } catch (e) { }
+        }
         setOrders((prev) =>
-          prev.map((o) => (o.id === orderId ? { ...o, status: newStatus, isPaymentPending: newStatus === "PAYMENT_PENDING" } : o))
+          prev.map((o) =>
+            o.id === orderId
+              ? {
+                  ...o,
+                  status: newStatus,
+                  isPaymentPending: newStatus === "PAYMENT_PENDING",
+                  paymentApproved: newStatus === "PAID",
+                  isPaid: newStatus === "PAID",
+                }
+              : o
+          )
         );
         if (selectedOrder && selectedOrder.id === orderId) {
-          setSelectedOrder((prev) => ({ ...prev, status: newStatus, isPaymentPending: newStatus === "PAYMENT_PENDING" }));
+          setSelectedOrder((prev) => ({
+            ...prev,
+            status: newStatus,
+            isPaymentPending: newStatus === "PAYMENT_PENDING",
+            paymentApproved: newStatus === "PAID",
+            isPaid: newStatus === "PAID",
+          }));
         }
+        toast.success(`Order #${orderId} status updated to ${newStatus}`);
       }
     } catch (err) {
       console.error("Failed to update status: " + err.message);
+      toast.error(err.message || "Failed to update order status.");
     }
   };
 
