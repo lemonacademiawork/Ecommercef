@@ -8,6 +8,7 @@ const statusColors = {
   Shipped: "bg-blue-100 text-blue-700",
   Delivered: "bg-green-100 text-green-700",
   Cancelled: "bg-red-100 text-red-600",
+  PAYMENT_PENDING: "bg-amber-100 text-amber-800 border border-amber-200",
 };
 
 const getOrderTotal = (order) => {
@@ -462,9 +463,10 @@ export function AdminOrdersPage() {
                       <select
                         value={order.status}
                         onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                        className={`text-xs font-semibold pl-3 pr-8 py-1.5 rounded-full border-0 cursor-pointer appearance-none ${statusColors[order.status] || "bg-gray-100 text-gray-700"}`}
+                        className={`text-xs font-semibold pl-3 pr-8 py-1.5 rounded-full border-0 cursor-pointer appearance-none ${statusColors[order.status] || "bg-amber-100 text-amber-800"}`}
                       >
                         {[
+                          ...(order.status === "PAYMENT_PENDING" ? ["PAYMENT_PENDING"] : []),
                           "Processing",
                           "Shipped",
                           "Delivered",
@@ -519,13 +521,15 @@ export function AdminOrdersPage() {
                 <div className="p-4 rounded-xl bg-muted/50 border border-border flex items-center justify-between">
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground">STATUS</p>
-                    <p className="text-sm font-bold text-foreground mt-0.5">{selectedOrder.status}</p>
+                    <p className="text-sm font-bold text-foreground mt-0.5">
+                      {selectedOrder.status === "PAYMENT_PENDING" ? "Processing" : selectedOrder.status}
+                    </p>
                   </div>
                   <div className="relative">
                     <select
-                      value={selectedOrder.status}
+                      value={selectedOrder.status === "PAYMENT_PENDING" ? "Processing" : selectedOrder.status}
                       onChange={(e) => handleStatusChange(selectedOrder.id, e.target.value)}
-                      className={`text-xs font-semibold pl-3 pr-8 py-1.5 rounded-full border-0 cursor-pointer appearance-none ${statusColors[selectedOrder.status] || "bg-gray-100 text-gray-700"}`}
+                      className={`text-xs font-semibold pl-3 pr-8 py-1.5 rounded-full border-0 cursor-pointer appearance-none ${statusColors[selectedOrder.status === "PAYMENT_PENDING" ? "Processing" : selectedOrder.status] || "bg-yellow-100 text-yellow-700"}`}
                     >
                       {["Processing", "Shipped", "Delivered", "Cancelled"].map((s) => (
                         <option key={s} value={s}>{s}</option>
@@ -548,7 +552,10 @@ export function AdminOrdersPage() {
                             className="w-11 h-11 object-cover rounded-lg bg-muted flex-shrink-0 border border-border"
                           />
                           <div>
-                            <p className="text-xs font-bold text-foreground line-clamp-1">{item.product?.name || item.productName || item.name || "Craft Item"}</p>
+                            <p className="text-xs font-bold text-foreground line-clamp-1">
+                              {item.product?.name || item.productName || item.name || "Craft Item"}
+                              {item.variantName ? ` (${item.variantName})` : ""}
+                            </p>
                             <p className="text-xs text-muted-foreground mt-0.5">₹{item.price} × {item.quantity}</p>
                           </div>
                         </div>

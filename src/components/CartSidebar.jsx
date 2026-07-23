@@ -99,57 +99,66 @@ export function CartSidebar({
                   </button>
                 </div>
               ) : (
-                items.map((item) => (
-                  <motion.div
-                    key={item.id}
-                    layout
-                    exit={{ opacity: 0, x: 50 }}
-                    className="flex gap-3 bg-muted/30 rounded-2xl p-3"
-                  >
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-16 h-16 rounded-xl object-cover flex-shrink-0 bg-muted"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold line-clamp-2 leading-snug mb-1">
-                        {item.name}
-                      </p>
-                      <p className="text-sm font-bold text-primary">
-                        ₹{item.price * item.quantity}
-                      </p>
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center border border-border/60 rounded-lg bg-card overflow-hidden">
+                items.map((item) => {
+                  const itemKey = item.cartItemId || item.uniqueKey || `${item.id}-${item.variantId || ''}`;
+                  const cartItemId = item.cartItemId || item.uniqueKey;
+                  return (
+                    <motion.div
+                      key={itemKey}
+                      layout
+                      exit={{ opacity: 0, x: 50 }}
+                      className="flex gap-3 bg-muted/30 rounded-2xl p-3"
+                    >
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-16 h-16 rounded-xl object-cover flex-shrink-0 bg-muted"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold line-clamp-2 leading-snug mb-0.5">
+                          {item.name}
+                        </p>
+                        {item.variantName && (
+                          <p className="text-xs text-muted-foreground mb-1 font-medium">
+                            Option: {item.variantName}
+                          </p>
+                        )}
+                        <p className="text-sm font-bold text-primary">
+                          ₹{item.price * item.quantity}
+                        </p>
+                        <div className="flex items-center justify-between mt-2">
+                          <div className="flex items-center border border-border/60 rounded-lg bg-card overflow-hidden">
+                            <button
+                              onClick={() =>
+                                onUpdateQuantity(item.id, item.quantity - 1, cartItemId)
+                              }
+                              className="w-7 h-7 flex items-center justify-center hover:bg-muted transition-colors"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="w-7 text-center text-xs font-semibold">
+                              {item.quantity}
+                            </span>
+                            <button
+                              onClick={() =>
+                                onUpdateQuantity(item.id, item.quantity + 1, cartItemId)
+                              }
+                              className="w-7 h-7 flex items-center justify-center hover:bg-muted transition-colors"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
                           <button
-                            onClick={() =>
-                              onUpdateQuantity(item.id, item.quantity - 1, item.cartItemId)
-                            }
-                            className="w-7 h-7 flex items-center justify-center hover:bg-muted transition-colors"
+                            onClick={() => onRemove(item.id, cartItemId)}
+                            className="text-muted-foreground hover:text-destructive transition-colors p-1"
                           >
-                            <Minus className="w-3 h-3" />
-                          </button>
-                          <span className="w-7 text-center text-xs font-semibold">
-                            {item.quantity}
-                          </span>
-                          <button
-                            onClick={() =>
-                              onUpdateQuantity(item.id, item.quantity + 1, item.cartItemId)
-                            }
-                            className="w-7 h-7 flex items-center justify-center hover:bg-muted transition-colors"
-                          >
-                            <Plus className="w-3 h-3" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-                        <button
-                          onClick={() => onRemove(item.id, item.cartItemId)}
-                          className="text-muted-foreground hover:text-destructive transition-colors p-1"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
                       </div>
-                    </div>
-                  </motion.div>
-                ))
+                    </motion.div>
+                  );
+                })
               )}
             </div>
 

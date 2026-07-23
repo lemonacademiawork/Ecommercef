@@ -136,7 +136,6 @@ export function LoginPage({ navigate, onLogin }) {
       toast.loading("Signing in...");
       const response = await api.auth.login(email, password);
       toast.dismiss();
-      console.log("LOGIN RESPONSE", response.data);
       if (response.success && response.data) {
         const { token, role, email: userEmail, name } = response.data;
         localStorage.setItem("token", token);
@@ -163,7 +162,7 @@ export function LoginPage({ navigate, onLogin }) {
 
   const handleGoogleLogin = () => {
     try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || "https://ecommerce-b-production-70b5.up.railway.app";
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || "https://api.lemonhousecraft.in";
       // Clean base URL to get the host root (without /api or trailing slash)
       let cleanUrl = baseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
       const currentOrigin = window.location.origin;

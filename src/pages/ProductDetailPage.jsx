@@ -49,6 +49,9 @@ export function ProductDetailPage({
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("description");
   const [addedToCart, setAddedToCart] = useState(false);
+  const [variants, setVariants] = useState([]);
+  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [loadingVariants, setLoadingVariants] = useState(false);
 
   const handleNextImage = () => {
     if (!product || !product.images || product.images.length <= 1) return;
@@ -71,6 +74,47 @@ export function ProductDetailPage({
           setProduct(res.data);
           setSelectedImage(0); // reset image index
 
+          const isVariable = Boolean(
+            res.data.hasVariants || 
+            res.data.has_variants || 
+            (Array.isArray(res.data.variants) && res.data.variants.length > 0)
+          );
+
+          setLoadingVariants(true);
+          try {
+            let activeVars = [];
+            if (Array.isArray(res.data.variants) && res.data.variants.length > 0) {
+              activeVars = res.data.variants.filter(v => v && (v.status === "ACTIVE" || v.status === true || v.active === true || v.status === undefined || v.status === null));
+            }
+
+            if (activeVars.length === 0) {
+              const varRes = await api.products.getVariants(productId);
+              const rawVars = Array.isArray(varRes) ? varRes : (varRes?.data || []);
+              activeVars = rawVars.filter(v => v && (v.status === "ACTIVE" || v.status === true || v.active === true || v.status === undefined || v.status === null));
+            }
+
+            if (activeVars.length === 0) {
+              try {
+                const adminVarRes = await api.admin.getVariants(productId);
+                const rawAdminVars = Array.isArray(adminVarRes) ? adminVarRes : (adminVarRes?.data || []);
+                activeVars = rawAdminVars.filter(v => v && (v.status === "ACTIVE" || v.status === true || v.active === true || v.status === undefined || v.status === null));
+              } catch (adminErr) {
+                console.error("Admin variant fallback check:", adminErr);
+              }
+            }
+
+            setVariants(activeVars);
+            if (activeVars.length > 0) {
+              setSelectedVariant(activeVars[0]);
+            } else {
+              setSelectedVariant(null);
+            }
+          } catch (varErr) {
+            console.error("Error loading variants:", varErr);
+          } finally {
+            setLoadingVariants(false);
+          }
+
           // load related products
           const relatedRes = await api.products.listProducts();
           if (relatedRes.success && relatedRes.data) {
@@ -92,7 +136,7 @@ export function ProductDetailPage({
   }, [productId]);
 
   const handleAddToCart = () => {
-    onAddToCart(product, quantity);
+    onAddToCart(product, quantity, selectedVariant?.id);
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
   };
@@ -123,6 +167,22 @@ export function ProductDetailPage({
     );
   }
 
+  const productImages = (product && Array.isArray(product.images) && product.images.length > 0)
+    ? product.images
+    : [product?.image || product?.imageUrl || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&h=600&fit=crop&auto=format"];
+
+  const currentPrice = selectedVariant 
+    ? (selectedVariant.discountedPrice || selectedVariant.price) 
+    : product.price;
+
+  const currentOriginalPrice = selectedVariant 
+    ? (selectedVariant.discountedPrice ? selectedVariant.price : null) 
+    : product.originalPrice;
+
+  const isStockAvailable = selectedVariant 
+    ? (selectedVariant.stock > 0) 
+    : product.inStock;
+
 
   return (
     <div className="min-h-screen" style={{ background: "#FFFDF7" }}>
@@ -144,7 +204,7 @@ export function ProductDetailPage({
                 <AnimatePresence initial={false} custom={direction}>
                   <motion.img
                     key={selectedImage}
-                    src={product.images[selectedImage] || product.image}
+                    src={productImages[selectedImage] || productImages[0]}
                     custom={direction}
                     variants={slideVariants}
                     initial="enter"
@@ -161,7 +221,7 @@ export function ProductDetailPage({
               </div>
 
               {/* Navigation Arrows */}
-              {product.images && product.images.length > 1 && (
+              {productImages && productImages.length > 1 && (
                 <>
                   <button
                     onClick={(e) => {
@@ -185,9 +245,9 @@ export function ProductDetailPage({
               )}
 
               {/* Dots / Indicators */}
-              {product.images && product.images.length > 1 && (
+              {productImages && productImages.length > 1 && (
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 bg-black/30 px-3 py-1.5 rounded-full backdrop-blur-sm">
-                  {product.images.map((_, i) => (
+                  {productImages.map((_, i) => (
                     <button
                       key={i}
                       onClick={() => {
@@ -244,9 +304,9 @@ export function ProductDetailPage({
             </div>
 
             {/* Thumbnails */}
-            {product.images && product.images.length > 1 && (
+            {productImages && productImages.length > 1 && (
               <div className="flex gap-2">
-                {product.images.map((img, i) => (
+                {productImages.map((img, i) => (
                   <button
                     key={i}
                     onClick={() => {
@@ -300,9 +360,9 @@ export function ProductDetailPage({
                 ({product.reviews} reviews)
               </span>
               <span
-                className={`text-xs font-semibold px-2 py-0.5 rounded-full ${product.inStock ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}
+                className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isStockAvailable ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}
               >
-                {product.inStock ? "✓ In Stock" : "Out of Stock"}
+                {isStockAvailable ? "✓ In Stock" : "Out of Stock"}
               </span>
             </div>
 
@@ -312,22 +372,66 @@ export function ProductDetailPage({
                 className="text-3xl font-bold"
                 style={{ fontFamily: "Poppins, sans-serif" }}
               >
-                ₹{product.price}
+                ₹{currentPrice}
               </span>
-              {product.originalPrice && (
+              {currentOriginalPrice && (
                 <>
                   <span className="text-lg text-muted-foreground line-through">
-                    ₹{product.originalPrice}
+                    ₹{currentOriginalPrice}
                   </span>
                   <span
                     className="px-2.5 py-1 rounded-full text-sm font-semibold"
                     style={{ background: "#FFD54F", color: "#1a1a2e" }}
                   >
-                    Save ₹{product.originalPrice - product.price}
+                    Save ₹{currentOriginalPrice - currentPrice}
                   </span>
                 </>
               )}
             </div>
+
+            {/* Variants Selector */}
+            {(loadingVariants || variants.length > 0 || product.hasVariants || product.has_variants) && (
+              <div className="mb-6">
+                <label className="text-sm font-semibold mb-2.5 block text-foreground">
+                  Select Variant / Option
+                </label>
+                {loadingVariants ? (
+                  <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary"></div>
+                    <span>Loading options...</span>
+                  </div>
+                ) : variants.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {variants.map((v, idx) => {
+                      const vTitle = v.variantName || v.name || v.title || v.sku || `Option ${idx + 1}`;
+                      const vPrice = v.discountedPrice || v.price || v.variantPrice || 0;
+                      const isSelected = selectedVariant?.id ? selectedVariant.id === v.id : selectedVariant === v;
+                      return (
+                        <button
+                          key={v.id || idx}
+                          type="button"
+                          onClick={() => setSelectedVariant(v)}
+                          className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                            isSelected
+                              ? "border-primary bg-primary/10 text-primary shadow-sm ring-2 ring-primary/20 font-bold"
+                              : "border-border hover:border-primary/50 text-muted-foreground bg-card"
+                          }`}
+                        >
+                          {vTitle} <span className="font-bold text-foreground font-mono ml-1">₹{vPrice}</span>
+                          {v.stock !== undefined && Number(v.stock) <= 0 && (
+                            <span className="text-[10px] text-destructive block mt-0.5 font-normal">Out of Stock</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-amber-600 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
+                    No variants configured for this product yet.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Quantity */}
             <div className="mb-5">
@@ -355,7 +459,7 @@ export function ProductDetailPage({
                 <span className="text-sm text-muted-foreground">
                   Total:{" "}
                   <strong className="text-foreground">
-                    ₹{product.price * quantity}
+                    ₹{currentPrice * quantity}
                   </strong>
                 </span>
               </div>
@@ -366,13 +470,15 @@ export function ProductDetailPage({
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={handleAddToCart}
-                disabled={!product.inStock}
+                disabled={!isStockAvailable}
                 className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm transition-all ${addedToCart
                   ? "bg-accent text-white"
-                  : "text-white hover:opacity-90"
+                  : isStockAvailable
+                    ? "text-white hover:opacity-90 cursor-pointer"
+                    : "bg-muted text-muted-foreground cursor-not-allowed"
                   }`}
                 style={
-                  !addedToCart
+                  !addedToCart && isStockAvailable
                     ? {
                       background: "linear-gradient(135deg, #a61c9b, #d82a81)",
                     }
@@ -384,11 +490,15 @@ export function ProductDetailPage({
               </motion.button>
               <button
                 onClick={() => {
-                  onAddToCart(product, quantity);
+                  onAddToCart(product, quantity, selectedVariant?.id);
                   navigate("checkout");
                 }}
-                disabled={!product.inStock}
-                className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm border-2 border-primary text-primary hover:bg-primary/5 transition-all"
+                disabled={!isStockAvailable}
+                className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm border-2 transition-all ${
+                  isStockAvailable
+                    ? "border-primary text-primary hover:bg-primary/5 cursor-pointer"
+                    : "border-muted text-muted-foreground bg-muted/20 cursor-not-allowed"
+                }`}
               >
                 <Zap className="w-4 h-4" /> Buy Now
               </button>

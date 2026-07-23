@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { api } from "../services/api";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
+import logoImg from "@/assets/logo.png";
 
 const STEPS = [
   { key: "shipping", label: "Shipping", Icon: MapPin },
@@ -49,7 +50,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
   const [submittingQr, setSubmittingQr] = useState(false);
   const [qrForm, setQrForm] = useState({
     transactionId: "",
-    screenshot: "",
+    screenshotFile: null,
   });
 
   const updateForm = (key, value) =>
@@ -127,6 +128,8 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
     }
   }, [step, destinationPincode, subtotal, totalWeight]);
 
+
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -180,14 +183,11 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
     try {
       orderRes = await api.orders.createOrder({
         addressId: finalAddressId,
-        paymentMethod: form.paymentMethod,
-        shippingCharge: shipping,
-        courierName: activeRate?.courierName || (form.deliveryMethod === "express" ? "Express Delivery" : "Standard Delivery"),
-        transactionId: transactionId,
-        weight: totalWeight / 1000,
-        length: packageLength,
-        breadth: packageBreadth,
-        height: packageHeight,
+        items: items.map(item => ({
+          productId: item.productId || item.id,
+          variantId: item.variantId || undefined,
+          quantity: item.quantity
+        }))
       });
       if (!orderRes.success) {
         throw new Error(orderRes.message || "Failed to create order");
@@ -217,8 +217,8 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
             product: {
               id: item.productId || item.id,
               name: item.productName || item.name || "Craft Item",
-              imageUrl: item.imageUrl || item.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format",
-              image: item.imageUrl || item.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format"
+              imageUrl: item.imageUrl || item.image || logoImg,
+              image: item.imageUrl || item.image || logoImg
             }
           })),
           address: {
@@ -280,16 +280,16 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
 
   const handleQrSubmit = async (e) => {
     e.preventDefault();
-    if (!qrForm.transactionId) {
-      toast.error("Please enter the 12-digit UTR/Transaction ID.");
+    if (!qrForm.screenshotFile) {
+      toast.error("Please upload your payment screenshot.");
       return;
     }
     setSubmittingQr(true);
     try {
       const res = await api.payments.submitQrPayment(
         qrPaymentOrder.id,
-        qrForm.transactionId,
-        qrForm.screenshot || ""
+        qrForm.screenshotFile,
+        qrForm.transactionId || null
       );
       if (res.success) {
         toast.success("Payment details submitted successfully!");
@@ -368,20 +368,116 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
           return;
         }
 
-        const options = {
-          key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_3q8YnZaNl2n2G3",
+        const orderPayload = {
+          addressId: finalAddressId,
+          items: items.map(item => ({
+            productId: item.productId || item.id,
+            variantId: item.variantId || undefined,
+            quantity: item.quantity
+          }))
+        };
+
+        // Create the backend order first to obtain an orderId
+        let backendOrderId = null;
+        try {
+          const preOrderRes = await api.orders.createOrder(orderPayload);
+
+          if (preOrderRes && preOrderRes.success === false) {
+            throw new Error(preOrderRes.message || "Failed to create order on backend.");
+          }
+
+          backendOrderId = preOrderRes.id || preOrderRes.orderId || preOrderRes.data?.id || preOrderRes.data?.orderId;
+
+          if (!backendOrderId) {
+            throw new Error("Order creation succeeded but orderId is missing from response.");
+          }
+        } catch (preErr) {
+          console.error("Pre-order creation failed before Razorpay widget:", preErr);
+          toast.error(preErr.message || "Failed to create order.");
+          setIsPlacing(false);
+          return;
+        }
+
+        let rzpOrderRes = null;
+        const rzpPayload = {
+          orderId: backendOrderId,
           amount: Math.round(total * 100),
           currency: "INR",
+          receipt: `receipt_${backendOrderId}`,
+        };
+
+        try {
+          rzpOrderRes = await api.payments.createRazorpayOrder(rzpPayload);
+        } catch (rzpErr) {
+          console.error("Could not pre-create Razorpay order id:", rzpErr);
+          toast.error(rzpErr.message || "Failed to create Razorpay payment order.");
+          setIsPlacing(false);
+          return;
+        }
+
+        // Backend response: { success: true, data: { razorpayOrderId: "order_XXX", amount: 178.83, currency: "INR" } }
+        // request() returns the parsed JSON directly, so rzpOrderRes.data.razorpayOrderId is the correct path
+        const razorpayOrderId = rzpOrderRes?.data?.razorpayOrderId;
+        const razorpayAmount = rzpOrderRes?.data?.amount;
+        const razorpayCurrency = rzpOrderRes?.data?.currency || "INR";
+
+        if (!razorpayOrderId) {
+          console.error("razorpayOrderId is undefined! Full response data keys:", rzpOrderRes?.data ? Object.keys(rzpOrderRes.data) : "data is null/undefined");
+          toast.error("Razorpay order ID missing from backend response.");
+          setIsPlacing(false);
+          return;
+        }
+
+        // Amount from backend is in rupees, Razorpay checkout expects paise (smallest unit)
+        const amountInPaise = Math.round(razorpayAmount * 100);
+
+        const logoUrl = logoImg?.startsWith("http")
+          ? logoImg
+          : `${window.location.origin}${logoImg?.startsWith("/") ? "" : "/"}${logoImg}`;
+
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_live_T0cB0EYllXBVHc",
+          amount: amountInPaise,
+          currency: razorpayCurrency,
+          order_id: razorpayOrderId,
           name: "Lemon House",
           description: "Order Payment",
-          image: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format",
+          image: logoUrl,
           handler: async function (response) {
             try {
               setIsPlacing(true);
-              await executeOrderCreation(finalAddressId, response.razorpay_payment_id);
+              // Verify payment signature with backend
+              try {
+                await api.payments.verifyRazorpayPayment({
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpaySignature: response.razorpay_signature,
+                });
+              } catch (verifyErr) {
+                console.warn("Backend payment signature verification warning:", verifyErr);
+              }
+
+              // Order was already created before Razorpay widget opened — just confirm it
+              setConfirmedOrderTotal(total);
+              try {
+                await api.cart.clearCart();
+              } catch (cartErr) {
+                console.error("Cart clear error", cartErr);
+              }
+              setConfirmedOrderId(backendOrderId);
+              setStep("confirmed");
+              onOrderComplete();
+
+              try {
+                confetti({
+                  particleCount: 100,
+                  spread: 70,
+                  origin: { y: 0.6 }
+                });
+              } catch (confettiErr) {}
             } catch (err) {
-              console.error("Order creation after payment failed: " + err.message);
-              toast.error(err.message || "Failed to place order after payment.");
+              console.error("Post-payment confirmation failed: " + err.message);
+              toast.error(err.message || "Failed to confirm order after payment.");
             } finally {
               setIsPlacing(false);
             }
@@ -389,6 +485,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
           prefill: {
             name: form.name || (selectedSavedAddress?.fullName) || "",
             contact: form.phone || (selectedSavedAddress?.phone) || "",
+            email: form.email || (selectedSavedAddress?.email) || "",
           },
           theme: {
             color: "#a61c9b",
@@ -410,13 +507,11 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
         try {
           orderRes = await api.orders.createOrder({
             addressId: finalAddressId,
-            paymentMethod: "upi",
-            shippingCharge: shipping,
-            courierName: activeRate?.courierName || (form.deliveryMethod === "express" ? "Express Delivery" : "Standard Delivery"),
-            weight: totalWeight / 1000,
-            length: packageLength,
-            breadth: packageBreadth,
-            height: packageHeight,
+            items: items.map(item => ({
+              productId: item.productId || item.id,
+              variantId: item.variantId || undefined,
+              quantity: item.quantity
+            }))
           });
           if (!orderRes.success) {
             throw new Error(orderRes.message || "Failed to create order");
@@ -487,12 +582,118 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
       }
     }
 
-    if (step === "payment" && form.paymentMethod === "upi" && !qrForm.transactionId) {
-      toast.error("Please enter the 12-digit UPI UTR/Transaction ID to proceed.");
-      return;
-    }
+
     setStep(STEPS[stepIndex + 1].key);
   };
+
+  if (qrPaymentOrder) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center p-4 animate-fade-in"
+        style={{ background: "#FFFDF7" }}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-white rounded-3xl border border-border p-6 sm:p-8 max-w-md w-full shadow-lg text-center space-y-6"
+        >
+          <div>
+            <h2
+              className="text-2xl font-bold text-foreground mb-1 animate-pulse"
+              style={{ fontFamily: "Poppins, sans-serif" }}
+            >
+              Complete UPI Payment
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Please scan the QR code to pay <strong>₹{qrPaymentOrder.total}</strong>
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4 border border-border/40 max-w-[220px] mx-auto shadow-sm">
+            {loadingQr ? (
+              <div className="flex flex-col items-center justify-center py-6">
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mb-2" />
+                <p className="text-[10px] text-muted-foreground font-semibold">Loading QR Code...</p>
+              </div>
+            ) : (
+              <div>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=${(qrDetails && qrDetails.upiId) ? qrDetails.upiId : "lemonacademia.in@okaxis"}&pn=${encodeURIComponent((qrDetails && qrDetails.merchantName) ? qrDetails.merchantName : "Lemon House")}&am=${qrPaymentOrder.total}&cu=INR`)}`}
+                  alt="UPI QR Code"
+                  className="w-44 h-44 mx-auto object-contain bg-white p-2 rounded-xl mb-2 shadow-sm border border-border"
+                />
+                <p className="font-bold text-xs mb-0.5">{(qrDetails && qrDetails.merchantName) || "Lemon House"}</p>
+                <p className="text-[10px] text-muted-foreground select-all bg-muted py-0.5 px-2 rounded font-mono inline-block">
+                  {(qrDetails && qrDetails.upiId) || "lemonacademia.in@okaxis"}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <form onSubmit={handleQrSubmit} className="text-left space-y-4">
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                Payment Screenshot (Required) *
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                required
+                onChange={(e) => setQrForm(prev => ({ ...prev, screenshotFile: e.target.files[0] }))}
+                className="w-full text-xs text-muted-foreground file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer border border-border rounded-xl p-1 bg-muted/5 focus:outline-none"
+              />
+              <p className="text-[10px] text-yellow-600 font-semibold mt-1.5 flex items-start gap-1">
+                <span>⚠️</span>
+                <span>Please ensure the transaction ID is clearly visible in the screenshot, otherwise your payment will not be confirmed.</span>
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                Transaction ID / UTR (12 digits, Optional)
+              </label>
+              <input
+                type="text"
+                maxLength={20}
+                placeholder="Enter 12-digit UPI UTR"
+                value={qrForm.transactionId}
+                onChange={(e) => setQrForm(prev => ({ ...prev, transactionId: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted/10 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setQrPaymentOrder(null)}
+                disabled={submittingQr}
+                className="flex-1 py-3 rounded-2xl text-xs font-semibold border border-border hover:bg-muted transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submittingQr}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold text-xs disabled:opacity-50 hover:opacity-90 transition-all shadow-md"
+                style={{
+                  background: "linear-gradient(135deg, #a61c9b, #d82a81)",
+                }}
+              >
+                {submittingQr ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit Payment"
+                )}
+              </button>
+            </div>
+          </form>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (step === "confirmed") {
     return (
@@ -863,73 +1064,11 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                           </label>
 
                           {opt.value === "upi" && form.paymentMethod === "upi" && (
-                            <div className="border border-border/85 rounded-2xl p-5 bg-card/60 space-y-4 ml-6 transition-all duration-300 shadow-inner">
-                              <p className="text-xs font-semibold text-muted-foreground">
-                                Scan the QR code below to pay <strong>₹{total}</strong>:
+                            <div className="border border-border/85 rounded-2xl p-4 bg-card/60 ml-6 transition-all duration-300 shadow-inner">
+                              <p className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium">
+                                <span>📱</span>
+                                <span>You will be shown the UPI QR code to scan and upload your payment screenshot after you click "Place Order".</span>
                               </p>
-
-                              <div className="bg-white rounded-xl p-4 text-center border border-border/40 max-w-[240px] mx-auto shadow-sm">
-                                {loadingQr ? (
-                                  <div className="flex flex-col items-center justify-center py-4">
-                                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mb-1" />
-                                    <p className="text-[10px] text-muted-foreground">Loading QR Code...</p>
-                                  </div>
-                                ) : qrDetails ? (
-                                  <div>
-                                    <img
-                                      src={qrDetails.qrImageUrl || "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=" + qrDetails.upiId}
-                                      alt="UPI QR Code"
-                                      className="w-40 h-40 mx-auto object-contain bg-white p-1 rounded-lg mb-2"
-                                    />
-                                    <p className="font-bold text-xs mb-0.5">{qrDetails.merchantName || "Lemon House"}</p>
-                                    <p className="text-[10px] text-muted-foreground select-all bg-muted py-0.5 px-2 rounded font-mono inline-block">
-                                      {qrDetails.upiId}
-                                    </p>
-                                  </div>
-                                ) : (
-                                  <div>
-                                    <img
-                                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=lemonacademia.in@okaxis%26pn=Lemon%26am=${total}`}
-                                      alt="Backup UPI QR Code"
-                                      className="w-40 h-40 mx-auto object-contain bg-white p-1 rounded-lg mb-2"
-                                    />
-                                    <p className="font-bold text-xs mb-0.5">Lemon Academia</p>
-                                    <p className="text-[10px] text-muted-foreground select-all bg-muted py-0.5 px-2 rounded font-mono inline-block">
-                                      lemonacademia.in@okaxis
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="space-y-3">
-                                <div>
-                                  <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                                    Transaction ID / UTR (12 digits) *
-                                  </label>
-                                  <input
-                                    type="text"
-                                    required
-                                    maxLength={20}
-                                    placeholder="Enter 12-digit UPI UTR"
-                                    value={qrForm.transactionId}
-                                    onChange={(e) => setQrForm({ ...qrForm, transactionId: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-lg border border-border bg-muted/20 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                                    Payment Screenshot URL (Optional)
-                                  </label>
-                                  <input
-                                    type="text"
-                                    placeholder="Link to screenshot or proof"
-                                    value={qrForm.screenshot}
-                                    onChange={(e) => setQrForm({ ...qrForm, screenshot: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-lg border border-border bg-muted/20 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                  />
-                                </div>
-                              </div>
                             </div>
                           )}
                         </div>
@@ -966,6 +1105,11 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                             <p className="text-sm font-medium line-clamp-1">
                               {item.name}
                             </p>
+                            {item.variantName && (
+                              <p className="text-xs text-muted-foreground font-medium">
+                                Option: {item.variantName}
+                              </p>
+                            )}
                             <p className="text-xs text-muted-foreground">
                               Qty: {item.quantity}
                             </p>
@@ -1059,7 +1203,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
               {items.map((item) => (
                 <div key={item.id} className="flex justify-between text-sm">
                   <span className="text-muted-foreground line-clamp-1 flex-1 mr-2">
-                    {item.name} ×{item.quantity}
+                    {item.name} {item.variantName ? `(${item.variantName})` : ""} ×{item.quantity}
                   </span>
                   <span className="font-medium flex-shrink-0">
                     ₹{item.price * item.quantity}

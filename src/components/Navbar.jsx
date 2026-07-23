@@ -39,7 +39,6 @@ export function Navbar({
     { label: "Shop", page: "shop" },
     { label: "About", page: "about" },
     { label: "Contact", page: "contact" },
-    { label: "API Docs", href: "https://ecommerce-backend-861245237403.asia-south1.run.app/swagger-ui/index.html#/" },
   ];
 
   return (
@@ -182,46 +181,29 @@ export function Navbar({
                       className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-zinc-950 rounded-2xl border border-border shadow-xl overflow-hidden z-50"
                     >
                       <div className="p-3 border-b border-border">
-                        <p className="text-sm font-semibold">
-                          {user?.name === "default admin" || user?.name === "admin" ? "Administrator" : (user?.name || "User")}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {user?.email || ""}
+                        <p className="text-sm font-semibold truncate">
+                          {user?.email || (user?.name && user.name.toLowerCase() !== "default admin" ? user.name : "Customer")}
                         </p>
                       </div>
                       <div className="py-1">
-                        {isAdmin ? (
-                          <button
-                            onClick={() => {
-                              navigate("admin");
-                              setUserMenuOpen(false);
-                            }}
-                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors font-medium text-primary"
-                          >
-                            <Sliders className="w-4 h-4 text-primary" /> Admin Panel
-                          </button>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => {
-                                navigate("dashboard");
-                                setUserMenuOpen(false);
-                              }}
-                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
-                            >
-                              <Package className="w-4 h-4 text-primary" /> My Orders
-                            </button>
-                            <button
-                              onClick={() => {
-                                navigate("dashboard");
-                                setUserMenuOpen(false);
-                              }}
-                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
-                            >
-                              <Settings className="w-4 h-4 text-primary" /> Settings
-                            </button>
-                          </>
-                        )}
+                        <button
+                          onClick={() => {
+                            navigate("dashboard");
+                            setUserMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
+                        >
+                          <Package className="w-4 h-4 text-primary" /> My Orders
+                        </button>
+                        <button
+                          onClick={() => {
+                            navigate("dashboard");
+                            setUserMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
+                        >
+                          <Settings className="w-4 h-4 text-primary" /> Settings
+                        </button>
                         <button
                           onClick={() => {
                             onLogout();

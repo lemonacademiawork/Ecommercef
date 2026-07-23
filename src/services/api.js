@@ -1,4 +1,4 @@
-let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://ecommerce-backend-861245237403.asia-south1.run.app";
+let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://api.lemonhousecraft.in";
 
 // Ensure the base URL ends with /api to resolve endpoints correctly
 if (!API_BASE_URL.endsWith("/api") && !API_BASE_URL.endsWith("/api/")) {
@@ -137,6 +137,15 @@ export const mapProductData = (product) => {
     description: desc,
     image: product.imageUrl || parsedImages[0] || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&h=600&fit=crop&auto=format",
     images: parsedImages,
+    subcategoryId: product.subcategoryId || product.sub_category_id || null,
+    subcategory: product.subcategory || product.subCategory || null,
+    brand: product.brand || "",
+    shortDescription: product.shortDescription || "",
+    metaTitle: product.metaTitle || "",
+    metaDescription: product.metaDescription || "",
+    metaKeywords: product.metaKeywords || "",
+    hasVariants: Boolean(product.hasVariants || product.has_variants || (Array.isArray(product.variants) && product.variants.length > 0)),
+    variants: Array.isArray(product.variants) ? product.variants : [],
     inStock: product.stock > 0,
     tags: product.tags || [],
     materials: product.materials || [],
@@ -144,6 +153,19 @@ export const mapProductData = (product) => {
     rating: product.rating || 4.5,
     reviews: product.reviews || 0,
   };
+};
+
+export const mapProductDataArray = (data) => {
+  if (!data) return [];
+  let arr = [];
+  if (Array.isArray(data)) {
+    arr = data;
+  } else if (data && Array.isArray(data.content)) {
+    arr = data.content;
+  } else if (data && Array.isArray(data.items)) {
+    arr = data.items;
+  }
+  return arr.map(mapProductData);
 };
 
 // Base request helper
@@ -181,6 +203,23 @@ async function request(endpoint, options = {}) {
   }
 
   if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("role");
+      localStorage.removeItem("user");
+      localStorage.removeItem("auth");
+      
+      const currentPath = window.location.pathname;
+      if (currentPath.startsWith("/admin")) {
+        if (currentPath !== "/admin/login") {
+          window.location.href = "/admin/login";
+        }
+      } else {
+        if (currentPath !== "/login" && currentPath !== "/") {
+          window.location.href = "/login";
+        }
+      }
+    }
     throw new Error(result.message || `HTTP error! Status: ${response.status}`);
   }
 
@@ -238,42 +277,66 @@ export const api = {
       if (params.search) query.append("search", params.search);
       if (params.categoryId) query.append("categoryId", params.categoryId);
       if (params.all !== undefined) query.append("all", params.all);
+      
+      // Default to page 0 and a large size of 1000 to retrieve all products
+      query.append("page", params.page !== undefined ? params.page : 0);
+      query.append("size", params.size !== undefined ? params.size : 1000);
+      if (params.sortBy) query.append("sortBy", params.sortBy);
+      if (params.sortDir) query.append("sortDir", params.sortDir);
+      
       const queryString = query.toString();
       return request(`/products${queryString ? `?${queryString}` : ""}`).then((res) => ({
         ...res,
-        data: res.data ? res.data.map(mapProductData) : res.data,
+        data: mapProductDataArray(res.data),
       }));
     },
     searchProducts: (keyword) =>
       request(`/products/search?keyword=${encodeURIComponent(keyword)}`).then((res) => ({
         ...res,
-        data: res.data ? res.data.map(mapProductData) : res.data,
+        data: mapProductDataArray(res.data),
       })),
     filterProducts: (minPrice, maxPrice) =>
       request(`/products/filter?minPrice=${minPrice}&maxPrice=${maxPrice}`).then((res) => ({
         ...res,
-        data: res.data ? res.data.map(mapProductData) : res.data,
+        data: mapProductDataArray(res.data),
       })),
     getProduct: (id) =>
       request(`/products/${id}`).then((res) => ({
         ...res,
         data: mapProductData(res.data),
       })),
+    getVariants: (id) =>
+      request(`/products/${id}/variants`).then((res) => {
+        const dataList = Array.isArray(res) ? res : (res && Array.isArray(res.data) ? res.data : (res && Array.isArray(res.content) ? res.content : []));
+        return {
+          success: true,
+          data: dataList,
+        };
+      }).catch((err) => {
+        console.error("Error in getVariants API:", err);
+        return { success: false, data: [] };
+      }),
     getProductsByCategory: (categoryId, all = false) =>
       request(`/products/category/${categoryId}?all=${all}`).then((res) => ({
         ...res,
-        data: res.data ? res.data.map(mapProductData) : res.data,
+        data: mapProductDataArray(res.data),
       })),
     createProduct: (data) =>
       request("/products", {
         method: "POST",
         body: JSON.stringify(data),
-      }),
+      }).then((res) => ({
+        success: true,
+        data: res.data || res,
+      })),
     updateProduct: (id, data) =>
       request(`/products/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
-      }),
+      }).then((res) => ({
+        success: true,
+        data: res.data || res,
+      })),
     deleteProduct: (id) =>
       request(`/products/${id}`, {
         method: "DELETE",
@@ -307,14 +370,19 @@ export const api = {
       request(`/categories/${id}`, {
         method: "DELETE",
       }),
+    listSubcategories: (categoryId) =>
+      request(`/categories/${categoryId}/subcategories`).then((res) => ({
+        success: true,
+        data: Array.isArray(res) ? res : (res?.data || []),
+      })).catch(() => ({ success: true, data: [] })),
   },
 
   cart: {
     getCart: () => request("/cart"),
-    addToCart: (productId, quantity) =>
+    addToCart: (productId, quantity, variantId = null) =>
       request("/cart/add", {
         method: "POST",
-        body: JSON.stringify({ productId, quantity }),
+        body: JSON.stringify({ productId, quantity, variantId }),
       }),
     updateCartItem: (cartItemId, quantity) =>
       request("/cart/update", {
@@ -398,7 +466,17 @@ export const api = {
     getPaymentDetails: (orderId) => request(`/admin/payments/${orderId}`),
     getPendingPayments: () => request("/admin/payments/pending"),
     // Variant management
-    getVariants: (productId) => request(`/admin/products/${productId}/variants`),
+    getVariants: (productId) =>
+      request(`/admin/products/${productId}/variants`).then((res) => {
+        const dataList = Array.isArray(res) ? res : (res && Array.isArray(res.data) ? res.data : (res && Array.isArray(res.content) ? res.content : []));
+        return {
+          success: true,
+          data: dataList,
+        };
+      }).catch((err) => {
+        console.error("Error in admin.getVariants API:", err);
+        return { success: false, data: [] };
+      }),
     addVariant: (productId, data) =>
       request(`/admin/products/${productId}/variants`, {
         method: "POST",
@@ -452,10 +530,47 @@ export const api = {
 
   payments: {
     getQrDetails: () => request("/payments/qr"),
-    submitQrPayment: (orderId, transactionId, paymentScreenshot = "") =>
-      request(`/payments/qr/submit?orderId=${orderId}&transactionId=${transactionId}`, {
+    createRazorpayOrder: (params) => {
+      let orderId = null;
+      let amount = null;
+      let currency = "INR";
+      let receipt = null;
+
+      if (typeof params === "string" || typeof params === "number") {
+        orderId = params;
+      } else if (params && typeof params === "object") {
+        orderId = params.orderId || params.id;
+        amount = params.amount;
+        currency = params.currency || "INR";
+        receipt = params.receipt;
+      }
+
+      const query = new URLSearchParams();
+      if (orderId) query.append("orderId", orderId);
+      if (amount !== undefined && amount !== null) query.append("amount", amount);
+      if (currency) query.append("currency", currency);
+      if (receipt) query.append("receipt", receipt);
+
+      return request(`/payments/razorpay/create-order?${query.toString()}`, {
         method: "POST",
-        body: JSON.stringify({ paymentScreenshot }),
+      });
+    },
+    verifyRazorpayPayment: (paymentDetails) =>
+      request("/payments/razorpay/verify", {
+        method: "POST",
+        body: JSON.stringify(paymentDetails),
       }),
+    submitQrPayment: (orderId, paymentScreenshot, transactionId = null) => {
+      const formData = new FormData();
+      formData.append("orderId", orderId);
+      formData.append("paymentScreenshot", paymentScreenshot);
+      if (transactionId) {
+        formData.append("transactionId", transactionId);
+      }
+      return request("/payments/qr/submit", {
+        method: "POST",
+        body: formData,
+      });
+    },
   },
 };

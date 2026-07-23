@@ -102,55 +102,64 @@ export default function App() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
+    const authStr = localStorage.getItem("auth");
+    const userStr = localStorage.getItem("user");
+
+    let storedRole = role;
+    let storedUser = null;
+
+    try {
+      if (userStr) storedUser = JSON.parse(userStr);
+      if (!storedRole && authStr) {
+        const auth = JSON.parse(authStr);
+        if (auth?.role) storedRole = auth.role;
+      }
+    } catch (e) {
+      console.error("Error parsing stored auth/user:", e);
+    }
+
+    const isStoredAdmin = (storedRole && (storedRole.toUpperCase() === "ADMIN" || storedRole.toUpperCase() === "ROLE_ADMIN")) ||
+                          (storedUser?.role && (storedUser.role.toUpperCase() === "ADMIN" || storedUser.role.toUpperCase() === "ROLE_ADMIN")) ||
+                          (storedUser?.roles && (
+                            storedUser.roles.map(r => r.toUpperCase()).includes("ADMIN") ||
+                            storedUser.roles.map(r => r.toUpperCase()).includes("ROLE_ADMIN")
+                          ));
+
     if (token) {
-      // Direct session recovery for admins to avoid calling profile/cart endpoints
-      if (role && (role.toUpperCase() === "ADMIN" || role.toUpperCase() === "ROLE_ADMIN")) {
-        try {
-          const storedUserStr = localStorage.getItem("user");
-          if (storedUserStr) {
-            const storedUser = JSON.parse(storedUserStr);
-            setUser(storedUser);
-            setIsLoggedIn(true);
-            setIsAdmin(true);
-            setLoading(false);
-            return;
-          }
-        } catch (e) {
-          console.error("Failed to parse stored admin user profile:", e);
-        }
+      if (isStoredAdmin) {
+        const adminUser = {
+          name: (storedUser?.name && storedUser.name !== "default admin" && storedUser.name !== "admin") ? storedUser.name : "Administrator",
+          email: storedUser?.email || "admin@lemonhouse.in",
+          role: "ADMIN",
+          roles: ["ADMIN"],
+        };
+        setUser(adminUser);
+        setIsLoggedIn(true);
+        setIsAdmin(true);
+        localStorage.setItem("role", "ADMIN");
+        localStorage.setItem("user", JSON.stringify(adminUser));
+        setLoading(false);
+        return;
       }
 
       api.auth.getProfile()
         .then((res) => {
           if (res.success && res.data) {
-            const storedAuthStr = localStorage.getItem("auth");
-            let storedRole = localStorage.getItem("role");
-            if (storedAuthStr) {
-              try {
-                const storedAuth = JSON.parse(storedAuthStr);
-                if (storedAuth && storedAuth.role) {
-                  storedRole = storedRole || storedAuth.role;
-                }
-              } catch (e) {
-                console.error("Failed to parse stored auth", e);
-              }
-            }
             const profileRole = res.data.role || (res.data.roles && res.data.roles[0]);
             const finalRole = profileRole || storedRole || "CUSTOMER";
 
             const isUserAdmin = finalRole && (
               finalRole.toUpperCase() === "ADMIN" || 
-              finalRole.toUpperCase() === "ROLE_ADMIN" ||
-              (res.data.roles && (
-                res.data.roles.map(r => r.toUpperCase()).includes("ADMIN") || 
-                res.data.roles.map(r => r.toUpperCase()).includes("ROLE_ADMIN")
-              ))
+              finalRole.toUpperCase() === "ROLE_ADMIN"
             );
 
             const updatedUser = {
               ...res.data,
-              role: finalRole,
-              roles: res.data.roles || [finalRole],
+              name: (res.data.name && res.data.name.toLowerCase() !== "default admin" && res.data.name.toLowerCase() !== "admin")
+                ? res.data.name
+                : (res.data.email || "Customer"),
+              role: isUserAdmin ? "ADMIN" : finalRole,
+              roles: isUserAdmin ? ["ADMIN"] : (res.data.roles || [finalRole]),
             };
 
             setUser(updatedUser);
@@ -181,111 +190,160 @@ export default function App() {
     }
   }, []);
 
-  const fetchCart = () => {
-    Promise.all([
-      api.cart.getCart(),
-      api.products.listProducts({ all: true }).catch(() => ({ success: false, data: [] }))
-    ])
-      .then(([cartRes, prodRes]) => {
-        if (cartRes.success && cartRes.data) {
-          const items = cartRes.data.items || cartRes.data || [];
+  const fetchCart = async () => {
+    try {
+      const [cartRes, prodRes] = await Promise.all([
+        api.cart.getCart().catch((e) => {
+          console.error("api.cart.getCart error:", e);
+          return { success: false, data: null };
+        }),
+        api.products.listProducts({ all: true }).catch(() => ({ success: false, data: [] }))
+      ]);
+
+      if (cartRes && cartRes.success && cartRes.data) {
+        let items = [];
+        if (Array.isArray(cartRes.data)) {
+          items = cartRes.data;
+        } else if (Array.isArray(cartRes.data.items)) {
+          items = cartRes.data.items;
+        } else if (Array.isArray(cartRes.data.cartItems)) {
+          items = cartRes.data.cartItems;
+        } else if (cartRes.data.cart && Array.isArray(cartRes.data.cart.items)) {
+          items = cartRes.data.cart.items;
+        }
+
+        if (items.length > 0) {
           const catalog = prodRes.success && prodRes.data ? prodRes.data : [];
-          
           const mappedItems = items.map((item) => {
-            const prodId = item.product?.id || item.productId;
-            const catProd = catalog.find(p => p.id === prodId);
+            const prodId = item.product?.id || item.productId || item.id;
+            const catProd = catalog.find(p => String(p.id) === String(prodId));
             return {
-              id: prodId || item.id,
-              cartItemId: item.id || item.cartItemId,
-              name: item.product?.name || catProd?.name || item.productName || item.name,
-              price: item.product?.price || catProd?.price || item.price,
-              image: item.product?.imageUrl || catProd?.imageUrl || item.imageUrl || item.image || item.product?.image,
-              quantity: item.quantity,
+              id: prodId,
+              cartItemId: item.id || item.cartItemId || `${prodId}-${item.variantId || item.variant?.id || ''}`,
+              name: item.product?.name || catProd?.name || item.productName || item.name || "Craft Supply",
+              price: item.variant ? (item.variant.discountedPrice || item.variant.price) : (item.product?.price || catProd?.price || item.price || 0),
+              image: item.product?.imageUrl || item.product?.image || catProd?.image || catProd?.imageUrl || item.imageUrl || item.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=400&fit=crop&auto=format",
+              quantity: item.quantity || 1,
               weight: catProd?.weight || item.product?.weight || item.weight || 0,
               length: catProd?.length || item.product?.length || item.length || 0,
               breadth: catProd?.breadth || item.product?.breadth || item.breadth || 0,
               height: catProd?.height || item.product?.height || item.height || 0,
+              variantId: item.variantId || item.variant?.id,
+              variantName: item.variantName || item.variant?.variantName || item.variant?.name,
+              variant: item.variant,
+              uniqueKey: (item.id || item.cartItemId) || `${prodId}-${item.variantId || item.variant?.id || ''}`,
             };
           });
           setCartItems(mappedItems);
         }
-      })
-      .catch((err) => console.error("Error fetching cart", err));
+      }
+    } catch (err) {
+      console.error("Error fetching cart", err);
+    }
   };
 
-  const handleAddToCart = async (product, qty = 1) => {
+  const handleAddToCart = async (product, qty = 1, variantId = null) => {
+    if (!product) return;
+    const prodId = product.id || product.productId;
+    const uniqueKey = prodId + (variantId ? `-${variantId}` : "");
+
+    setCartItems((prev) => {
+      const existing = prev.find(
+        (i) => i.uniqueKey === uniqueKey || (String(i.id) === String(prodId) && String(i.variantId) === String(variantId))
+      );
+      let next;
+      if (existing) {
+        next = prev.map((i) =>
+          (i.uniqueKey === uniqueKey || (String(i.id) === String(prodId) && String(i.variantId) === String(variantId)))
+            ? { ...i, quantity: i.quantity + qty }
+            : i
+        );
+      } else {
+        next = [
+          ...prev,
+          {
+            ...product,
+            id: prodId,
+            cartItemId: uniqueKey,
+            quantity: qty,
+            variantId,
+            uniqueKey,
+            name: product.name || "Craft Supply",
+            image: product.image || product.imageUrl || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=400&fit=crop&auto=format",
+            price: product.price || 0,
+          },
+        ];
+      }
+      localStorage.setItem("guestCart", JSON.stringify(next));
+      return next;
+    });
+
+    toast.success(`${product.name || "Product"} added to cart!`);
+    setCartOpen(true);
+
     if (isLoggedIn) {
       try {
-        await api.cart.addToCart(product.id, qty);
-        fetchCart();
+        await api.cart.addToCart(prodId, qty, variantId);
+        await fetchCart();
       } catch (err) {
-        console.error("Failed to add to cart: " + err.message);
+        console.warn("Backend cart sync error:", err);
       }
-    } else {
-      setCartItems((prev) => {
-        const existing = prev.find((i) => i.id === product.id);
-        let next;
-        if (existing) {
-          next = prev.map((i) =>
-            i.id === product.id ? { ...i, quantity: i.quantity + qty } : i
-          );
-        } else {
-          next = [...prev, { ...product, quantity: qty }];
-        }
-        localStorage.setItem("guestCart", JSON.stringify(next));
-        return next;
-      });
     }
   };
 
   const handleUpdateQuantity = async (id, qty, cartItemId) => {
+    setCartItems((prev) => {
+      let next;
+      if (qty <= 0) {
+        next = prev.filter((i) =>
+          cartItemId ? (i.cartItemId === cartItemId || i.uniqueKey === cartItemId) : String(i.id) !== String(id)
+        );
+      } else {
+        next = prev.map((i) =>
+          (cartItemId ? (i.cartItemId === cartItemId || i.uniqueKey === cartItemId) : String(i.id) === String(id))
+            ? { ...i, quantity: qty }
+            : i
+        );
+      }
+      localStorage.setItem("guestCart", JSON.stringify(next));
+      return next;
+    });
+
     if (isLoggedIn) {
       try {
-        const targetItemId = cartItemId || cartItems.find((i) => i.id === id)?.cartItemId;
-        if (!targetItemId) {
-          throw new Error("Cart item identifier not found");
+        const targetItemId = cartItemId || cartItems.find((i) => String(i.id) === String(id))?.cartItemId;
+        if (targetItemId) {
+          if (qty <= 0) {
+            await api.cart.removeCartItem(targetItemId);
+          } else {
+            await api.cart.updateCartItem(targetItemId, qty);
+          }
         }
-        if (qty <= 0) {
-          await api.cart.removeCartItem(targetItemId);
-        } else {
-          await api.cart.updateCartItem(targetItemId, qty);
-        }
-        fetchCart();
       } catch (err) {
-        console.error("Failed to update quantity: " + err.message);
+        console.warn("Backend update quantity sync error:", err);
       }
-    } else {
-      setCartItems((prev) => {
-        let next;
-        if (qty <= 0) {
-          next = prev.filter((i) => i.id !== id);
-        } else {
-          next = prev.map((i) => (i.id === id ? { ...i, quantity: qty } : i));
-        }
-        localStorage.setItem("guestCart", JSON.stringify(next));
-        return next;
-      });
     }
   };
 
   const handleRemoveFromCart = async (id, cartItemId) => {
+    setCartItems((prev) => {
+      const next = prev.filter((i) =>
+        cartItemId ? (i.cartItemId === cartItemId || i.uniqueKey === cartItemId) : String(i.id) !== String(id)
+      );
+      localStorage.setItem("guestCart", JSON.stringify(next));
+      return next;
+    });
+    toast.info("Item removed from cart");
+
     if (isLoggedIn) {
       try {
-        const targetItemId = cartItemId || cartItems.find((i) => i.id === id)?.cartItemId;
-        if (!targetItemId) {
-          throw new Error("Cart item identifier not found");
+        const targetItemId = cartItemId || cartItems.find((i) => String(i.id) === String(id))?.cartItemId;
+        if (targetItemId) {
+          await api.cart.removeCartItem(targetItemId);
         }
-        await api.cart.removeCartItem(targetItemId);
-        fetchCart();
       } catch (err) {
-        console.error("Failed to remove item: " + err.message);
+        console.warn("Backend remove item sync error:", err);
       }
-    } else {
-      setCartItems((prev) => {
-        const next = prev.filter((i) => i.id !== id);
-        localStorage.setItem("guestCart", JSON.stringify(next));
-        return next;
-      });
     }
   };
 
@@ -321,7 +379,7 @@ export default function App() {
       try {
         const items = JSON.parse(guestCart);
         for (const item of items) {
-          await api.cart.addToCart(item.id, item.quantity);
+          await api.cart.addToCart(item.id, item.quantity, item.variantId);
         }
         localStorage.removeItem("guestCart");
       } catch (err) {

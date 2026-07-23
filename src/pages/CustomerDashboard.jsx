@@ -341,12 +341,12 @@ export function CustomerDashboard({
                   </div>
                   <div>
                     <p
-                      className="font-bold"
+                      className="font-bold text-sm truncate max-w-[150px]"
                       style={{ fontFamily: "Poppins, sans-serif" }}
                     >
-                      {user?.name || "User"}
+                      {(user?.name === "default admin" || user?.name === "admin" || !user?.name) ? (user?.email ? user.email.split("@")[0] : "Customer") : user.name}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground truncate max-w-[150px]">
                       {user?.email || ""}
                     </p>
                   </div>
@@ -392,7 +392,7 @@ export function CustomerDashboard({
                   className="text-2xl font-bold"
                   style={{ fontFamily: "Poppins, sans-serif" }}
                 >
-                  Welcome back, {user?.name || "User"}! 👋
+                  Welcome back, {(user?.name === "default admin" || user?.name === "admin" || !user?.name) ? (user?.email ? user.email.split("@")[0] : "Customer") : user.name}! 👋
                 </h1>
 
                 {/* Stats */}
@@ -564,6 +564,25 @@ export function CustomerDashboard({
                                 );
                               })}
                             </div>
+                          </div>
+                        )}
+
+                        {Array.isArray(order.items) && order.items.length > 0 && (
+                          <div className="mb-3 space-y-1.5 border-t border-b border-border/40 py-2.5">
+                            {order.items.map((item, idx) => {
+                              const vName = item.variantName || item.variant?.variantName || item.variant || item.selectedVariant?.variantName || item.selectedVariant;
+                              const pName = item.product?.name || item.productName || item.name || "Product";
+                              return (
+                                <div key={item.id || idx} className="flex justify-between items-center text-xs">
+                                  <span className="text-foreground/80 truncate max-w-[75%] font-medium">
+                                    • {pName}
+                                    {vName ? <span className="text-primary font-semibold"> ({vName})</span> : ""}
+                                    <span className="text-muted-foreground ml-1">x{item.quantity || 1}</span>
+                                  </span>
+                                  <span className="font-semibold text-foreground/90">₹{(item.price || 0) * (item.quantity || 1)}</span>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
 
@@ -888,7 +907,7 @@ export function CustomerDashboard({
                       👩
                     </div>
                     <div>
-                      <p className="font-bold">{user?.name || "User"}</p>
+                      <p className="font-bold">{(user?.name === "default admin" || user?.name === "admin" || !user?.name) ? (user?.email ? user.email.split("@")[0] : "Customer") : user.name}</p>
                       <p className="text-sm text-muted-foreground">
                         Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "January 2024"}
                       </p>
@@ -1030,22 +1049,28 @@ export function CustomerDashboard({
               <div>
                 <h3 className="text-sm font-semibold mb-3">Items</h3>
                 <div className="space-y-3">
-                  {selectedOrder.items?.map((item) => (
-                    <div key={item.id} className="flex justify-between items-center gap-3 bg-muted/10 p-2.5 rounded-xl border border-border/50">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <img
-                          src={item.product?.imageUrl || item.product?.image || item.imageUrl || item.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format"}
-                          alt={item.product?.name || item.productName || item.name || "Product"}
-                          className="w-10 h-10 object-cover rounded-lg bg-muted flex-shrink-0 border border-border"
-                        />
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-foreground truncate">{item.product?.name || item.productName || item.name || "Craft Item"}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">₹{item.price} × {item.quantity}</p>
+                  {selectedOrder.items?.map((item, idx) => {
+                    const variantName = item.variantName || item.variant?.variantName || item.variant || item.selectedVariant?.variantName || item.selectedVariant;
+                    return (
+                      <div key={item.id || idx} className="flex justify-between items-center gap-3 bg-muted/10 p-2.5 rounded-xl border border-border/50">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <img
+                            src={item.product?.imageUrl || item.product?.image || item.imageUrl || item.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format"}
+                            alt={item.product?.name || item.productName || item.name || "Product"}
+                            className="w-10 h-10 object-cover rounded-lg bg-muted flex-shrink-0 border border-border"
+                          />
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-foreground truncate">
+                              {item.product?.name || item.productName || item.name || "Craft Item"}
+                              {variantName ? ` (${variantName})` : ""}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">₹{item.price} × {item.quantity}</p>
+                          </div>
                         </div>
+                        <span className="text-xs font-bold flex-shrink-0">₹{(item.price || 0) * (item.quantity || 1)}</span>
                       </div>
-                      <span className="text-xs font-bold flex-shrink-0">₹{item.price * item.quantity}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

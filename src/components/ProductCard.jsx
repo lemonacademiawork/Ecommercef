@@ -13,6 +13,10 @@ export function ProductCard({
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
+    if (product.hasVariants) {
+      onNavigate(product.id);
+      return;
+    }
     onAddToCart(product);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
@@ -127,17 +131,19 @@ export function ProductCard({
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={handleAddToCart}
-            disabled={!product.inStock}
+            disabled={!product.hasVariants && !product.inStock}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
               added
                 ? "bg-accent text-white"
-                : product.inStock
+                : (product.hasVariants || product.inStock)
                   ? "bg-primary text-white hover:bg-primary/90"
                   : "bg-muted text-muted-foreground cursor-not-allowed"
             }`}
           >
             {added ? (
               <>✓ Added</>
+            ) : product.hasVariants ? (
+              <>Options</>
             ) : (
               <>
                 <ShoppingCart className="w-3 h-3" /> Add

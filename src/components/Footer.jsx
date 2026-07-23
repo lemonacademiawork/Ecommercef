@@ -25,6 +25,10 @@ const WhatsApp = (props) => (
 );
 
 export function Footer({ navigate }) {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || "https://api.lemonhousecraft.in";
+  const cleanUrl = baseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
+  const swaggerUrl = `${cleanUrl}/swagger-ui/index.html#/`;
+
   return (
     <footer style={{ background: "#1a1a2e" }} className="text-white">
       {/* Main Footer */}
@@ -97,7 +101,7 @@ export function Footer({ navigate }) {
                 ))}
                 <li>
                   <a
-                    href="https://ecommerce-backend-861245237403.asia-south1.run.app/swagger-ui/index.html#/"
+                    href={swaggerUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-white/60 hover:text-white text-sm transition-colors inline-block"
