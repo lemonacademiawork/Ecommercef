@@ -80,14 +80,16 @@ export const mapCategoryData = (cat) => {
       key.toLowerCase().includes(cat.name?.toLowerCase())
   );
   const extra = matched ? mapping[matched] : defaultMap;
+  const categoryImage = cat.imageUrl || cat.image || (extra.image !== "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=300&fit=crop&auto=format" ? extra.image : null);
 
   return {
     ...cat,
     id: cat.id,
     idString: extra.idString || cat.id.toString(),
-    icon: extra.icon,
+    icon: extra.icon || "🛍️",
     color: extra.color,
-    image: cat.imageUrl || cat.image || extra.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=300&fit=crop&auto=format",
+    imageUrl: categoryImage || cat.imageUrl || cat.image,
+    image: categoryImage || cat.imageUrl || cat.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=300&fit=crop&auto=format",
     count: cat.count || 0,
   };
 };

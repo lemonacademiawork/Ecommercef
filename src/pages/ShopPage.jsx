@@ -140,22 +140,36 @@ export function ShopPage({
               {products.length}
             </span>
           </button>
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-all ${
-                selectedCategory === cat.id
-                  ? "bg-primary/10 text-primary font-semibold"
-                  : "hover:bg-muted text-foreground/70"
-              }`}
-            >
-              {cat.icon} {cat.name}
-               <span className="float-right text-xs text-muted-foreground">
-                {products.filter(p => p.category?.toLowerCase() === cat.idString?.toLowerCase() || p.categoryId?.toString()?.toLowerCase() === cat.id?.toString()?.toLowerCase()).length || cat.count}
-              </span>
-            </button>
-          ))}
+          {categories.map((cat) => {
+            const catImg = cat.imageUrl || cat.image;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-all ${
+                  selectedCategory === cat.id
+                    ? "bg-primary/10 text-primary font-semibold"
+                    : "hover:bg-muted text-foreground/70"
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {catImg ? (
+                    <img
+                      src={catImg}
+                      alt={cat.name}
+                      className="w-5 h-5 rounded-md object-cover flex-shrink-0 border border-border/50 bg-muted"
+                    />
+                  ) : (
+                    <span className="text-base flex-shrink-0">{cat.icon || "🛍️"}</span>
+                  )}
+                  <span className="truncate">{cat.name}</span>
+                </div>
+                <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">
+                  {products.filter(p => p.category?.toLowerCase() === cat.idString?.toLowerCase() || p.categoryId?.toString()?.toLowerCase() === cat.id?.toString()?.toLowerCase()).length || cat.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

@@ -237,10 +237,14 @@ export function LandingPage({
                 className="flex flex-col items-center gap-3 p-4 rounded-2xl border border-border bg-white dark:bg-zinc-900 hover:border-primary hover:shadow-md transition-all group cursor-pointer"
               >
                 <div
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl"
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl overflow-hidden bg-muted"
                   style={{ background: cat.color }}
                 >
-                  {cat.icon}
+                  {(cat.imageUrl || cat.image) ? (
+                    <img src={cat.imageUrl || cat.image} alt={cat.name} className="w-full h-full object-cover rounded-2xl" />
+                  ) : (
+                    cat.icon || "🛍️"
+                  )}
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-semibold leading-snug group-hover:text-primary transition-colors">
@@ -263,10 +267,14 @@ export function LandingPage({
                 className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-border bg-white dark:bg-zinc-900 snap-center flex-shrink-0 cursor-pointer"
               >
                 <span
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-lg"
+                  className="w-8 h-8 rounded-xl flex items-center justify-center text-lg overflow-hidden bg-muted"
                   style={{ background: cat.color }}
                 >
-                  {cat.icon}
+                  {(cat.imageUrl || cat.image) ? (
+                    <img src={cat.imageUrl || cat.image} alt={cat.name} className="w-full h-full object-cover rounded-xl" />
+                  ) : (
+                    cat.icon || "🛍️"
+                  )}
                 </span>
                 <span className="text-xs font-semibold text-foreground leading-none">
                   {cat.name}
