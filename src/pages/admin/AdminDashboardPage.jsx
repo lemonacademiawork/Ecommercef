@@ -210,9 +210,8 @@ export function AdminDashboardPage() {
     );
   }
 
-  const displayRevenue = metrics.totalRevenue !== undefined && metrics.totalRevenue !== null && Number(metrics.totalRevenue) > 0
-    ? Number(metrics.totalRevenue)
-    : calculatedTotalRevenue;
+  // Revenue is calculated strictly from successful/paid orders (excluding pending/unpaid)
+  const displayRevenue = calculatedTotalRevenue;
 
   return (
     <div className="space-y-6">
