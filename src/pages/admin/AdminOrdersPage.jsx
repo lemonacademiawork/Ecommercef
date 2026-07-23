@@ -25,25 +25,48 @@ const getOrderTotal = (order) => {
 
 const isPaymentPending = (order) => {
   if (!order) return false;
-  const s = String(order.status || "").toUpperCase();
-  const ps = String(order.paymentStatus || order.payment_status || "").toUpperCase();
+  if (order.isPaymentPending === true) return true;
+  const s = String(order.status || order.orderStatus || "").toUpperCase();
+  const ps = String(
+    order.paymentStatus || 
+    order.payment_status || 
+    order.paymentState || 
+    order.payment_state || 
+    ""
+  ).toUpperCase();
+
   return (
     s === "PAYMENT_PENDING" ||
     s === "PENDING" ||
+    s === "UNPAID" ||
+    s === "AWAITING_PAYMENT" ||
+    s === "CREATED" ||
     ps === "PAYMENT_PENDING" ||
     ps === "PENDING" ||
     ps === "UNPAID" ||
-    order.paymentApproved === false
+    ps === "AWAITING_PAYMENT" ||
+    ps === "PROCESSING" ||
+    ps === "SUBMITTED" ||
+    ps === "IN_REVIEW" ||
+    order.paymentApproved === false ||
+    order.isPaid === false ||
+    order.paid === false
   );
 };
 
-const getDisplayStatus = (status) => {
-  if (!status) return "PAYMENT_PENDING";
-  const s = String(status).toUpperCase();
-  if (s === "PENDING" || s === "PAYMENT_PENDING" || s === "UNPAID") {
+const getDisplayStatus = (order) => {
+  if (!order) return "PAYMENT_PENDING";
+  if (typeof order === "string") {
+    const s = order.toUpperCase();
+    if (s === "PENDING" || s === "PAYMENT_PENDING" || s === "UNPAID" || s === "CREATED") {
+      return "PAYMENT_PENDING";
+    }
+    return order;
+  }
+  if (isPaymentPending(order)) {
     return "PAYMENT_PENDING";
   }
-  return status;
+  return order.status || order.orderStatus || "Processing";
 };
 
 export function AdminOrdersPage() {
@@ -352,6 +375,8 @@ export function AdminOrdersPage() {
     try {
       setLoading(true);
       let orderList = [];
+      let pendingPaymentSet = new Set();
+
       try {
         const orderRes = await api.admin.listAllOrders();
         if (orderRes && orderRes.success && orderRes.data) {
@@ -363,9 +388,29 @@ export function AdminOrdersPage() {
         console.warn("Failed to fetch orders from backend, using local storage fallback:", backendErr);
       }
 
+      try {
+        const pendingRes = await api.admin.getPendingPayments();
+        if (pendingRes && pendingRes.success && pendingRes.data) {
+          const list = Array.isArray(pendingRes.data) ? pendingRes.data : (pendingRes.data.content || []);
+          list.forEach(p => {
+            const pid = p.orderId || p.id || p.order?.id;
+            if (pid) pendingPaymentSet.add(String(pid));
+          });
+        }
+      } catch (pendingErr) {
+        // Fallback if pending payments API is not implemented
+      }
+
       // Merge with local mock orders from localStorage
       const localOrders = JSON.parse(localStorage.getItem("localOrders") || "[]");
-      const mergedOrders = [...localOrders, ...orderList];
+      const mergedOrders = [...localOrders, ...orderList].map(o => {
+        const idStr = String(o.id);
+        const isPendingFromApi = pendingPaymentSet.has(idStr);
+        return {
+          ...o,
+          isPaymentPending: isPendingFromApi || isPaymentPending(o)
+        };
+      });
 
       // Sort descending by date, then by ID
       mergedOrders.sort((a, b) => {
@@ -392,10 +437,10 @@ export function AdminOrdersPage() {
       const res = await api.admin.updateOrderStatus(orderId, newStatus);
       if (res.success) {
         setOrders((prev) =>
-          prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+          prev.map((o) => (o.id === orderId ? { ...o, status: newStatus, isPaymentPending: newStatus === "PAYMENT_PENDING" } : o))
         );
         if (selectedOrder && selectedOrder.id === orderId) {
-          setSelectedOrder((prev) => ({ ...prev, status: newStatus }));
+          setSelectedOrder((prev) => ({ ...prev, status: newStatus, isPaymentPending: newStatus === "PAYMENT_PENDING" }));
         }
       }
     } catch (err) {
