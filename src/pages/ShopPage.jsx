@@ -69,6 +69,25 @@ export function ShopPage({
     loadData();
   }, []);
 
+  const activeCategoryObj = useMemo(() => {
+    if (selectedCategory === "all") return null;
+    return categories.find(
+      (c) =>
+        String(c.id).toLowerCase() === String(selectedCategory).toLowerCase() ||
+        String(c.name).toLowerCase() === String(selectedCategory).toLowerCase() ||
+        String(c.idString || "").toLowerCase() === String(selectedCategory).toLowerCase()
+    );
+  }, [categories, selectedCategory]);
+
+  const isCatSelected = (cat) => {
+    if (selectedCategory === "all") return false;
+    const selStr = String(selectedCategory).toLowerCase();
+    const catId = String(cat.id || "").toLowerCase();
+    const catName = String(cat.name || "").toLowerCase();
+    const catIdStr = String(cat.idString || "").toLowerCase();
+    return selStr === catId || selStr === catName || selStr === catIdStr;
+  };
+
   const filtered = useMemo(() => {
     let list = [...products];
 
@@ -81,14 +100,32 @@ export function ShopPage({
           p.tags?.some((t) => t.toLowerCase().includes(q))
       );
     }
+
     if (selectedCategory !== "all") {
-      list = list.filter(
-        (p) =>
-          p.category?.toLowerCase() === selectedCategory.toLowerCase() ||
-          p.categoryId?.toString()?.toLowerCase() === selectedCategory.toString()?.toLowerCase() ||
-          p.category?.toString()?.toLowerCase() === selectedCategory.toString()?.toLowerCase()
-      );
+      list = list.filter((p) => {
+        const pCatStr = String(p.category || "").toLowerCase();
+        const pCatIdStr = String(p.categoryId || "").toLowerCase();
+        const selStr = String(selectedCategory).toLowerCase();
+
+        // Direct match with selectedCategory parameter
+        if (pCatStr === selStr || pCatIdStr === selStr) return true;
+        if (pCatStr.includes(selStr) || selStr.includes(pCatStr)) return true;
+
+        // Match with active category object (by ID, name, or idString)
+        if (activeCategoryObj) {
+          const catId = String(activeCategoryObj.id).toLowerCase();
+          const catName = String(activeCategoryObj.name).toLowerCase();
+          const catIdStr = String(activeCategoryObj.idString || "").toLowerCase();
+
+          if (pCatIdStr === catId) return true;
+          if (pCatStr === catId || pCatStr === catName || pCatStr === catIdStr) return true;
+          if (pCatStr.includes(catName) || catName.includes(pCatStr)) return true;
+        }
+
+        return false;
+      });
     }
+
     list = list.filter(
       (p) => p.price >= priceRange[0] && p.price <= priceRange[1]
     );
@@ -114,7 +151,7 @@ export function ShopPage({
     }
 
     return list;
-  }, [products, localSearch, selectedCategory, priceRange, sortBy, onlyInStock]);
+  }, [products, localSearch, selectedCategory, activeCategoryObj, priceRange, sortBy, onlyInStock]);
 
   const activeFiltersCount = [
     selectedCategory !== "all",
@@ -154,12 +191,13 @@ export function ShopPage({
           </button>
           {categories.map((cat) => {
             const catImg = cat.imageUrl || cat.image;
+            const selected = isCatSelected(cat);
             return (
               <button
                 key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
+                onClick={() => setSelectedCategory(cat.id || cat.name)}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-all ${
-                  selectedCategory === cat.id
+                  selected
                     ? "bg-primary/10 text-primary font-semibold"
                     : "hover:bg-muted text-foreground/70"
                 }`}
