@@ -689,6 +689,24 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                 )}
               </button>
             </div>
+
+            {/* WhatsApp Support Link */}
+            <div className="pt-3 border-t border-border/60 text-center">
+              <p className="text-[11px] text-muted-foreground mb-2 font-medium">
+                Need help with your payment or screenshot?
+              </p>
+              <a
+                href="https://wa.link/98z5wj"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-2xl text-xs font-bold transition-all shadow-sm hover:shadow-md cursor-pointer w-full"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-1.002 3.66 3.745-.983zm12.383-7.534c-.287-.143-1.696-.837-1.958-.933-.263-.095-.455-.143-.647.143-.192.286-.743.933-.911 1.124-.168.19-.336.214-.623.071-1.687-.843-2.8-1.5-3.916-3.415-.297-.511.297-.474.848-1.574.096-.19.048-.357-.024-.5-.072-.143-.647-1.557-.887-2.131-.233-.559-.47-.483-.647-.492-.167-.008-.359-.008-.551-.008-.192 0-.503.072-.767.357-.263.286-1.007.984-1.007 2.4 0 1.416 1.031 2.784 1.175 2.975.144.191 2.03 3.103 4.919 4.35.686.297 1.222.474 1.639.607.69.22 1.317.189 1.813.115.553-.083 1.696-.693 1.935-1.362.239-.669.239-1.24.168-1.362-.072-.123-.264-.195-.551-.338z"/>
+                </svg>
+                Chat on WhatsApp Support
+              </a>
+            </div>
           </form>
         </motion.div>
       </div>
