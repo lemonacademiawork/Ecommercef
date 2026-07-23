@@ -37,6 +37,15 @@ const isPaymentPending = (order) => {
   );
 };
 
+const getDisplayStatus = (status) => {
+  if (!status) return "PAYMENT_PENDING";
+  const s = String(status).toUpperCase();
+  if (s === "PENDING" || s === "PAYMENT_PENDING" || s === "UNPAID") {
+    return "PAYMENT_PENDING";
+  }
+  return status;
+};
+
 export function AdminOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -473,24 +482,26 @@ export function AdminOrdersPage() {
                     ₹{getOrderTotal(order)}
                   </td>
                   <td className="px-4 py-3">
-                    {isPaymentPending(order) ? (
-                      <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 shadow-sm">
-                        PAYMENT_PENDING
-                      </span>
-                    ) : (
-                      <div className="relative inline-block">
-                        <select
-                          value={order.status}
-                          onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                          className={`text-xs font-semibold pl-3 pr-8 py-1.5 rounded-full border-0 cursor-pointer appearance-none ${statusColors[order.status] || "bg-yellow-100 text-yellow-700"}`}
-                        >
-                          {["Processing", "Shipped", "Delivered", "Cancelled"].map((s) => (
-                            <option key={s} value={s}>{s}</option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none text-muted-foreground" />
-                      </div>
-                    )}
+                    <div className="relative inline-block">
+                      <select
+                        value={getDisplayStatus(order.status)}
+                        onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                        className={`text-xs font-semibold pl-3 pr-8 py-1.5 rounded-full border-0 cursor-pointer appearance-none ${statusColors[getDisplayStatus(order.status)] || "bg-amber-100 text-amber-800"}`}
+                      >
+                        {[
+                          "PAYMENT_PENDING",
+                          "Processing",
+                          "Shipped",
+                          "Delivered",
+                          "Cancelled",
+                        ].map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none text-muted-foreground" />
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <button
@@ -534,14 +545,14 @@ export function AdminOrdersPage() {
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground">STATUS</p>
                     <p className="text-sm font-bold text-foreground mt-0.5">
-                      {isPaymentPending(selectedOrder) ? "Processing" : selectedOrder.status}
+                      {getDisplayStatus(selectedOrder.status) === "PAYMENT_PENDING" ? "Processing" : selectedOrder.status}
                     </p>
                   </div>
                   <div className="relative">
                     <select
-                      value={isPaymentPending(selectedOrder) ? "Processing" : selectedOrder.status}
+                      value={getDisplayStatus(selectedOrder.status) === "PAYMENT_PENDING" ? "Processing" : selectedOrder.status}
                       onChange={(e) => handleStatusChange(selectedOrder.id, e.target.value)}
-                      className={`text-xs font-semibold pl-3 pr-8 py-1.5 rounded-full border-0 cursor-pointer appearance-none ${statusColors[isPaymentPending(selectedOrder) ? "Processing" : selectedOrder.status] || "bg-yellow-100 text-yellow-700"}`}
+                      className={`text-xs font-semibold pl-3 pr-8 py-1.5 rounded-full border-0 cursor-pointer appearance-none ${statusColors[getDisplayStatus(selectedOrder.status) === "PAYMENT_PENDING" ? "Processing" : selectedOrder.status] || "bg-yellow-100 text-yellow-700"}`}
                     >
                       {["Processing", "Shipped", "Delivered", "Cancelled"].map((s) => (
                         <option key={s} value={s}>{s}</option>
