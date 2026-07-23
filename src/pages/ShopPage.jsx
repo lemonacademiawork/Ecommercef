@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useLocation } from "react-router";
 import { SlidersHorizontal, X, ChevronDown, Search } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { ProductCard } from "../components/ProductCard";
@@ -19,6 +20,7 @@ export function ShopPage({
   onToggleWishlist,
   searchQuery,
 }) {
+  const location = useLocation();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +30,16 @@ export function ShopPage({
   const [onlyInStock, setOnlyInStock] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [localSearch, setLocalSearch] = useState(searchQuery);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const catQuery = searchParams.get("category");
+    if (catQuery) {
+      setSelectedCategory(catQuery);
+    } else {
+      setSelectedCategory("all");
+    }
+  }, [location.search]);
 
   const maxProductPrice = useMemo(() => {
     if (products.length === 0) return 2000;

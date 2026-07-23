@@ -233,7 +233,7 @@ export function LandingPage({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                onClick={() => navigate("shop")}
+                onClick={() => navigate("shop", cat.id || cat.idString || cat.name)}
                 className="flex flex-col items-center gap-3 p-4 rounded-2xl border border-border bg-white dark:bg-zinc-900 hover:border-primary hover:shadow-md transition-all group cursor-pointer"
               >
                 <div
@@ -263,7 +263,7 @@ export function LandingPage({
             {categories.slice(0, 10).map((cat) => (
               <button
                 key={cat.id}
-                onClick={() => navigate("shop")}
+                onClick={() => navigate("shop", cat.id || cat.idString || cat.name)}
                 className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-border bg-white dark:bg-zinc-900 snap-center flex-shrink-0 cursor-pointer"
               >
                 <span

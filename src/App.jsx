@@ -66,7 +66,13 @@ export default function App() {
   const navigate = (p, id, search = "") => {
     let path = "/";
     if (p === "home") path = "/";
-    else if (p === "shop") path = "/shop";
+    else if (p === "shop") {
+      if (id) {
+        path = `/shop?category=${encodeURIComponent(id)}`;
+      } else {
+        path = "/shop";
+      }
+    }
     else if (p === "product") path = `/product/${id}`;
     else if (p === "checkout") path = "/checkout";
     else if (p === "dashboard") path = "/dashboard";
