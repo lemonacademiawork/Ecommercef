@@ -103,23 +103,26 @@ export function ShopPage({
 
     if (selectedCategory !== "all") {
       list = list.filter((p) => {
-        const pCatStr = String(p.category || "").toLowerCase();
-        const pCatIdStr = String(p.categoryId || "").toLowerCase();
-        const selStr = String(selectedCategory).toLowerCase();
+        const pCatStr = String(p.category || "").toLowerCase().trim();
+        const pCatNameStr = String(p.categoryName || "").toLowerCase().trim();
+        const pCatIdStr = String(p.categoryId || "").toLowerCase().trim();
+        const selStr = String(selectedCategory).toLowerCase().trim();
 
         // Direct match with selectedCategory parameter
-        if (pCatStr === selStr || pCatIdStr === selStr) return true;
-        if (pCatStr.includes(selStr) || selStr.includes(pCatStr)) return true;
+        if (pCatStr === selStr || pCatNameStr === selStr || pCatIdStr === selStr) return true;
+        if (pCatStr && (pCatStr.includes(selStr) || selStr.includes(pCatStr))) return true;
+        if (pCatNameStr && (pCatNameStr.includes(selStr) || selStr.includes(pCatNameStr))) return true;
 
         // Match with active category object (by ID, name, or idString)
         if (activeCategoryObj) {
-          const catId = String(activeCategoryObj.id).toLowerCase();
-          const catName = String(activeCategoryObj.name).toLowerCase();
-          const catIdStr = String(activeCategoryObj.idString || "").toLowerCase();
+          const catId = String(activeCategoryObj.id || "").toLowerCase().trim();
+          const catName = String(activeCategoryObj.name || "").toLowerCase().trim();
+          const catIdStr = String(activeCategoryObj.idString || "").toLowerCase().trim();
 
-          if (pCatIdStr === catId) return true;
-          if (pCatStr === catId || pCatStr === catName || pCatStr === catIdStr) return true;
-          if (pCatStr.includes(catName) || catName.includes(pCatStr)) return true;
+          if (catId && (pCatIdStr === catId || pCatStr === catId)) return true;
+          if (catName && (pCatStr === catName || pCatNameStr === catName)) return true;
+          if (catIdStr && (pCatStr === catIdStr || pCatNameStr === catIdStr)) return true;
+          if (catName && (pCatStr.includes(catName) || catName.includes(pCatStr) || pCatNameStr.includes(catName))) return true;
         }
 
         return false;

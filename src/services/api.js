@@ -151,7 +151,9 @@ export const mapProductData = (product) => {
     inStock: product.stock > 0,
     tags: product.tags || [],
     materials: product.materials || [],
-    category: product.categoryId ? product.categoryId.toString() : product.category,
+    category: typeof product.category === "object" ? (product.category?.name || product.category?.id) : (product.categoryName || product.category || (product.categoryId ? product.categoryId.toString() : "")),
+    categoryId: product.categoryId || (typeof product.category === "object" ? product.category?.id : null),
+    categoryName: product.categoryName || (typeof product.category === "object" ? product.category?.name : (typeof product.category === "string" ? product.category : "")),
     rating: product.rating || 4.5,
     reviews: product.reviews || 0,
   };
