@@ -210,6 +210,10 @@ export function AdminDashboardPage() {
     );
   }
 
+  const displayRevenue = metrics.totalRevenue !== undefined && metrics.totalRevenue !== null && Number(metrics.totalRevenue) > 0
+    ? Number(metrics.totalRevenue)
+    : calculatedTotalRevenue;
+
   return (
     <div className="space-y-6">
       <h1
@@ -224,7 +228,7 @@ export function AdminDashboardPage() {
         {[
           {
             label: "Total Revenue",
-            value: `₹${calculatedTotalRevenue.toLocaleString()}`,
+            value: `₹${displayRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
             change: "Live",
             color: "#a61c9b",
             bg: "#fbeaf5",

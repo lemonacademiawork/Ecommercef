@@ -1226,13 +1226,68 @@ export function CustomerDashboard({
                 </div>
               )}
 
-              {/* Total Summary */}
-              <div className="pt-4 border-t border-border space-y-1.5 text-sm">
-                <div className="flex justify-between font-bold text-base pt-2">
-                  <span>Total Amount</span>
-                  <span className="text-primary">₹{getOrderTotal(selectedOrder)}</span>
+              {/* Total Summary Breakdown */}
+              {(() => {
+                const itemsSubtotal = (selectedOrder.items && Array.isArray(selectedOrder.items) && selectedOrder.items.length > 0)
+                  ? selectedOrder.items.reduce((sum, i) => sum + (Number(i.price || 0) * Number(i.quantity || 1)), 0)
+                  : Number(selectedOrder.subtotal || selectedOrder.amount || 0);
+
+                const shippingFee = Number(
+                  selectedOrder.shippingCharge ?? 
+                  selectedOrder.shippingFee ?? 
+                  selectedOrder.shippingCost ?? 
+                  selectedOrder.shipping ?? 
+                  (itemsSubtotal > 499 || itemsSubtotal === 0 ? 0 : 49)
+                );
+
+                const discountAmount = Number(selectedOrder.discountAmount ?? selectedOrder.discount ?? 0);
+                const completeTotal = Number(selectedOrder.totalAmount ?? (itemsSubtotal + shippingFee - discountAmount));
+
+                return (
+                  <div className="pt-4 border-t border-border space-y-2 text-xs">
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Items Subtotal</span>
+                      <span className="font-semibold text-foreground">₹{itemsSubtotal}</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Shipping Fee</span>
+                      <span className="font-semibold text-foreground">₹{shippingFee}</span>
+                    </div>
+                    {discountAmount > 0 && (
+                      <div className="flex justify-between text-green-600 font-medium">
+                        <span>Discount Applied</span>
+                        <span>-₹{discountAmount}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-bold text-sm text-foreground pt-2 border-t border-border/50">
+                      <span>Complete Total Amount</span>
+                      <span className="text-primary font-extrabold text-base">₹{completeTotal}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Payment Screenshot Preview (if exists) */}
+              {(selectedOrder.paymentScreenshotUrl || selectedOrder.paymentScreenshot || selectedOrder.screenshotUrl) && (
+                <div className="pt-4 border-t border-border">
+                  <h3 className="text-xs font-semibold mb-2 uppercase text-muted-foreground">Submitted Payment Proof</h3>
+                  <a
+                    href={selectedOrder.paymentScreenshotUrl || selectedOrder.paymentScreenshot || selectedOrder.screenshotUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block group relative overflow-hidden rounded-xl border border-border/60 shadow-sm max-w-xs hover:opacity-95 transition-all"
+                  >
+                    <img
+                      src={selectedOrder.paymentScreenshotUrl || selectedOrder.paymentScreenshot || selectedOrder.screenshotUrl}
+                      alt="Payment Proof"
+                      className="w-full max-h-48 object-cover rounded-xl"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-semibold transition-opacity">
+                      Click to view full image ↗
+                    </div>
+                  </a>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

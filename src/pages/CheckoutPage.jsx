@@ -292,7 +292,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
         qrForm.transactionId || null
       );
       if (res.success) {
-        toast.success("Payment details submitted successfully!");
+        toast.success("Payment screenshot uploaded successfully! Pending verification.");
 
         // Finalize order screen
         setConfirmedOrderTotal(qrPaymentOrder.total);
@@ -318,7 +318,7 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
       }
     } catch (err) {
       console.warn("Backend QR submission failed, completing order with mock success:", err);
-      toast.success("Payment details submitted!");
+      toast.success("Payment screenshot uploaded! Pending verification.");
       setConfirmedOrderTotal(qrPaymentOrder.total);
       try {
         await api.cart.clearCart();
