@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Heart, Star, ShoppingCart } from "lucide-react";
+import { Heart, Star, ShoppingCart, Share2 } from "lucide-react";
 import { motion } from "motion/react";
+import { handleShareProduct } from "../utils/share";
 
 export function ProductCard({
   product,
@@ -65,20 +66,35 @@ export function ProductCard({
           )}
         </div>
 
-        {/* Wishlist */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleWishlist?.(product.id);
-          }}
-          className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-            isWishlisted
-              ? "bg-primary text-white"
-              : "bg-white/90 text-muted-foreground hover:bg-primary hover:text-white"
-          }`}
-        >
-          <Heart className={`w-4 h-4 ${isWishlisted ? "fill-current" : ""}`} />
-        </button>
+        {/* Share & Wishlist */}
+        <div className="absolute top-2 right-2 flex items-center gap-1.5 z-10">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleShareProduct(product);
+            }}
+            title="Share Product"
+            className="w-8 h-8 rounded-full flex items-center justify-center bg-white/90 text-muted-foreground hover:bg-primary hover:text-white transition-all shadow-sm cursor-pointer hover:scale-105"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleWishlist?.(product.id);
+            }}
+            title="Add to Wishlist"
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm cursor-pointer hover:scale-105 ${
+              isWishlisted
+                ? "bg-primary text-white"
+                : "bg-white/90 text-muted-foreground hover:bg-primary hover:text-white"
+            }`}
+          >
+            <Heart className={`w-3.5 h-3.5 ${isWishlisted ? "fill-current" : ""}`} />
+          </button>
+        </div>
 
         {/* Out of stock overlay */}
         {!product.inStock && (

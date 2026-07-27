@@ -11,11 +11,13 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
+  Share2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { REVIEWS } from "../data";
 import { ProductCard } from "../components/ProductCard";
 import { api } from "../services/api";
+import { handleShareProduct } from "../utils/share";
 
 const slideVariants = {
   enter: (direction) => ({
@@ -289,18 +291,31 @@ export function ProductDetailPage({
                 )}
               </div>
 
-              {/* Wishlist */}
-              <button
-                onClick={() => onToggleWishlist(product.id)}
-                className={`absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center transition-all z-10 ${wishlist.includes(product.id)
-                  ? "bg-primary text-white"
-                  : "bg-white/90 text-foreground hover:bg-primary hover:text-white"
-                  }`}
-              >
-                <Heart
-                  className={`w-5 h-5 ${wishlist.includes(product.id) ? "fill-current" : ""}`}
-                />
-              </button>
+              {/* Share & Wishlist */}
+              <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
+                <button
+                  type="button"
+                  onClick={() => handleShareProduct(product)}
+                  title="Share Product"
+                  className="w-10 h-10 rounded-full flex items-center justify-center bg-white/90 text-foreground hover:bg-primary hover:text-white transition-all shadow-md cursor-pointer hover:scale-105"
+                >
+                  <Share2 className="w-5 h-5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onToggleWishlist(product.id)}
+                  title="Add to Wishlist"
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-md cursor-pointer hover:scale-105 ${wishlist.includes(product.id)
+                    ? "bg-primary text-white"
+                    : "bg-white/90 text-foreground hover:bg-primary hover:text-white"
+                    }`}
+                >
+                  <Heart
+                    className={`w-5 h-5 ${wishlist.includes(product.id) ? "fill-current" : ""}`}
+                  />
+                </button>
+              </div>
             </div>
 
             {/* Thumbnails */}
@@ -501,6 +516,15 @@ export function ProductDetailPage({
                 }`}
               >
                 <Zap className="w-4 h-4" /> Buy Now
+              </button>
+
+              <button
+                onClick={() => handleShareProduct(product)}
+                title="Share Product"
+                className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl font-semibold text-sm border border-border bg-card hover:bg-muted text-foreground transition-all cursor-pointer shadow-sm hover:border-primary/50"
+              >
+                <Share2 className="w-4 h-4 text-primary" />
+                <span>Share</span>
               </button>
             </div>
 
