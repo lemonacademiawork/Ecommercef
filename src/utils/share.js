@@ -1,19 +1,27 @@
 import { toast } from "sonner";
 
 /**
+ * Returns the backend social media preview & redirect URL for a given product ID.
+ * @param {string|number} productId 
+ * @returns {string}
+ */
+export const getBackendShareUrl = (productId) => {
+  return `https://api.lemonhousecraft.in/api/products/share/${productId}`;
+};
+
+/**
  * Handles product sharing using the native Web Share API with a fallback to clipboard copying.
  * Uses the backend social media preview & redirect endpoint.
  * 
  * @param {Object} product - Product object containing id, name, and optional description
  */
 export const handleShareProduct = async (product) => {
-  if (!product || !product.id) {
+  if (!product || (product.id === undefined && product.id === null)) {
     toast.error("Product information unavailable for sharing.");
     return;
   }
 
-  // The backend preview & redirect URL
-  const backendShareUrl = `https://api.lemonhousecraft.in/api/products/share/${product.id}`;
+  const backendShareUrl = getBackendShareUrl(product.id);
   
   const cleanDescription = product.description
     ? product.description.replace(/<[^>]*>/g, "").substring(0, 100) + "..."
@@ -36,13 +44,33 @@ export const handleShareProduct = async (product) => {
       }
     }
   } else {
-    // Fallback: Copy link to clipboard
-    try {
-      await navigator.clipboard.writeText(backendShareUrl);
-      toast.success("Product share link copied to clipboard!");
-    } catch (err) {
-      console.error("Clipboard copy failed:", err);
-      toast.error("Failed to copy share link.");
-    }
+    handleCopyShareLink(product);
+  }
+};
+
+/**
+ * Opens WhatsApp directly with the product share URL.
+ * @param {Object} product 
+ */
+export const handleWhatsAppShare = (product) => {
+  if (!product || !product.id) return;
+  const backendShareUrl = getBackendShareUrl(product.id);
+  const text = encodeURIComponent(`Check out ${product.name} on Lemon House Craft: ${backendShareUrl}`);
+  window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
+};
+
+/**
+ * Copies the backend share URL to the user's clipboard.
+ * @param {Object} product 
+ */
+export const handleCopyShareLink = async (product) => {
+  if (!product || !product.id) return;
+  const backendShareUrl = getBackendShareUrl(product.id);
+  try {
+    await navigator.clipboard.writeText(backendShareUrl);
+    toast.success("Product share link copied to clipboard!");
+  } catch (err) {
+    console.error("Clipboard copy failed:", err);
+    toast.error("Failed to copy share link.");
   }
 };

@@ -12,12 +12,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Share2,
+  Copy,
+  MessageCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { REVIEWS } from "../data";
 import { ProductCard } from "../components/ProductCard";
 import { api } from "../services/api";
-import { handleShareProduct } from "../utils/share";
+import { handleShareProduct, handleWhatsAppShare, handleCopyShareLink } from "../utils/share";
 
 const slideVariants = {
   enter: (direction) => ({
@@ -346,17 +348,30 @@ export function ProductDetailPage({
 
           {/* Info */}
           <div>
-            {product.category && !/^[0-9a-fA-F-]{36}$/.test(product.category) && (
-              <p className="text-sm text-muted-foreground capitalize mb-2">
-                {product.category.replace("-", " ")}
-              </p>
-            )}
-            <h1
-              className="text-2xl sm:text-3xl font-bold mb-3 leading-tight"
-              style={{ fontFamily: "Poppins, sans-serif" }}
-            >
-              {product.name}
-            </h1>
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                {product.category && !/^[0-9a-fA-F-]{36}$/.test(product.category) && (
+                  <p className="text-sm text-muted-foreground capitalize mb-1">
+                    {product.category.replace("-", " ")}
+                  </p>
+                )}
+                <h1
+                  className="text-2xl sm:text-3xl font-bold leading-tight"
+                  style={{ fontFamily: "Poppins, sans-serif" }}
+                >
+                  {product.name}
+                </h1>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleShareProduct(product)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-all border border-primary/20 shrink-0 cursor-pointer shadow-sm"
+                title="Share Product"
+              >
+                <Share2 className="w-4 h-4" />
+                <span>Share</span>
+              </button>
+            </div>
 
             {/* Rating */}
             <div className="flex items-center gap-3 mb-4">
@@ -518,14 +533,39 @@ export function ProductDetailPage({
                 <Zap className="w-4 h-4" /> Buy Now
               </button>
 
-              <button
-                onClick={() => handleShareProduct(product)}
-                title="Share Product"
-                className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl font-semibold text-sm border border-border bg-card hover:bg-muted text-foreground transition-all cursor-pointer shadow-sm hover:border-primary/50"
-              >
-                <Share2 className="w-4 h-4 text-primary" />
-                <span>Share</span>
-              </button>
+            </div>
+
+            {/* Share Product Widget */}
+            <div className="mb-6 p-4 rounded-2xl bg-muted/40 border border-border/60">
+              <p className="text-xs font-semibold text-foreground mb-2.5 flex items-center gap-1.5">
+                <Share2 className="w-3.5 h-3.5 text-primary" /> Share Product with Friends:
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleWhatsAppShare(product)}
+                  className="flex-1 min-w-[110px] flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#25D366]/10 text-[#128C7E] hover:bg-[#25D366]/20 transition-all border border-[#25D366]/30 cursor-pointer shadow-sm"
+                >
+                  <MessageCircle className="w-4 h-4 text-[#25D366]" />
+                  <span>WhatsApp</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCopyShareLink(product)}
+                  className="flex-1 min-w-[110px] flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold bg-card hover:bg-muted text-foreground transition-all border border-border cursor-pointer shadow-sm"
+                >
+                  <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span>Copy Link</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleShareProduct(product)}
+                  className="flex-1 min-w-[110px] flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold bg-primary text-white hover:bg-primary/90 transition-all cursor-pointer shadow-sm"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Share</span>
+                </button>
+              </div>
             </div>
 
 
