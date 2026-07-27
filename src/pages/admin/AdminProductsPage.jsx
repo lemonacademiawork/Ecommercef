@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, X, Upload } from "lucide-react";
+import { Plus, Edit2, Trash2, X, Upload, Loader2 } from "lucide-react";
 import { api } from "../../services/api";
 import { toast } from "sonner";
 
@@ -19,6 +19,8 @@ export function AdminProductsPage() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submittingProduct, setSubmittingProduct] = useState(false);
+  const [uploadingSlotIndex, setUploadingSlotIndex] = useState(null);
 
   // Form states
   const [showProductForm, setShowProductForm] = useState(false);
@@ -173,10 +175,19 @@ export function AdminProductsPage() {
   const handleProductSubmit = async (e) => {
     e.preventDefault();
 
+    if (submittingProduct) return;
+
+    if (!productForm.name || !productForm.name.trim()) {
+      toast.error("Please enter a Product Name!");
+      return;
+    }
+
     if (!productForm.categoryId) {
       toast.error("Please select a Category!");
       return;
     }
+
+    setSubmittingProduct(true);
 
     try {
       const firstImage = productForm.images.find(img => img !== "") || productForm.imageUrl || "";
@@ -248,7 +259,7 @@ export function AdminProductsPage() {
           }
         }
 
-        toast.success(editProduct ? "Product updated successfully!" : "Product & sub-categories saved successfully!");
+        toast.success(editProduct ? "Product updated successfully!" : "Product saved successfully!");
         setShowProductForm(false);
         setEditProduct(null);
         setProductForm({
@@ -273,13 +284,15 @@ export function AdminProductsPage() {
           hasVariants: false,
           inlineVariants: [],
         });
-        loadData();
+        await loadData();
       } else {
         toast.error(res.message || "Failed to save product");
       }
     } catch (err) {
       console.error("Failed to save product: " + err.message);
       toast.error(err.message || "Failed to save product");
+    } finally {
+      setSubmittingProduct(false);
     }
   };
 
@@ -445,6 +458,7 @@ export function AdminProductsPage() {
   const handleSlotImageUpload = async (e, index) => {
     const file = e.target.files[0];
     if (!file) return;
+    setUploadingSlotIndex(index);
     try {
       const res = await api.admin.uploadImage(file);
       if (res.success && res.data) {
@@ -461,6 +475,8 @@ export function AdminProductsPage() {
     } catch (err) {
       console.error("Image upload failed: " + err.message);
       toast.error("Failed to upload image");
+    } finally {
+      setUploadingSlotIndex(null);
     }
   };
 
@@ -919,10 +935,13 @@ export function AdminProductsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl text-white font-semibold text-sm"
+                  disabled={submittingProduct || uploadingSlotIndex !== null}
+                  className={`flex-1 py-2.5 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 transition-opacity ${submittingProduct || uploadingSlotIndex !== null ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:opacity-90'}`}
                   style={{ background: "linear-gradient(135deg, #a61c9b, #d82a81)" }}
                 >
-                  Save
+                  {submittingProduct ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+                  ) : "Save"}
                 </button>
               </div>
             </form>
