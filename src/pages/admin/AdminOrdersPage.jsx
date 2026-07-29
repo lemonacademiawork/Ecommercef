@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronDown, Eye, X, Truck, Calculator, FileText, Calendar, Ban, RefreshCw, Loader2, Info } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Eye, X, Truck, Calculator, FileText, Calendar, Ban, RefreshCw, Loader2, Info } from "lucide-react";
 import { api } from "../../services/api";
 import { toast } from "sonner";
 
@@ -92,6 +92,13 @@ export function AdminOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [isLastPage, setIsLastPage] = useState(false);
 
   const [bookingLoading, setBookingLoading] = useState(false);
   const [cancellingLoading, setCancellingLoading] = useState(false);
@@ -390,25 +397,39 @@ export function AdminOrdersPage() {
     }
   };
 
-  const loadData = async () => {
+  const loadData = async (page = 0, size = 20) => {
     try {
       setLoading(true);
       let orderList = [];
       let pendingPaymentSet = new Set();
 
       try {
-        const orderRes = await api.admin.listAllOrders();
+        const orderRes = await api.admin.listAllOrders({
+          page,
+          size,
+          sortBy: "createdAt",
+          sortDir: "desc",
+        });
         if (orderRes && orderRes.success && orderRes.data) {
-          orderList = Array.isArray(orderRes.data)
-            ? orderRes.data
-            : (orderRes.data.content || []);
+          if (Array.isArray(orderRes.data)) {
+            orderList = orderRes.data;
+            setTotalElements(orderRes.data.length);
+            setTotalPages(1);
+            setIsLastPage(true);
+          } else {
+            orderList = orderRes.data.content || [];
+            setTotalElements(orderRes.data.totalElements || 0);
+            setTotalPages(orderRes.data.totalPages || 1);
+            setCurrentPage(orderRes.data.pageNumber || 0);
+            setIsLastPage(orderRes.data.last ?? true);
+          }
         }
       } catch (backendErr) {
         console.warn("Failed to fetch orders from backend, using local storage fallback:", backendErr);
       }
 
       try {
-        const pendingRes = await api.admin.getPendingPayments();
+        const pendingRes = await api.admin.getPendingPayments({ page: 0, size: 1000 });
         if (pendingRes && pendingRes.success && pendingRes.data) {
           const list = Array.isArray(pendingRes.data) ? pendingRes.data : (pendingRes.data.content || []);
           list.forEach(p => {
@@ -431,7 +452,7 @@ export function AdminOrdersPage() {
         };
       });
 
-      // Sort descending by date, then by ID
+      // Sort descending by date, then by ID (server already sorts, but local orders need it)
       mergedOrders.sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -448,8 +469,21 @@ export function AdminOrdersPage() {
   };
 
   useEffect(() => {
-    loadData();
+    loadData(currentPage, pageSize);
   }, []);
+
+  const goToPage = (page) => {
+    if (page >= 0 && page < totalPages) {
+      setCurrentPage(page);
+      loadData(page, pageSize);
+    }
+  };
+
+  const handlePageSizeChange = (newSize) => {
+    setPageSize(newSize);
+    setCurrentPage(0);
+    loadData(0, newSize);
+  };
 
   const handleStatusChange = async (orderId, newStatus) => {
     try {
@@ -600,6 +634,66 @@ export function AdminOrdersPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="px-5 py-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>
+                Showing {currentPage * pageSize + 1}–{Math.min((currentPage + 1) * pageSize, totalElements)} of{" "}
+                <span className="font-semibold text-foreground">{totalElements}</span> orders
+              </span>
+              <span className="text-border">|</span>
+              <label className="flex items-center gap-1.5">
+                Rows:
+                <select
+                  value={pageSize}
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                  className="border border-border rounded-md px-1.5 py-0.5 text-xs bg-white cursor-pointer"
+                >
+                  {[10, 20, 50].map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => goToPage(0)}
+                disabled={currentPage === 0}
+                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                First
+              </button>
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 0}
+                className="p-1.5 rounded-md border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <span className="px-3 py-1 text-xs font-semibold rounded-md bg-primary/10 text-primary border border-primary/20">
+                {currentPage + 1} / {totalPages}
+              </span>
+              <button
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={isLastPage}
+                className="p-1.5 rounded-md border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => goToPage(totalPages - 1)}
+                disabled={isLastPage}
+                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                Last
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Details drawer/modal */}

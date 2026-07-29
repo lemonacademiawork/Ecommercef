@@ -164,18 +164,14 @@ export function LandingPage({
               {
                 Icon: Truck,
                 label: "Free Delivery",
-                sub: "On orders above ₹499",
+                sub: "On orders above ₹25000",
               },
               {
                 Icon: Shield,
                 label: "Secure Payments",
                 sub: "100% safe & encrypted",
               },
-              {
-                Icon: RefreshCw,
-                label: "Easy Returns",
-                sub: "7-day return policy",
-              },
+
               {
                 Icon: Headphones,
                 label: "24/7 Support",

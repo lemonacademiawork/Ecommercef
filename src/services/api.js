@@ -442,8 +442,24 @@ export const api = {
         body: JSON.stringify({ email, password }),
       }),
     getDashboardMetrics: () => request("/admin/dashboard"),
-    listAllUsers: () => request("/admin/users"),
-    listAllOrders: () => request("/admin/orders"),
+    listAllUsers: (params = {}) => {
+      const query = new URLSearchParams();
+      query.append("page", params.page !== undefined ? params.page : 0);
+      query.append("size", params.size !== undefined ? params.size : 1000);
+      if (params.sortBy) query.append("sortBy", params.sortBy);
+      if (params.sortDir) query.append("sortDir", params.sortDir);
+      const qs = query.toString();
+      return request(`/admin/users${qs ? `?${qs}` : ""}`);
+    },
+    listAllOrders: (params = {}) => {
+      const query = new URLSearchParams();
+      query.append("page", params.page !== undefined ? params.page : 0);
+      query.append("size", params.size !== undefined ? params.size : 1000);
+      if (params.sortBy) query.append("sortBy", params.sortBy);
+      if (params.sortDir) query.append("sortDir", params.sortDir);
+      const qs = query.toString();
+      return request(`/admin/orders${qs ? `?${qs}` : ""}`);
+    },
     getOrderDetails: (id) => request(`/admin/orders/${id}`),
     updateOrderStatus: (id, status) =>
       request(`/admin/orders/${id}/status`, {
@@ -468,7 +484,15 @@ export const api = {
         method: "PUT",
       }),
     getPaymentDetails: (orderId) => request(`/admin/payments/${orderId}`),
-    getPendingPayments: () => request("/admin/payments/pending"),
+    getPendingPayments: (params = {}) => {
+      const query = new URLSearchParams();
+      query.append("page", params.page !== undefined ? params.page : 0);
+      query.append("size", params.size !== undefined ? params.size : 1000);
+      if (params.sortBy) query.append("sortBy", params.sortBy);
+      if (params.sortDir) query.append("sortDir", params.sortDir);
+      const qs = query.toString();
+      return request(`/admin/payments/pending${qs ? `?${qs}` : ""}`);
+    },
     // Variant management
     getVariants: (productId) =>
       request(`/admin/products/${productId}/variants`).then((res) => {

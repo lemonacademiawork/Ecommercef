@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Mail, Phone, Calendar, UserCheck } from "lucide-react";
+import { Users, Mail, Phone, Calendar, UserCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import { api } from "../../services/api";
 
 
@@ -7,12 +7,36 @@ export function AdminUsersPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const loadData = async () => {
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [isLastPage, setIsLastPage] = useState(false);
+
+  const loadData = async (page = 0, size = 20) => {
     try {
       setLoading(true);
-      const res = await api.admin.listAllUsers();
+      const res = await api.admin.listAllUsers({
+        page,
+        size,
+        sortBy: "createdAt",
+        sortDir: "desc",
+      });
       if (res.success && res.data) {
-        setUsers(res.data);
+        // Handle both old array and new PageResponseDto shapes
+        if (Array.isArray(res.data)) {
+          setUsers(res.data);
+          setTotalElements(res.data.length);
+          setTotalPages(1);
+          setIsLastPage(true);
+        } else {
+          setUsers(res.data.content || []);
+          setTotalElements(res.data.totalElements || 0);
+          setTotalPages(res.data.totalPages || 1);
+          setCurrentPage(res.data.pageNumber || 0);
+          setIsLastPage(res.data.last ?? true);
+        }
       }
     } catch (err) {
       console.error("Failed to load users list", err);
@@ -22,8 +46,21 @@ export function AdminUsersPage() {
   };
 
   useEffect(() => {
-    loadData();
+    loadData(currentPage, pageSize);
   }, []);
+
+  const goToPage = (page) => {
+    if (page >= 0 && page < totalPages) {
+      setCurrentPage(page);
+      loadData(page, pageSize);
+    }
+  };
+
+  const handlePageSizeChange = (newSize) => {
+    setPageSize(newSize);
+    setCurrentPage(0);
+    loadData(0, newSize);
+  };
 
   if (loading) {
     return (
@@ -50,7 +87,7 @@ export function AdminUsersPage() {
         {[
           {
             label: "Total Customers",
-            value: users.length,
+            value: totalElements || users.length,
             color: "#1565C0",
             bg: "#E3F2FD",
             Icon: Users,
@@ -164,6 +201,66 @@ export function AdminUsersPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="px-5 py-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>
+                Showing {currentPage * pageSize + 1}–{Math.min((currentPage + 1) * pageSize, totalElements)} of{" "}
+                <span className="font-semibold text-foreground">{totalElements}</span> customers
+              </span>
+              <span className="text-border">|</span>
+              <label className="flex items-center gap-1.5">
+                Rows:
+                <select
+                  value={pageSize}
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                  className="border border-border rounded-md px-1.5 py-0.5 text-xs bg-white cursor-pointer"
+                >
+                  {[10, 20, 50].map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => goToPage(0)}
+                disabled={currentPage === 0}
+                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                First
+              </button>
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 0}
+                className="p-1.5 rounded-md border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <span className="px-3 py-1 text-xs font-semibold rounded-md bg-primary/10 text-primary border border-primary/20">
+                {currentPage + 1} / {totalPages}
+              </span>
+              <button
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={isLastPage}
+                className="p-1.5 rounded-md border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => goToPage(totalPages - 1)}
+                disabled={isLastPage}
+                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                Last
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

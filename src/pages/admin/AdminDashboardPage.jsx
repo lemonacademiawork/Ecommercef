@@ -137,7 +137,8 @@ export function AdminDashboardPage() {
         setCategories(catRes.data);
       }
       if (orderRes.success && orderRes.data) {
-        setOrders(orderRes.data);
+        const orderData = Array.isArray(orderRes.data) ? orderRes.data : (orderRes.data?.content || []);
+        setOrders(orderData);
       }
     } catch (err) {
       console.error("Error loading dashboard data:", err);
