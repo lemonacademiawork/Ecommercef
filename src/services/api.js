@@ -230,6 +230,48 @@ async function request(endpoint, options = {}) {
   return result;
 }
 
+// --- Client-Side Cache & In-Flight Request Deduplicator ---
+const queryCache = new Map();
+const inFlightRequests = new Map();
+const DEFAULT_STALE_TIME = 5 * 60 * 1000; // 5 minutes
+
+export const clearApiCache = () => {
+  queryCache.clear();
+  inFlightRequests.clear();
+};
+
+/**
+ * Cached Request Helper:
+ * 1. Checks queryCache for fresh responses (< staleTime)
+ * 2. Deduplicates concurrent in-flight requests for identical URLs
+ */
+export async function cachedRequest(endpoint, staleTime = DEFAULT_STALE_TIME) {
+  const now = Date.now();
+  const cached = queryCache.get(endpoint);
+
+  if (cached && now - cached.timestamp < staleTime) {
+    return Promise.resolve(cached.data);
+  }
+
+  if (inFlightRequests.has(endpoint)) {
+    return inFlightRequests.get(endpoint);
+  }
+
+  const requestPromise = request(endpoint)
+    .then((res) => {
+      queryCache.set(endpoint, { data: res, timestamp: Date.now() });
+      inFlightRequests.delete(endpoint);
+      return res;
+    })
+    .catch((err) => {
+      inFlightRequests.delete(endpoint);
+      throw err;
+    });
+
+  inFlightRequests.set(endpoint, requestPromise);
+  return requestPromise;
+}
+
 export const api = {
   auth: {
     register: (data) =>
@@ -283,7 +325,6 @@ export const api = {
       if (params.all !== undefined) query.append("all", params.all);
       
       const page = params.page !== undefined ? params.page : 0;
-      // Ensure page size is mapped to 'size' as expected by the backend
       const size = params.size !== undefined 
         ? params.size 
         : (params.limit !== undefined 
@@ -297,7 +338,9 @@ export const api = {
       if (params.sortDir) query.append("sortDir", params.sortDir);
       
       const queryString = query.toString();
-      return request(`/products${queryString ? `?${queryString}` : ""}`).then((res) => ({
+      const endpoint = `/products${queryString ? `?${queryString}` : ""}`;
+
+      return cachedRequest(endpoint, 5 * 60 * 1000).then((res) => ({
         ...res,
         data: mapProductDataArray(res.data),
         pagination: res.data && typeof res.data === "object" && !Array.isArray(res.data) ? {
@@ -309,23 +352,56 @@ export const api = {
         } : null,
       }));
     },
+    batchGetCategoryProducts: async (categoryIds = []) => {
+      if (!categoryIds || categoryIds.length === 0) return { success: true, data: {} };
+
+      const idsQuery = categoryIds.join(",");
+      const batchEndpoint = `/products?categoryIds=${encodeURIComponent(idsQuery)}`;
+
+      try {
+        // 1. Single Batched Request (GET /products?categoryIds=id1,id2,id3...)
+        const res = await cachedRequest(batchEndpoint, 5 * 60 * 1000);
+        if (res && res.success && res.data) {
+          return res;
+        }
+      } catch (e) {
+        // Fallback if backend batch endpoint is not present
+      }
+
+      // 2. Fallback: Deduplicated cached requests (1 roundtrip per unique ID, cached & deduplicated)
+      const results = await Promise.all(
+        categoryIds.map((id) =>
+          api.products.listProducts({ categoryId: id, size: 12 }).catch(() => ({ data: [] }))
+        )
+      );
+
+      const mappedMap = {};
+      categoryIds.forEach((id, index) => {
+        mappedMap[id] = results[index]?.data || [];
+      });
+
+      return {
+        success: true,
+        data: mappedMap,
+      };
+    },
     searchProducts: (keyword) =>
-      request(`/products/search?keyword=${encodeURIComponent(keyword)}`).then((res) => ({
+      cachedRequest(`/products/search?keyword=${encodeURIComponent(keyword)}`).then((res) => ({
         ...res,
         data: mapProductDataArray(res.data),
       })),
     filterProducts: (minPrice, maxPrice) =>
-      request(`/products/filter?minPrice=${minPrice}&maxPrice=${maxPrice}`).then((res) => ({
+      cachedRequest(`/products/filter?minPrice=${minPrice}&maxPrice=${maxPrice}`).then((res) => ({
         ...res,
         data: mapProductDataArray(res.data),
       })),
     getProduct: (id) =>
-      request(`/products/${id}`).then((res) => ({
+      cachedRequest(`/products/${id}`).then((res) => ({
         ...res,
         data: mapProductData(res.data),
       })),
     getVariants: (id) =>
-      request(`/products/${id}/variants`).then((res) => {
+      cachedRequest(`/products/${id}/variants`).then((res) => {
         const dataList = Array.isArray(res) ? res : (res && Array.isArray(res.data) ? res.data : (res && Array.isArray(res.content) ? res.content : []));
         return {
           success: true,
@@ -336,41 +412,44 @@ export const api = {
         return { success: false, data: [] };
       }),
     getProductsByCategory: (categoryId, all = false) =>
-      request(`/products/category/${categoryId}?all=${all}`).then((res) => ({
+      cachedRequest(`/products/category/${categoryId}?all=${all}`).then((res) => ({
         ...res,
         data: mapProductDataArray(res.data),
       })),
-    createProduct: (data) =>
-      request("/products", {
+    createProduct: (data) => {
+      clearApiCache();
+      return request("/products", {
         method: "POST",
         body: JSON.stringify(data),
       }).then((res) => ({
         success: true,
         data: res.data || res,
-      })),
-    updateProduct: (id, data) =>
-      request(`/products/${id}`, {
+      }));
+    },
+    updateProduct: (id, data) => {
+      clearApiCache();
+      return request(`/products/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
       }).then((res) => ({
         success: true,
         data: res.data || res,
-      })),
-    deleteProduct: (id) =>
-      request(`/products/${id}`, {
+      }));
+    },
+    deleteProduct: (id) => {
+      clearApiCache();
+      return request(`/products/${id}`, {
         method: "DELETE",
-      }),
+      });
+    },
   },
 
   categories: {
     listCategories: (all = false) => {
       const showAll = typeof all === "object" && all !== null ? !!all.all : !!all;
-      const now = Date.now();
-      if (categoriesCache && (now - categoriesCacheTime < CACHE_TTL)) {
-        return Promise.resolve(categoriesCache);
-      }
+      const endpoint = `/categories?all=${showAll}`;
 
-      return request(`/categories?all=${showAll}`).then((res) => {
+      return cachedRequest(endpoint, 5 * 60 * 1000).then((res) => {
         if (!res.data || !Array.isArray(res.data)) {
           return res;
         }
@@ -382,43 +461,39 @@ export const api = {
           })
         );
 
-        const result = {
+        return {
           ...res,
           data: mappedCategories,
         };
-
-        categoriesCache = result;
-        categoriesCacheTime = Date.now();
-        return result;
       });
     },
     getCategory: (id) =>
-      request(`/categories/${id}`).then((res) => ({
+      cachedRequest(`/categories/${id}`).then((res) => ({
         ...res,
         data: mapCategoryData(res.data),
       })),
     createCategory: (data) => {
-      clearCategoriesCache();
+      clearApiCache();
       return request("/categories", {
         method: "POST",
         body: JSON.stringify(data),
       });
     },
     updateCategory: (id, data) => {
-      clearCategoriesCache();
+      clearApiCache();
       return request(`/categories/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
       });
     },
     deleteCategory: (id) => {
-      clearCategoriesCache();
+      clearApiCache();
       return request(`/categories/${id}`, {
         method: "DELETE",
       });
     },
     listSubcategories: (categoryId) =>
-      request(`/categories/${categoryId}/subcategories`).then((res) => ({
+      cachedRequest(`/categories/${categoryId}/subcategories`).then((res) => ({
         success: true,
         data: Array.isArray(res) ? res : (res?.data || []),
       })).catch(() => ({ success: true, data: [] })),
