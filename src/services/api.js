@@ -282,9 +282,17 @@ export const api = {
       if (params.categoryId) query.append("categoryId", params.categoryId);
       if (params.all !== undefined) query.append("all", params.all);
       
-      // Default to page 0 and a large size of 1000 to retrieve all products
-      query.append("page", params.page !== undefined ? params.page : 0);
-      query.append("size", params.size !== undefined ? params.size : 1000);
+      const page = params.page !== undefined ? params.page : 0;
+      // Ensure page size is mapped to 'size' as expected by the backend (mapping legacy limit / pageSize if provided)
+      const size = params.size !== undefined 
+        ? params.size 
+        : (params.limit !== undefined 
+            ? params.limit 
+            : (params.pageSize !== undefined ? params.pageSize : 1000));
+
+      query.append("page", page);
+      query.append("size", size);
+
       if (params.sortBy) query.append("sortBy", params.sortBy);
       if (params.sortDir) query.append("sortDir", params.sortDir);
       
@@ -292,6 +300,13 @@ export const api = {
       return request(`/products${queryString ? `?${queryString}` : ""}`).then((res) => ({
         ...res,
         data: mapProductDataArray(res.data),
+        pagination: res.data && typeof res.data === "object" && !Array.isArray(res.data) ? {
+          pageNumber: res.data.pageNumber ?? page,
+          pageSize: res.data.pageSize ?? size,
+          totalElements: res.data.totalElements ?? (Array.isArray(res.data.content) ? res.data.content.length : 0),
+          totalPages: res.data.totalPages ?? 1,
+          last: res.data.last ?? true,
+        } : null,
       }));
     },
     searchProducts: (keyword) =>
