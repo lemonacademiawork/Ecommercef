@@ -22,28 +22,29 @@ export function LandingPage({
 }) {
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [productsLoading, setProductsLoading] = useState(true);
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        const [prodRes, catRes] = await Promise.all([
-          api.products.listProducts(),
-          api.categories.listCategories(),
-        ]);
-        if (prodRes.success && prodRes.data) {
-          setProducts(prodRes.data);
-        }
+    // Fetch categories immediately & independently for instant section display
+    api.categories.listCategories()
+      .then((catRes) => {
         if (catRes.success && catRes.data) {
           setCategories(catRes.data);
         }
-      } catch (err) {
-        console.error("Error loading landing page data:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
+      })
+      .catch((err) => console.error("Error loading landing categories:", err))
+      .finally(() => setCategoriesLoading(false));
+
+    // Fetch products independently
+    api.products.listProducts()
+      .then((prodRes) => {
+        if (prodRes.success && prodRes.data) {
+          setProducts(prodRes.data);
+        }
+      })
+      .catch((err) => console.error("Error loading landing products:", err))
+      .finally(() => setProductsLoading(false));
   }, []);
 
   const featuredProducts = products.filter((p) => p.isBestSeller).slice(0, 4);
@@ -222,62 +223,103 @@ export function LandingPage({
           </div>
 
           {/* Desktop/Tablet Categories Grid */}
-          <div className="hidden sm:grid grid-cols-3 lg:grid-cols-5 gap-3">
-            {categories.slice(0, 10).map((cat, i) => (
-              <motion.button
-                key={cat.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                onClick={() => navigate("shop", cat.id || cat.name)}
-                className="flex flex-col items-center gap-3 p-4 rounded-2xl border border-border bg-white dark:bg-zinc-900 hover:border-primary hover:shadow-md transition-all group cursor-pointer"
-              >
+          {categoriesLoading ? (
+            <div className="hidden sm:grid grid-cols-3 lg:grid-cols-5 gap-3">
+              {Array.from({ length: 5 }).map((_, idx) => (
                 <div
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl overflow-hidden bg-muted"
-                  style={{ background: cat.color }}
+                  key={idx}
+                  className="flex flex-col items-center gap-3 p-4 rounded-2xl border border-border/60 bg-white dark:bg-zinc-900 animate-pulse"
                 >
-                  {(cat.imageUrl || cat.image) ? (
-                    <img src={cat.imageUrl || cat.image} alt={cat.name} className="w-full h-full object-cover rounded-2xl" />
-                  ) : (
-                    cat.icon || "🛍️"
-                  )}
+                  <div className="w-12 h-12 rounded-2xl bg-muted" />
+                  <div className="w-20 h-4 bg-muted rounded-md mt-1" />
+                  <div className="w-12 h-3 bg-muted/60 rounded-md mt-0.5" />
                 </div>
-                <div className="text-center">
-                  <p className="text-sm font-semibold leading-snug group-hover:text-primary transition-colors">
-                    {cat.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {cat.count !== undefined ? cat.count : 0} items
-                  </p>
-                </div>
-              </motion.button>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="hidden sm:grid grid-cols-3 lg:grid-cols-5 gap-3">
+              {categories.slice(0, 10).map((cat, i) => (
+                <motion.button
+                  key={cat.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  onClick={() => navigate("shop", cat.id || cat.name)}
+                  className="flex flex-col items-center gap-3 p-4 rounded-2xl border border-border bg-white dark:bg-zinc-900 hover:border-primary hover:shadow-md transition-all group cursor-pointer"
+                >
+                  <div
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl overflow-hidden bg-muted"
+                    style={{ background: cat.color }}
+                  >
+                    {(cat.imageUrl || cat.image) ? (
+                      <img
+                        src={cat.imageUrl || cat.image}
+                        alt={cat.name}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover rounded-2xl"
+                      />
+                    ) : (
+                      cat.icon || "🛍️"
+                    )}
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-semibold leading-snug group-hover:text-primary transition-colors">
+                      {cat.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {cat.count !== undefined ? cat.count : 0} items
+                    </p>
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          )}
 
           {/* Mobile Categories Swiper */}
-          <div className="flex sm:hidden gap-3 overflow-x-auto pb-3 snap-x -mx-4 px-4">
-            {categories.slice(0, 10).map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => navigate("shop", cat.id || cat.name)}
-                className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-border bg-white dark:bg-zinc-900 snap-center flex-shrink-0 cursor-pointer"
-              >
-                <span
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-lg overflow-hidden bg-muted"
-                  style={{ background: cat.color }}
+          {categoriesLoading ? (
+            <div className="flex sm:hidden gap-3 overflow-x-auto pb-3 snap-x -mx-4 px-4">
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-border/60 bg-white dark:bg-zinc-900 animate-pulse flex-shrink-0"
                 >
-                  {(cat.imageUrl || cat.image) ? (
-                    <img src={cat.imageUrl || cat.image} alt={cat.name} className="w-full h-full object-cover rounded-xl" />
-                  ) : (
-                    cat.icon || "🛍️"
-                  )}
-                </span>
-                <span className="text-xs font-semibold text-foreground leading-none">
-                  {cat.name}
-                </span>
-              </button>
-            ))}
-          </div>
+                  <div className="w-8 h-8 rounded-xl bg-muted" />
+                  <div className="w-16 h-3 bg-muted rounded-md" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex sm:hidden gap-3 overflow-x-auto pb-3 snap-x -mx-4 px-4">
+              {categories.slice(0, 10).map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => navigate("shop", cat.id || cat.name)}
+                  className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-border bg-white dark:bg-zinc-900 snap-center flex-shrink-0 cursor-pointer"
+                >
+                  <span
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-lg overflow-hidden bg-muted"
+                    style={{ background: cat.color }}
+                  >
+                    {(cat.imageUrl || cat.image) ? (
+                      <img
+                        src={cat.imageUrl || cat.image}
+                        alt={cat.name}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover rounded-xl"
+                      />
+                    ) : (
+                      cat.icon || "🛍️"
+                    )}
+                  </span>
+                  <span className="text-xs font-semibold text-foreground leading-none">
+                    {cat.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
 
         </div>
       </section>
