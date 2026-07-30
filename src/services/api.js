@@ -283,12 +283,12 @@ export const api = {
       if (params.all !== undefined) query.append("all", params.all);
       
       const page = params.page !== undefined ? params.page : 0;
-      // Ensure page size is mapped to 'size' as expected by the backend (mapping legacy limit / pageSize if provided)
+      // Ensure page size is mapped to 'size' as expected by the backend
       const size = params.size !== undefined 
         ? params.size 
         : (params.limit !== undefined 
             ? params.limit 
-            : (params.pageSize !== undefined ? params.pageSize : 1000));
+            : (params.pageSize !== undefined ? params.pageSize : (params.all ? 1000 : 12)));
 
       query.append("page", page);
       query.append("size", size);
@@ -365,30 +365,58 @@ export const api = {
   categories: {
     listCategories: (all = false) => {
       const showAll = typeof all === "object" && all !== null ? !!all.all : !!all;
-      return request(`/categories?all=${showAll}`).then((res) => ({
-        ...res,
-        data: res.data ? res.data.map(mapCategoryData) : res.data,
-      }));
+      const now = Date.now();
+      if (categoriesCache && (now - categoriesCacheTime < CACHE_TTL)) {
+        return Promise.resolve(categoriesCache);
+      }
+
+      return request(`/categories?all=${showAll}`).then((res) => {
+        if (!res.data || !Array.isArray(res.data)) {
+          return res;
+        }
+
+        const mappedCategories = res.data.map((cat) =>
+          mapCategoryData({
+            ...cat,
+            count: cat.count || cat.productCount || 0,
+          })
+        );
+
+        const result = {
+          ...res,
+          data: mappedCategories,
+        };
+
+        categoriesCache = result;
+        categoriesCacheTime = Date.now();
+        return result;
+      });
     },
     getCategory: (id) =>
       request(`/categories/${id}`).then((res) => ({
         ...res,
         data: mapCategoryData(res.data),
       })),
-    createCategory: (data) =>
-      request("/categories", {
+    createCategory: (data) => {
+      clearCategoriesCache();
+      return request("/categories", {
         method: "POST",
         body: JSON.stringify(data),
-      }),
-    updateCategory: (id, data) =>
-      request(`/categories/${id}`, {
+      });
+    },
+    updateCategory: (id, data) => {
+      clearCategoriesCache();
+      return request(`/categories/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
-      }),
-    deleteCategory: (id) =>
-      request(`/categories/${id}`, {
+      });
+    },
+    deleteCategory: (id) => {
+      clearCategoriesCache();
+      return request(`/categories/${id}`, {
         method: "DELETE",
-      }),
+      });
+    },
     listSubcategories: (categoryId) =>
       request(`/categories/${categoryId}/subcategories`).then((res) => ({
         success: true,

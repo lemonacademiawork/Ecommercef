@@ -229,7 +229,7 @@ export function LandingPage({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                onClick={() => navigate("shop", cat.name || cat.id)}
+                onClick={() => navigate("shop", cat.id || cat.name)}
                 className="flex flex-col items-center gap-3 p-4 rounded-2xl border border-border bg-white dark:bg-zinc-900 hover:border-primary hover:shadow-md transition-all group cursor-pointer"
               >
                 <div
@@ -247,7 +247,7 @@ export function LandingPage({
                     {cat.name}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {products.filter(p => p.category?.toLowerCase() === cat.idString?.toLowerCase() || p.categoryId?.toString()?.toLowerCase() === cat.id?.toString()?.toLowerCase()).length} items
+                    {cat.count !== undefined ? cat.count : 0} items
                   </p>
                 </div>
               </motion.button>
@@ -259,7 +259,7 @@ export function LandingPage({
             {categories.slice(0, 10).map((cat) => (
               <button
                 key={cat.id}
-                onClick={() => navigate("shop", cat.name || cat.id)}
+                onClick={() => navigate("shop", cat.id || cat.name)}
                 className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-border bg-white dark:bg-zinc-900 snap-center flex-shrink-0 cursor-pointer"
               >
                 <span
