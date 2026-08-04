@@ -177,6 +177,9 @@ async function request(endpoint, options = {}) {
   const token = getToken();
   const headers = { ...options.headers };
 
+  // Strip leading /api if present to avoid duplicate /api/api in URL
+  const cleanEndpoint = endpoint.startsWith("/api/") ? endpoint.slice(4) : endpoint;
+
   // Set Authorization header if token exists
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -192,7 +195,7 @@ async function request(endpoint, options = {}) {
     headers,
   };
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+  const response = await fetch(`${API_BASE_URL}${cleanEndpoint}`, config);
 
   // Read response as json
   let result;
@@ -224,7 +227,16 @@ async function request(endpoint, options = {}) {
         }
       }
     }
-    throw new Error(result.message || `HTTP error! Status: ${response.status}`);
+
+    let errMsg = result.message || result.error || result.data || `HTTP error! Status: ${response.status}`;
+    if (typeof errMsg === "object") {
+      try {
+        errMsg = JSON.stringify(errMsg);
+      } catch (e) {
+        errMsg = `HTTP error! Status: ${response.status}`;
+      }
+    }
+    throw new Error(errMsg);
   }
 
   return result;
@@ -273,6 +285,7 @@ export async function cachedRequest(endpoint, staleTime = DEFAULT_STALE_TIME) {
 }
 
 export const api = {
+  get: (endpoint, options = {}) => request(endpoint, { method: "GET", ...options }),
   auth: {
     register: (data) =>
       request("/auth/register", {
@@ -445,11 +458,19 @@ export const api = {
   },
 
   categories: {
-    listCategories: (all = false) => {
+    listCategories: (all = false, search = "") => {
       const showAll = typeof all === "object" && all !== null ? !!all.all : !!all;
-      const endpoint = `/categories?all=${showAll}`;
+      // When a search term is provided use request() (bypass cache) for fresh results
+      const query = new URLSearchParams();
+      query.append("all", showAll);
+      if (search && search.trim()) query.append("search", search.trim());
+      const endpoint = `/categories?${query.toString()}`;
 
-      return cachedRequest(endpoint, 5 * 60 * 1000).then((res) => {
+      const fetcher = search && search.trim()
+        ? request(endpoint)
+        : cachedRequest(endpoint, 5 * 60 * 1000);
+
+      return fetcher.then((res) => {
         if (!res.data || !Array.isArray(res.data)) {
           return res;
         }
@@ -559,6 +580,75 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ email, password }),
       }),
+    // Fresh (non-cached) paginated product list for admin management
+    listProducts: (params = {}) => {
+      const query = new URLSearchParams();
+      query.append("all", "true");
+      query.append("page", params.page !== undefined ? params.page : 0);
+      query.append("size", params.size !== undefined ? params.size : 10);
+      if (params.sortBy) query.append("sortBy", params.sortBy);
+      if (params.sortDir) query.append("sortDir", params.sortDir);
+      if (params.search) query.append("search", params.search);
+      if (params.categoryId) query.append("categoryId", params.categoryId);
+      if (params.stockFilter) query.append("stockFilter", params.stockFilter);
+      return request(`/products?${query.toString()}`).then((res) => ({
+        ...res,
+        data: res.data,
+        pagination: res.data && typeof res.data === "object" && !Array.isArray(res.data) ? {
+          pageNumber: res.data.pageNumber ?? 0,
+          pageSize: res.data.pageSize ?? 10,
+          totalElements: res.data.totalElements ?? 0,
+          totalPages: res.data.totalPages ?? 1,
+          last: res.data.last ?? true,
+          content: res.data.content ?? [],
+        } : null,
+      }));
+    },
+    // Create product using multipart/form-data with automatic JSON fallback if server expects JSON
+    createProduct: async (formData, jsonFallback = null) => {
+      clearApiCache();
+      try {
+        return await request("/admin/products", {
+          method: "POST",
+          body: formData,
+        });
+      } catch (err) {
+        if (jsonFallback && (err.message?.includes("400") || err.message?.includes("Bad Request") || err.message?.includes("Content-Type") || err.message?.includes("Status: 400"))) {
+          console.warn("FormData POST failed with 400. Retrying with JSON payload...", err);
+          return await request("/admin/products", {
+            method: "POST",
+            body: JSON.stringify(jsonFallback),
+          });
+        }
+        throw err;
+      }
+    },
+    // Update product using multipart/form-data with automatic JSON fallback
+    updateProduct: async (id, formData, jsonFallback = null) => {
+      clearApiCache();
+      try {
+        return await request(`/admin/products/${id}`, {
+          method: "PUT",
+          body: formData,
+        });
+      } catch (err) {
+        if (jsonFallback && (err.message?.includes("400") || err.message?.includes("Bad Request") || err.message?.includes("Content-Type") || err.message?.includes("Status: 400"))) {
+          console.warn("FormData PUT failed with 400. Retrying with JSON payload...", err);
+          return await request(`/admin/products/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(jsonFallback),
+          });
+        }
+        throw err;
+      }
+    },
+    // Delete product (admin endpoint)
+    deleteProduct: (id) => {
+      clearApiCache();
+      return request(`/admin/products/${id}`, {
+        method: "DELETE",
+      });
+    },
     getDashboardMetrics: () => request("/admin/dashboard"),
     listAllUsers: (params = {}) => {
       const query = new URLSearchParams();
@@ -566,6 +656,7 @@ export const api = {
       query.append("size", params.size !== undefined ? params.size : 1000);
       if (params.sortBy) query.append("sortBy", params.sortBy);
       if (params.sortDir) query.append("sortDir", params.sortDir);
+      if (params.search && params.search.trim()) query.append("search", params.search.trim());
       const qs = query.toString();
       return request(`/admin/users${qs ? `?${qs}` : ""}`);
     },
@@ -573,8 +664,11 @@ export const api = {
       const query = new URLSearchParams();
       query.append("page", params.page !== undefined ? params.page : 0);
       query.append("size", params.size !== undefined ? params.size : 1000);
+      if (params.paymentStatus) query.append("paymentStatus", params.paymentStatus);
+      if (params.status) query.append("status", params.status);
       if (params.sortBy) query.append("sortBy", params.sortBy);
       if (params.sortDir) query.append("sortDir", params.sortDir);
+      if (params.search && params.search.trim()) query.append("search", params.search.trim());
       const qs = query.toString();
       return request(`/admin/orders${qs ? `?${qs}` : ""}`);
     },

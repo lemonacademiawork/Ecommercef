@@ -151,19 +151,24 @@ export default function App() {
       api.auth.getProfile()
         .then((res) => {
           if (res.success && res.data) {
-            const profileRole = res.data.role || (res.data.roles && res.data.roles[0]);
-            const finalRole = profileRole || storedRole || "CUSTOMER";
+            // Use the stored role from localStorage (from original login) as authoritative.
+            // Only fall back to profile API role if no stored role exists.
+            const finalRole = storedRole || res.data.role || (res.data.roles && res.data.roles[0]) || "CUSTOMER";
 
             const isUserAdmin = finalRole && (
               finalRole.toUpperCase() === "ADMIN" || 
               finalRole.toUpperCase() === "ROLE_ADMIN"
             );
 
+            // Preserve the stored user email if available, don't let profile API override it
+            const storedEmail = storedUser?.email;
+
             const updatedUser = {
               ...res.data,
+              email: storedEmail || res.data.email,
               name: (res.data.name && res.data.name.toLowerCase() !== "default admin" && res.data.name.toLowerCase() !== "admin")
                 ? res.data.name
-                : (res.data.email || "Customer"),
+                : (storedEmail || res.data.email || "Customer"),
               role: isUserAdmin ? "ADMIN" : finalRole,
               roles: isUserAdmin ? ["ADMIN"] : (res.data.roles || [finalRole]),
             };
@@ -363,12 +368,9 @@ export default function App() {
   };
 
   const handleLogin = async (token, role, userProfile) => {
-    const isUserAdmin = (role && (role.toUpperCase() === "ADMIN" || role.toUpperCase() === "ROLE_ADMIN")) || 
-                        (userProfile.role && (userProfile.role.toUpperCase() === "ADMIN" || userProfile.role.toUpperCase() === "ROLE_ADMIN")) || 
-                        (userProfile.roles && (
-                          userProfile.roles.map(r => r.toUpperCase()).includes("ADMIN") || 
-                          userProfile.roles.map(r => r.toUpperCase()).includes("ROLE_ADMIN")
-                        ));
+    // Only use the role parameter (from login response) for admin detection.
+    // Do NOT use userProfile.role/roles as the profile API may return incorrect data.
+    const isUserAdmin = role && (role.toUpperCase() === "ADMIN" || role.toUpperCase() === "ROLE_ADMIN");
 
     localStorage.setItem("token", token);
     localStorage.setItem("role", role);

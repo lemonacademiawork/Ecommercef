@@ -360,8 +360,8 @@ export function CustomerDashboard({
                     key={key}
                     onClick={() => setSection(key)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${section === key
-                        ? "bg-primary/10 text-primary"
-                        : "text-foreground/70 hover:bg-muted hover:text-foreground"
+                      ? "bg-primary/10 text-primary"
+                      : "text-foreground/70 hover:bg-muted hover:text-foreground"
                       }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -1114,7 +1114,7 @@ export function CustomerDashboard({
               {(selectedOrder.trackingNumber || selectedOrder.awbNumber || selectedOrder.trackingEvents) && (
                 <div className="pt-4 border-t border-border/60 space-y-2">
                   <h3 className="text-xs font-semibold uppercase text-muted-foreground">Shipment Tracking</h3>
-                  
+
                   <div className="bg-muted/15 p-3 rounded-xl border border-border/50 text-xs">
                     {selectedOrder.trackingEvents && selectedOrder.trackingEvents.length > 0 ? (
                       <div className="space-y-3">
@@ -1233,10 +1233,10 @@ export function CustomerDashboard({
                   : Number(selectedOrder.subtotal || selectedOrder.amount || 0);
 
                 const shippingFee = Number(
-                  selectedOrder.shippingCharge ?? 
-                  selectedOrder.shippingFee ?? 
-                  selectedOrder.shippingCost ?? 
-                  selectedOrder.shipping ?? 
+                  selectedOrder.shippingCharge ??
+                  selectedOrder.shippingFee ??
+                  selectedOrder.shippingCost ??
+                  selectedOrder.shipping ??
                   (itemsSubtotal > 499 || itemsSubtotal === 0 ? 0 : 49)
                 );
 

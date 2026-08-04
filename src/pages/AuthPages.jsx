@@ -98,11 +98,11 @@ export function LoginPage({ navigate, onLogin }) {
         localStorage.setItem("token", token);
         const profileRes = await api.auth.getProfile();
         if (profileRes.success && profileRes.data) {
-          const profileRole = profileRes.data.role || (profileRes.data.roles && profileRes.data.roles[0]) || role;
           const userProfile = {
             ...profileRes.data,
-            role: profileRole,
-            roles: profileRes.data.roles || [profileRole],
+            email: userEmail || profileRes.data.email,
+            role: role || profileRes.data.role,
+            roles: [role || profileRes.data.role],
           };
           onLogin(token, role, userProfile);
         } else {
@@ -141,11 +141,11 @@ export function LoginPage({ navigate, onLogin }) {
         localStorage.setItem("token", token);
         const profileRes = await api.auth.getProfile();
         if (profileRes.success && profileRes.data) {
-          const profileRole = profileRes.data.role || (profileRes.data.roles && profileRes.data.roles[0]) || role;
           const userProfile = {
             ...profileRes.data,
-            role: profileRole,
-            roles: profileRes.data.roles || [profileRole],
+            email: userEmail || profileRes.data.email,
+            role: role || profileRes.data.role,
+            roles: [role || profileRes.data.role],
           };
           onLogin(token, role, userProfile);
         } else {
@@ -537,11 +537,11 @@ export function RegisterPage({ navigate, onLogin }) {
           localStorage.setItem("token", token);
           const profileRes = await api.auth.getProfile();
           if (profileRes.success && profileRes.data) {
-            const profileRole = profileRes.data.role || (profileRes.data.roles && profileRes.data.roles[0]) || role;
             const userProfile = {
               ...profileRes.data,
-              role: profileRole,
-              roles: profileRes.data.roles || [profileRole],
+              email: userEmail || profileRes.data.email,
+              role: role || profileRes.data.role,
+              roles: [role || profileRes.data.role],
             };
             onLogin(token, role, userProfile);
           } else {

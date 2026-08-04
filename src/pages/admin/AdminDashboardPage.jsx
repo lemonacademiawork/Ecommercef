@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { BarChart2, Package, Users, ShoppingBag, TrendingUp } from "lucide-react";
+import { useNavigate } from "react-router";
+import { BarChart2, Package, Users, ShoppingBag, TrendingUp, Eye } from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -16,203 +17,106 @@ import {
 } from "recharts";
 import { api } from "../../services/api";
 
-const getOrderTotal = (order) => {
-  if (!order) return 0;
-
-  // 1. Calculate items subtotal
-  let itemsSubtotal = 0;
-  if (order.items && Array.isArray(order.items) && order.items.length > 0) {
-    itemsSubtotal = order.items.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 0)), 0);
-  } else {
-    itemsSubtotal = Number(order.subtotal || order.amount || 0);
-  }
-
-  // 2. Determine shipping charges
-  let shipping = 0;
-  if (order.shippingCharge !== undefined && order.shippingCharge !== null) {
-    shipping = Number(order.shippingCharge);
-  } else if (order.shippingFee !== undefined && order.shippingFee !== null) {
-    shipping = Number(order.shippingFee);
-  } else if (order.shippingCost !== undefined && order.shippingCost !== null) {
-    shipping = Number(order.shippingCost);
-  } else if (order.shipping !== undefined && order.shipping !== null) {
-    shipping = Number(order.shipping);
-  } else if (itemsSubtotal > 0) {
-    shipping = itemsSubtotal > 499 ? 0 : 49;
-  }
-
-  // 3. If totalAmount/grandTotal/total is provided and greater than itemsSubtotal, use it
-  const rawTotal = Number(order.totalAmount || order.grandTotal || order.total || 0);
-  if (rawTotal > itemsSubtotal) {
-    return rawTotal;
-  }
-
-  return itemsSubtotal + shipping;
-};
-
-const isPaymentSuccessful = (order) => {
-  if (!order) return false;
-
-  const statusUpper = String(order.status || order.orderStatus || "").toUpperCase();
-  if (statusUpper === "CANCELLED" || statusUpper === "FAILED" || statusUpper === "REJECTED") {
-    return false;
-  }
-
-  // Check explicit pending flags
-  if (order.isPaymentPending === true) return false;
-  if (order.paymentApproved === false || order.isPaid === false || order.paid === false) return false;
-
-  const paymentStatusUpper = String(
-    order.paymentStatus || 
-    order.payment_status || 
-    order.paymentState || 
-    order.payment_state || 
-    ""
-  ).toUpperCase();
-
-  if (
-    paymentStatusUpper === "PENDING" ||
-    paymentStatusUpper === "PAYMENT_PENDING" ||
-    paymentStatusUpper === "UNPAID" ||
-    paymentStatusUpper === "AWAITING_PAYMENT" ||
-    paymentStatusUpper === "FAILED" ||
-    statusUpper === "PENDING" ||
-    statusUpper === "PAYMENT_PENDING" ||
-    statusUpper === "UNPAID" ||
-    statusUpper === "AWAITING_PAYMENT"
-  ) {
-    return false;
-  }
-
-  return true;
-};
-
-const salesData = [
-  { month: "Jan", revenue: 42000, orders: 134 },
-  { month: "Feb", revenue: 38000, orders: 118 },
-  { month: "Mar", revenue: 65000, orders: 201 },
-  { month: "Apr", revenue: 71000, orders: 225 },
-  { month: "May", revenue: 58000, orders: 183 },
-  { month: "Jun", revenue: 89000, orders: 267 },
-];
-
-const categoryData = [
-  { name: "Resin", value: 124, color: "#a61c9b" },
-  { name: "Beads", value: 89, color: "#2E7D32" },
-  { name: "Art", value: 183, color: "#FFD54F" },
-  { name: "Fabric", value: 215, color: "#9c27b0" },
-  { name: "Jewelry", value: 144, color: "#ff5722" },
-];
-
 const colors = ["#a61c9b", "#2E7D32", "#FFD54F", "#9c27b0", "#ff5722", "#00bcd4", "#3f51b5"];
 
 export function AdminDashboardPage() {
-  const [metrics, setMetrics] = useState({
-    totalRevenue: 0,
-    totalOrders: 0,
-    totalUsers: 0,
-    totalProducts: 0,
-  });
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [orders, setOrders] = useState([]);
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({});
+  const [recentOrders, setRecentOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [metricRes, prodRes, catRes, orderRes] = await Promise.all([
-        api.admin.getDashboardMetrics(),
-        api.products.listProducts({ all: true }),
-        api.categories.listCategories(true),
-        api.admin.listAllOrders(),
-      ]);
-      if (metricRes.success && metricRes.data) {
-        setMetrics(metricRes.data);
-      }
-      if (prodRes.success && prodRes.data) {
-        setProducts(prodRes.data);
-      }
-      if (catRes.success && catRes.data) {
-        setCategories(catRes.data);
-      }
-      if (orderRes.success && orderRes.data) {
-        const orderData = Array.isArray(orderRes.data) ? orderRes.data : (orderRes.data?.content || []);
-        setOrders(orderData);
-      }
-    } catch (err) {
-      console.error("Error loading dashboard data:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadData();
+    async function fetchRecentOrders() {
+      try {
+        // Fetch ONLY orders that are PAID
+        const response = await api.get('/api/admin/orders?paymentStatus=PAID&page=0&size=5&sortBy=createdAt&sortDir=desc');
+        const content = response?.data?.content || response?.data || response?.content || response || [];
+        const rawList = Array.isArray(content) ? content : [];
+        const paidOrders = rawList.filter((order) => {
+          const payStatus = String(order.paymentStatus || "").toUpperCase();
+          const orderStatus = String(order.status || "").toUpperCase();
+          if (payStatus === "UNPAID" || payStatus === "PENDING" || payStatus === "FAILED" || payStatus === "CANCELLED") return false;
+          if (orderStatus === "PENDING" || orderStatus === "UNPAID" || orderStatus === "CANCELLED") return false;
+          return true;
+        });
+        setRecentOrders(paidOrders.slice(0, 5));
+      } catch (err) {
+        console.error('Failed to fetch recent orders:', err);
+      }
+    }
+
+    async function loadDashboardData() {
+      setLoading(true);
+      try {
+        const [statsRes] = await Promise.all([
+          api.admin.getDashboardMetrics(),
+          fetchRecentOrders(),
+        ]);
+
+        if (statsRes && statsRes.data) {
+          setStats(statsRes.data);
+        } else if (statsRes) {
+          setStats(statsRes);
+        }
+      } catch (err) {
+        console.error("Failed to load dashboard data:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDashboardData();
   }, []);
 
-  const dynamicCategoryData = categories.length > 0
-    ? categories.map((cat, i) => ({
-        name: cat.name,
-        value: products.filter((p) => p.categoryId === cat.id).length || 0,
-        color: colors[i % colors.length],
-      })).filter((item) => item.value > 0)
-    : categoryData;
+  // Backend dashboard response payload values
+  const totalRevenue = Number(stats.totalRevenue ?? stats.revenue ?? 0);
+  const totalOrders = Number(stats.totalOrders ?? stats.ordersCount ?? 0);
+  const totalUsers = Number(stats.totalUsers ?? stats.usersCount ?? 0);
+  const totalProducts = Number(stats.totalProducts ?? stats.productsCount ?? 0);
 
-  const displayYear = orders.length > 0
-    ? Math.max(...orders.map(o => {
-        const d = o.createdAt ? new Date(o.createdAt) : (o.date ? new Date(o.date) : null);
-        return d ? d.getFullYear() : 2026;
-      }))
-    : 2026;
+  const outOfStockCount = Number(stats.outOfStockProducts ?? stats.outOfStock ?? 0);
+  const lowStockCount = Number(stats.lowStockProducts ?? stats.lowStock ?? 0);
+  const inStockCount = Number(stats.inStockProducts ?? stats.inStock ?? (totalProducts - outOfStockCount));
 
+  // Monthly Analytics for Revenue Overview & Revenue vs Orders charts
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const dynamicSalesData = months.map((m) => ({ month: m, revenue: 0, orders: 0 }));
+  const currentMonthIdx = new Date().getMonth();
 
-  let calculatedTotalRevenue = 0;
-  let calculatedTotalOrders = 0;
-
-  orders.forEach((order) => {
-    // Only calculate revenue for orders with successful payments
-    if (!isPaymentSuccessful(order)) return;
-
-    const amount = getOrderTotal(order);
-    calculatedTotalRevenue += amount;
-    calculatedTotalOrders += 1;
-
-    const date = order.createdAt ? new Date(order.createdAt) : (order.date ? new Date(order.date) : null);
-    if (date && date.getFullYear() === displayYear) {
-      const monthIdx = date.getMonth();
-      if (monthIdx >= 0 && monthIdx < 12) {
-        dynamicSalesData[monthIdx].revenue += amount;
-        dynamicSalesData[monthIdx].orders += 1;
-      }
-    }
-  });
-
-  const chartData = dynamicSalesData;
-
-  const finalPieData = dynamicCategoryData.length > 0 
-    ? dynamicCategoryData 
-    : categories.map((cat, i) => ({
-        name: cat.name,
-        value: 1,
-        color: colors[i % colors.length],
+  const monthlyChartData = stats.monthlyAnalytics && Array.isArray(stats.monthlyAnalytics) && stats.monthlyAnalytics.length > 0
+    ? stats.monthlyAnalytics.map((item) => ({
+        month: item.month,
+        revenue: Number(item.revenue || 0),
+        orders: Number(item.orderCount || item.orders || 0),
+      }))
+    : months.map((m, idx) => ({
+        month: m,
+        revenue: idx <= currentMonthIdx ? Math.round((totalRevenue / (currentMonthIdx + 1))) : 0,
+        orders: idx <= currentMonthIdx ? Math.round((totalOrders / (currentMonthIdx + 1))) : 0,
       }));
+
+  // Stock By Category Donut Chart
+  const stockByCategoryData = stats.stockByCategory && Array.isArray(stats.stockByCategory) && stats.stockByCategory.length > 0
+    ? stats.stockByCategory.map((item, index) => ({
+        name: item.categoryName || item.name || `Category ${index + 1}`,
+        value: Number(item.productCount || item.value || 0),
+        color: colors[index % colors.length],
+      }))
+    : [
+        { name: "In Stock", value: inStockCount || 1, color: "#2E7D32" },
+        { name: "Low Stock", value: lowStockCount, color: "#E65100" },
+        { name: "Out of Stock", value: outOfStockCount, color: "#d32f2f" },
+      ].filter((item) => item.value > 0);
 
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground text-sm">Loading overview metrics...</p>
+          <p className="text-muted-foreground text-sm font-medium">Loading dashboard overview...</p>
         </div>
       </div>
     );
   }
-
-  // Revenue is calculated strictly from successful/paid orders (excluding pending/unpaid)
-  const displayRevenue = calculatedTotalRevenue;
 
   return (
     <div className="space-y-6">
@@ -228,7 +132,7 @@ export function AdminDashboardPage() {
         {[
           {
             label: "Total Revenue",
-            value: `₹${displayRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            value: `₹${totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
             change: "Live",
             color: "#a61c9b",
             bg: "#fbeaf5",
@@ -236,7 +140,7 @@ export function AdminDashboardPage() {
           },
           {
             label: "Total Orders",
-            value: calculatedTotalOrders,
+            value: totalOrders,
             change: "Live",
             color: "#2E7D32",
             bg: "#E8F5E9",
@@ -244,7 +148,7 @@ export function AdminDashboardPage() {
           },
           {
             label: "Customers",
-            value: metrics.totalUsers || 0,
+            value: totalUsers,
             change: "Live",
             color: "#1565C0",
             bg: "#E3F2FD",
@@ -252,7 +156,7 @@ export function AdminDashboardPage() {
           },
           {
             label: "Products",
-            value: metrics.totalProducts || 0,
+            value: totalProducts,
             change: "Live",
             color: "#E65100",
             bg: "#FFF3E0",
@@ -261,7 +165,7 @@ export function AdminDashboardPage() {
         ].map((kpi) => (
           <div
             key={kpi.label}
-            className="bg-white rounded-2xl border border-border p-5"
+            className="bg-white rounded-2xl border border-border p-5 shadow-sm"
           >
             <div className="flex items-center justify-between mb-3">
               <div
@@ -294,16 +198,16 @@ export function AdminDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Revenue Chart */}
-        <div className="bg-white rounded-2xl border border-border p-5 lg:col-span-2 min-w-0 overflow-hidden">
+        {/* Revenue Overview Area Chart */}
+        <div className="bg-white rounded-2xl border border-border p-5 lg:col-span-2 min-w-0 overflow-hidden shadow-sm">
           <h2
             className="font-bold mb-4"
             style={{ fontFamily: "Poppins, sans-serif" }}
           >
-            Revenue Overview ({displayYear})
+            Revenue Overview (2026)
           </h2>
           <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={chartData}>
+            <AreaChart data={monthlyChartData}>
               <defs>
                 <linearGradient
                   id="revenueGrad"
@@ -327,7 +231,7 @@ export function AdminDashboardPage() {
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="month" stroke="#888" fontSize={11} />
               <YAxis stroke="#888" fontSize={11} />
-              <Tooltip formatter={(value) => [`₹${value}`, "Revenue"]} />
+              <Tooltip formatter={(value) => [`₹${Number(value).toLocaleString('en-IN')}`, "Revenue"]} />
               <Area
                 type="monotone"
                 dataKey="revenue"
@@ -340,8 +244,8 @@ export function AdminDashboardPage() {
           </ResponsiveContainer>
         </div>
 
-        {/* Categories Pie Chart */}
-        <div className="bg-white rounded-2xl border border-border p-5 min-w-0 overflow-hidden">
+        {/* Stock by Category Donut Chart */}
+        <div className="bg-white rounded-2xl border border-border p-5 min-w-0 overflow-hidden shadow-sm">
           <h2
             className="font-bold mb-4"
             style={{ fontFamily: "Poppins, sans-serif" }}
@@ -352,7 +256,7 @@ export function AdminDashboardPage() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={finalPieData}
+                  data={stockByCategoryData}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -360,7 +264,7 @@ export function AdminDashboardPage() {
                   paddingAngle={5}
                   dataKey="value"
                 >
-                  {finalPieData.map((entry, index) => (
+                  {stockByCategoryData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={entry.color || colors[index % colors.length]}
@@ -371,13 +275,13 @@ export function AdminDashboardPage() {
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-2">
-              <span className="text-xl font-bold">{products.length}</span>
+              <span className="text-xl font-bold">{totalProducts}</span>
               <span className="text-xs text-muted-foreground">Total Products</span>
             </div>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-            {finalPieData.slice(0, 4).map((entry, i) => (
-              <div key={entry.name} className="flex items-center gap-2">
+            {stockByCategoryData.slice(0, 4).map((entry) => (
+              <div key={entry.name} className="flex items-center gap-1.5">
                 <span
                   className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                   style={{ backgroundColor: entry.color }}
@@ -392,58 +296,64 @@ export function AdminDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue vs Orders Bar Chart */}
-        <div className="bg-white rounded-2xl border border-border p-5 min-w-0 overflow-hidden">
-          <h2
-            className="font-bold mb-4"
-            style={{ fontFamily: "Poppins, sans-serif" }}
-          >
-            Revenue vs Orders
-          </h2>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis
-                dataKey="month"
-                tick={{ fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                yAxisId="left"
-                tick={{ fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
-              />
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                tick={{ fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip />
-              <Bar
-                yAxisId="left"
-                dataKey="revenue"
-                fill="#a61c9b"
-                radius={[4, 4, 0, 0]}
-                opacity={0.8}
-              />
-              <Bar
-                yAxisId="right"
-                dataKey="orders"
-                fill="#2E7D32"
-                radius={[4, 4, 0, 0]}
-                opacity={0.8}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+        {/* Recent Orders (Lightweight 5-item list) */}
+        <div className="bg-white rounded-2xl border border-border p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2
+              className="font-bold text-base"
+              style={{ fontFamily: "Poppins, sans-serif" }}
+            >
+              Recent Orders
+            </h2>
+            <button
+              onClick={() => navigate("/admin/orders")}
+              className="text-xs font-semibold text-primary hover:underline cursor-pointer flex items-center gap-1"
+            >
+              View All Orders <Eye className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-muted/50 text-muted-foreground uppercase text-[10px]">
+                <tr>
+                  <th className="p-2">Order ID</th>
+                  <th className="p-2">Date</th>
+                  <th className="p-2">Status</th>
+                  <th className="p-2 text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {recentOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="p-4 text-center text-muted-foreground">
+                      No recent orders
+                    </td>
+                  </tr>
+                ) : (
+                  recentOrders.map((order) => (
+                    <tr key={order.id} className="hover:bg-muted/20">
+                      <td className="p-2 font-semibold text-primary">#{order.id}</td>
+                      <td className="p-2 text-muted-foreground">
+                        {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "—"}
+                      </td>
+                      <td className="p-2">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">
+                          {order.status || "PAID"}
+                        </span>
+                      </td>
+                      <td className="p-2 text-right font-bold">
+                        ₹{Number(order.totalAmount || order.subtotal || order.amount || 0).toLocaleString("en-IN")}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        {/* Inventory Insights */}
-        <div className="bg-white rounded-2xl border border-border p-5 flex flex-col justify-between">
+        {/* Interactive Inventory Insights Cards */}
+        <div className="bg-white rounded-2xl border border-border p-5 shadow-sm flex flex-col justify-between">
           <div>
             <h2
               className="font-bold mb-4"
@@ -455,26 +365,30 @@ export function AdminDashboardPage() {
               {[
                 {
                   label: "In Stock",
-                  count: products.filter((p) => p.stock > 0).length,
+                  count: inStockCount,
                   color: "#2E7D32",
                   bg: "#E8F5E9",
+                  filter: "IN_STOCK",
                 },
                 {
                   label: "Out of Stock",
-                  count: products.filter((p) => p.stock <= 0).length,
+                  count: outOfStockCount,
                   color: "#d32f2f",
                   bg: "#FFEBEE",
+                  filter: "OUT_OF_STOCK",
                 },
                 {
                   label: "Low Stock (< 5)",
-                  count: products.filter((p) => p.stock > 0 && p.stock < 5).length,
+                  count: lowStockCount,
                   color: "#E65100",
                   bg: "#FFF3E0",
+                  filter: "LOW_STOCK",
                 },
               ].map((s) => (
                 <div
                   key={s.label}
-                  className="rounded-xl p-4"
+                  onClick={() => navigate(`/admin/products?stockFilter=${s.filter}`)}
+                  className="rounded-xl p-4 cursor-pointer hover:shadow-md transition-all border border-transparent hover:border-border"
                   style={{ background: s.bg }}
                 >
                   <p

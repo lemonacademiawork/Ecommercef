@@ -1,7 +1,11 @@
-import { useState, useEffect } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Eye, X, Truck, Calculator, FileText, Calendar, Ban, RefreshCw, Loader2, Info } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router";
+import { ChevronDown, ChevronLeft, ChevronRight, Eye, X, Truck, Calculator, FileText, Calendar, Ban, RefreshCw, Loader2, Info, ShoppingBag } from "lucide-react";
 import { api } from "../../services/api";
 import { toast } from "sonner";
+import { AdminPagination } from "../../components/AdminPagination";
+import SearchInput from "../../components/SearchInput";
+import { useDebounce } from "../../hooks/useDebounce";
 
 const statusColors = {
   PAID: "bg-green-100 text-green-800 border border-green-200 font-bold",
@@ -89,16 +93,33 @@ const getDisplayStatus = (order) => {
 };
 
 export function AdminOrdersPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const setParam = useCallback((updates) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      Object.entries(updates).forEach(([k, v]) => {
+        if (v === "" || v === null || v === undefined) next.delete(k);
+        else next.set(k, String(v));
+      });
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  // URL-synced pagination / search
+  const currentPage = Number(searchParams.get("page") || 0);
+  const pageSize = Number(searchParams.get("size") || 20);
+  const searchParam = searchParams.get("search") || "";
+
+  // Local controlled search input → debounced → URL + API
+  const [searchInput, setSearchInput] = useState(searchParam);
+  const debouncedSearch = useDebounce(searchInput, 350);
+
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
-
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
   const [totalElements, setTotalElements] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  const [isLastPage, setIsLastPage] = useState(false);
 
   const [bookingLoading, setBookingLoading] = useState(false);
   const [cancellingLoading, setCancellingLoading] = useState(false);
@@ -397,7 +418,7 @@ export function AdminOrdersPage() {
     }
   };
 
-  const loadData = async (page = 0, size = 20) => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       let orderList = [];
@@ -405,27 +426,26 @@ export function AdminOrdersPage() {
 
       try {
         const orderRes = await api.admin.listAllOrders({
-          page,
-          size,
+          page: currentPage,
+          size: pageSize,
           sortBy: "createdAt",
           sortDir: "desc",
+          search: searchParam,
         });
         if (orderRes && orderRes.success && orderRes.data) {
           if (Array.isArray(orderRes.data)) {
             orderList = orderRes.data;
             setTotalElements(orderRes.data.length);
             setTotalPages(1);
-            setIsLastPage(true);
           } else {
             orderList = orderRes.data.content || [];
             setTotalElements(orderRes.data.totalElements || 0);
             setTotalPages(orderRes.data.totalPages || 1);
-            setCurrentPage(orderRes.data.pageNumber || 0);
-            setIsLastPage(orderRes.data.last ?? true);
           }
         }
       } catch (backendErr) {
         console.warn("Failed to fetch orders from backend, using local storage fallback:", backendErr);
+        toast.error("Failed to load orders from server");
       }
 
       try {
@@ -452,7 +472,7 @@ export function AdminOrdersPage() {
         };
       });
 
-      // Sort descending by date, then by ID (server already sorts, but local orders need it)
+      // Sort descending by date, then by ID
       mergedOrders.sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -463,27 +483,21 @@ export function AdminOrdersPage() {
       setOrders(mergedOrders);
     } catch (err) {
       console.error("Error loading orders:", err);
+      toast.error(err.message || "Failed to load orders");
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, pageSize, searchParam]);
 
   useEffect(() => {
-    loadData(currentPage, pageSize);
-  }, []);
+    loadData();
+  }, [loadData]);
 
-  const goToPage = (page) => {
-    if (page >= 0 && page < totalPages) {
-      setCurrentPage(page);
-      loadData(page, pageSize);
-    }
-  };
-
-  const handlePageSizeChange = (newSize) => {
-    setPageSize(newSize);
-    setCurrentPage(0);
-    loadData(0, newSize);
-  };
+  // Sync debouncedSearch → URL (resets page to 0)
+  useEffect(() => {
+    setParam({ search: debouncedSearch || undefined, page: 0 });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   const handleStatusChange = async (orderId, newStatus) => {
     try {
@@ -542,25 +556,36 @@ export function AdminOrdersPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground text-sm">Loading orders list...</p>
-        </div>
-      </div>
-    );
-  }
+  // Skeleton row for table loading state
+  const SkeletonOrderRow = () => (
+    <tr className="animate-pulse border-b border-border">
+      <td className="px-4 py-3"><div className="h-3 w-14 rounded bg-muted" /></td>
+      <td className="px-4 py-3"><div className="h-3 w-20 rounded bg-muted" /></td>
+      <td className="px-4 py-3"><div className="h-3 w-12 rounded bg-muted" /></td>
+      <td className="px-4 py-3"><div className="h-3 w-16 rounded bg-muted" /></td>
+      <td className="px-4 py-3"><div className="h-5 w-24 rounded-full bg-muted" /></td>
+      <td className="px-4 py-3"><div className="h-7 w-16 rounded-lg bg-muted" /></td>
+    </tr>
+  );
 
   return (
     <div>
-      <h1
-        className="text-2xl font-bold mb-6"
-        style={{ fontFamily: "Poppins, sans-serif" }}
-      >
-        Orders Management
-      </h1>
+      <div className="flex items-center justify-between mb-6 gap-4">
+        <h1
+          className="text-2xl font-bold flex-shrink-0"
+          style={{ fontFamily: "Poppins, sans-serif" }}
+        >
+          Orders Management
+        </h1>
+        <SearchInput
+          value={searchInput}
+          onChange={setSearchInput}
+          onClear={() => setSearchInput("")}
+          isLoading={loading && !!debouncedSearch}
+          placeholder="Search by order ID, name, email or phone…"
+          className="max-w-sm"
+        />
+      </div>
 
       <div className="bg-white rounded-2xl border border-border overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
@@ -585,7 +610,22 @@ export function AdminOrdersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {orders.map((order) => (
+              {loading
+                ? Array.from({ length: 8 }).map((_, i) => <SkeletonOrderRow key={i} />)
+                : orders.length === 0
+                ? (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center">
+                      <ShoppingBag className="w-10 h-10 text-muted-foreground/40 mx-auto mb-2" />
+                      <p className="text-muted-foreground text-sm">
+                        {searchParam
+                          ? `No results found matching "${searchParam}"`
+                          : "No orders found"}
+                      </p>
+                    </td>
+                  </tr>
+                )
+                : orders.map((order) => (
                 <tr
                   key={order.id}
                   className="hover:bg-muted/30 transition-colors"
@@ -635,65 +675,16 @@ export function AdminOrdersPage() {
           </table>
         </div>
 
-        {/* Pagination Controls */}
-        {totalPages > 1 && (
-          <div className="px-5 py-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>
-                Showing {currentPage * pageSize + 1}–{Math.min((currentPage + 1) * pageSize, totalElements)} of{" "}
-                <span className="font-semibold text-foreground">{totalElements}</span> orders
-              </span>
-              <span className="text-border">|</span>
-              <label className="flex items-center gap-1.5">
-                Rows:
-                <select
-                  value={pageSize}
-                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                  className="border border-border rounded-md px-1.5 py-0.5 text-xs bg-white cursor-pointer"
-                >
-                  {[10, 20, 50].map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => goToPage(0)}
-                disabled={currentPage === 0}
-                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-              >
-                First
-              </button>
-              <button
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 0}
-                className="p-1.5 rounded-md border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-              <span className="px-3 py-1 text-xs font-semibold rounded-md bg-primary/10 text-primary border border-primary/20">
-                {currentPage + 1} / {totalPages}
-              </span>
-              <button
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={isLastPage}
-                className="p-1.5 rounded-md border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-              >
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => goToPage(totalPages - 1)}
-                disabled={isLastPage}
-                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-              >
-                Last
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Pagination — shared component with URL sync */}
+        <AdminPagination
+          page={currentPage}
+          totalPages={totalPages}
+          totalElements={totalElements}
+          pageSize={pageSize}
+          onPageChange={(p) => setParam({ page: p })}
+          onPageSizeChange={(s) => setParam({ size: s, page: 0 })}
+          loading={loading}
+        />
       </div>
 
       {/* Details drawer/modal */}

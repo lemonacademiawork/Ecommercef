@@ -27,16 +27,21 @@ export default function OAuthSuccess({ onLogin }) {
     api.auth.getProfile()
       .then((res) => {
         if (res.success && res.data) {
+          // For OAuth (customer-facing flow), only treat as admin if the profile
+          // explicitly returns ADMIN role. Default to CUSTOMER.
           const profileRole = res.data.role || (res.data.roles && res.data.roles[0]) || "CUSTOMER";
+          // OAuth login is customer-facing; only accept admin role if explicitly set
+          const isAdmin = profileRole.toUpperCase() === "ADMIN" || profileRole.toUpperCase() === "ROLE_ADMIN";
+          const finalRole = isAdmin ? profileRole : "CUSTOMER";
           const userProfile = {
             ...res.data,
-            role: profileRole,
-            roles: res.data.roles || [profileRole],
+            role: finalRole,
+            roles: res.data.roles || [finalRole],
           };
           
           if (onLogin) {
             // Complete login state update & guest cart sync
-            onLogin(token, profileRole, userProfile);
+            onLogin(token, finalRole, userProfile);
           } else {
             navigate("/dashboard");
           }

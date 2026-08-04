@@ -267,9 +267,7 @@ export function LandingPage({
                     <p className="text-sm font-semibold leading-snug group-hover:text-primary transition-colors">
                       {cat.name}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {cat.count !== undefined ? cat.count : 0} items
-                    </p>
+
                   </div>
                 </motion.button>
               ))}
@@ -294,7 +292,7 @@ export function LandingPage({
               {categories.slice(0, 10).map((cat) => (
                 <button
                   key={cat.id}
-                  onClick={() => navigate("shop", cat.id || cat.name)}
+                  onClick={() => navigate("shop")}
                   className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-border bg-white dark:bg-zinc-900 snap-center flex-shrink-0 cursor-pointer"
                 >
                   <span
@@ -369,42 +367,6 @@ export function LandingPage({
 
 
 
-      {/* New Arrivals */}
-      <section className="py-16 bg-card transition-colors duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span
-                  className="w-1 h-6 rounded-full inline-block"
-                  style={{ background: "#2E7D32" }}
-                />
-                <span className="text-sm font-semibold text-accent">
-                  Fresh Arrivals
-                </span>
-              </div>
-              <h2
-                className="text-3xl font-bold"
-                style={{ fontFamily: "Poppins, sans-serif" }}
-              >
-                New This Week
-              </h2>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {newArrivals.map((p) => (
-              <ProductCard
-                key={p.id}
-                product={p}
-                onNavigate={(id) => navigate("product", id)}
-                onAddToCart={onAddToCart}
-                isWishlisted={wishlist.includes(p.id)}
-                onToggleWishlist={onToggleWishlist}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Reviews */}
       <section className="py-16 transition-colors duration-300" style={{ background: "var(--testimonials-bg)" }}>
