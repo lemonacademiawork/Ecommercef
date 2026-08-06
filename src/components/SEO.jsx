@@ -30,7 +30,7 @@ export function SEO({
 
   return (
     <Helmet>
-      {/* Standard Meta Tags */}
+      {/* Standard Meta Tags & Favicon Logo */}
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
       {keywords && <meta name="keywords" content={keywords} />}
@@ -39,6 +39,9 @@ export function SEO({
         content={noindex ? "noindex, nofollow" : "index, follow"}
       />
       <link rel="canonical" href={currentUrl} />
+      <link rel="icon" type="image/png" href="/favicon.png" />
+      <link rel="shortcut icon" href="/favicon.ico" />
+      <link rel="apple-touch-icon" href="/logo.png" />
 
       {/* Open Graph Tags */}
       <meta property="og:site_name" content={DEFAULT_SITE_NAME} />
