@@ -13,6 +13,7 @@ import { REVIEWS } from "../data";
 import { ProductCard } from "../components/ProductCard";
 import { api } from "../services/api";
 import heroCollageImg from "../assets/hero_collage.jpg";
+import { SEO } from "../components/SEO";
 
 export function LandingPage({
   navigate,
@@ -50,8 +51,27 @@ export function LandingPage({
   const featuredProducts = products.filter((p) => p.isBestSeller).slice(0, 4);
   const newArrivals = products.filter((p) => p.isNew).slice(0, 4);
 
+  const homeSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Lemon House",
+    "url": "https://lemonhousecraft.in",
+    "description": "Premium craft supplies, DIY materials, and creative essentials delivered to your doorstep.",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Lemon House",
+      "logo": "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=400&fit=crop"
+    }
+  };
+
   return (
     <div className="min-h-screen">
+      <SEO
+        title="Lemon House - Complete Candle Kits, Concrete & Silicone Moulds, Lippan Art Kits"
+        description="Shop complete candle kits, silicone & concrete moulds, lippan art kits, readymade kits, texture kits, basic bath salt & soap salt at Lemon House. Fast nationwide shipping."
+        keywords="candle, concrete, moulds, complete candle kit, lippanart kit, readymade kits, basic bath salt, basic soap salt, texture kit, pipe kit, silicone, craft supplies, DIY materials, Lemon House"
+        schema={homeSchema}
+      />
       {/* Hero Section */}
       <section
         className="relative overflow-hidden transition-colors duration-300"
@@ -150,6 +170,8 @@ export function LandingPage({
               <img
                 src={heroCollageImg}
                 alt="Lemon House Crafts Collage"
+                loading="lazy"
+                decoding="async"
                 className="w-full h-auto object-cover"
               />
             </motion.div>
@@ -420,6 +442,8 @@ export function LandingPage({
                   <img
                     src={review.avatar}
                     alt={review.author}
+                    loading="lazy"
+                    decoding="async"
                     className="w-9 h-9 rounded-full object-cover bg-muted"
                   />
                   <div>

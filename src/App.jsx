@@ -4,6 +4,7 @@ import { LandingPage } from "./pages/LandingPage";
 import { ShopPage } from "./pages/ShopPage";
 import { ProductDetailPage } from "./pages/ProductDetailPage";
 import { CartSidebar } from "./components/CartSidebar";
+import { CartPage } from "./pages/CartPage";
 import { CheckoutPage } from "./pages/CheckoutPage";
 import { CustomerDashboard } from "./pages/CustomerDashboard";
 import { LoginPage, RegisterPage } from "./pages/AuthPages";
@@ -29,7 +30,7 @@ import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminSettingsPage } from "./pages/admin/AdminSettingsPage";
 
 // Route helper to extract parameter for ProductDetail
-const ProductDetailRouteWrapper = ({ navigate, onAddToCart, wishlist, onToggleWishlist, user }) => {
+const ProductDetailRouteWrapper = ({ navigate, onAddToCart, wishlist, onToggleWishlist }) => {
   const { id } = useParams();
   return (
     <ProductDetailPage
@@ -38,7 +39,6 @@ const ProductDetailRouteWrapper = ({ navigate, onAddToCart, wishlist, onToggleWi
       onAddToCart={onAddToCart}
       wishlist={wishlist}
       onToggleWishlist={onToggleWishlist}
-      user={user}
     />
   );
 };
@@ -75,6 +75,7 @@ export default function App() {
       }
     }
     else if (p === "product") path = `/product/${id}`;
+    else if (p === "cart") path = "/cart";
     else if (p === "checkout") path = "/checkout";
     else if (p === "dashboard") path = "/dashboard";
     else if (p === "login") path = "/login";
@@ -93,6 +94,7 @@ export default function App() {
     if (location.pathname === "/") p = "home";
     else if (location.pathname.startsWith("/shop")) p = "shop";
     else if (location.pathname.startsWith("/product")) p = "product";
+    else if (location.pathname.startsWith("/cart")) p = "cart";
     else if (location.pathname.startsWith("/checkout")) p = "checkout";
     else if (location.pathname.startsWith("/dashboard")) p = "dashboard";
     else if (location.pathname.startsWith("/about")) p = "about";
@@ -509,7 +511,17 @@ export default function App() {
                 onAddToCart={handleAddToCart}
                 wishlist={wishlist}
                 onToggleWishlist={handleToggleWishlist}
-                user={user}
+              />
+            }
+          />
+          <Route
+            path="/cart"
+            element={
+              <CartPage
+                items={cartItems}
+                onUpdateQuantity={handleUpdateQuantity}
+                onRemove={handleRemoveFromCart}
+                navigate={navigate}
               />
             }
           />

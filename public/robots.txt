@@ -1,0 +1,18 @@
+# Allow search engines to index public pages
+User-agent: *
+Allow: /
+Allow: /shop
+Allow: /product/
+Allow: /about
+Allow: /contact
+Allow: /cart
+
+# Disallow private user & admin paths
+Disallow: /admin/
+Disallow: /dashboard
+Disallow: /checkout
+Disallow: /oauth-success
+Disallow: /oauth-failure
+
+# Sitemap location
+Sitemap: https://lemonhousecraft.in/sitemap.xml

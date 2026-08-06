@@ -4,6 +4,7 @@ import { SlidersHorizontal, X, ChevronDown, Search, ChevronLeft, ChevronRight } 
 import { motion, AnimatePresence } from "motion/react";
 import { ProductCard } from "../components/ProductCard";
 import { api } from "../services/api";
+import { SEO } from "../components/SEO";
 
 const SORT_OPTIONS = [
   { value: "popular", label: "Most Popular" },
@@ -345,8 +346,52 @@ export function ShopPage({
   const startItem = totalElem > 0 ? currentPage * pageSize + 1 : 0;
   const endItem = Math.min((currentPage + 1) * pageSize, totalElem);
 
+  const catName = activeCategoryObj ? activeCategoryObj.name : (selectedCategory !== "all" ? selectedCategory : "");
+
+  let seoTitle = "Shop All Craft Supplies & DIY Materials";
+  if (catName) {
+    seoTitle = `${catName} - Craft Supplies`;
+  } else if (localSearch) {
+    seoTitle = `Search results for "${localSearch}"`;
+  }
+
+  let seoDescription = `Browse our catalog of ${totalElem || "1,000+"} craft supplies, resin art tools, yarns, and DIY materials at Lemon House. Fast nationwide delivery.`;
+  if (catName) {
+    seoDescription = `Explore high-quality ${catName} craft supplies and DIY tools at Lemon House. Shop best sellers with fast nationwide delivery.`;
+  }
+
+  const shopBreadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://lemonhousecraft.in/"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Shop",
+        "item": "https://lemonhousecraft.in/shop"
+      },
+      ...(catName ? [{
+        "@type": "ListItem",
+        "position": 3,
+        "name": catName,
+        "item": `https://lemonhousecraft.in/shop?category=${encodeURIComponent(selectedCategory)}`
+      }] : [])
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-background transition-colors duration-300">
+      <SEO
+        title={seoTitle}
+        description={seoDescription}
+        schema={shopBreadcrumbSchema}
+      />
       {/* Header */}
       <div className="bg-card border-b border-border/60 py-8 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -354,9 +399,10 @@ export function ShopPage({
             className="text-3xl font-bold mb-1"
             style={{ fontFamily: "Poppins, sans-serif" }}
           >
-            Shop All Products
+            {catName ? catName : "Shop All Products"}
           </h1>
           <p className="text-muted-foreground text-sm">
+
             {totalElem} products found {pagination.totalPages > 1 ? `(Page ${currentPage + 1} of ${pagination.totalPages})` : ""}
           </p>
         </div>

@@ -12,15 +12,11 @@ import {
   Clock,
   X,
   Check,
-  Star,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { PRODUCTS } from "../data";
 import { api } from "../services/api";
 import { toast } from "sonner";
-import { ReviewModal } from "../components/ReviewModal";
-import { isOrderItemReviewed, getOrderItemReview } from "../services/reviewService";
-
 
 const getOrderTotal = (order) => {
   const amount = Number(order?.totalAmount || order?.total || order?.amount || 0);
@@ -62,27 +58,6 @@ export function CustomerDashboard({
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [dbProducts, setDbProducts] = useState([]);
-
-  // Review modal state
-  const [reviewModalOpen, setReviewModalOpen] = useState(false);
-  const [reviewTargetProduct, setReviewTargetProduct] = useState(null);
-  const [reviewTargetOrderId, setReviewTargetOrderId] = useState(null);
-
-  const handleOpenReview = (item, orderId) => {
-    const pId = item.productId || item.product?.id || item.id;
-    const pName = item.product?.name || item.productName || item.name || "Product";
-    const pImg = item.product?.imageUrl || item.product?.image || item.imageUrl || item.image;
-    
-    setReviewTargetProduct({
-      id: pId,
-      name: pName,
-      image: pImg,
-      price: item.price,
-    });
-    setReviewTargetOrderId(orderId);
-    setReviewModalOpen(true);
-  };
-
 
   const [customerTrackingData, setCustomerTrackingData] = useState(null);
   const [customerTrackingLoading, setCustomerTrackingLoading] = useState(false);
@@ -593,42 +568,18 @@ export function CustomerDashboard({
                         )}
 
                         {Array.isArray(order.items) && order.items.length > 0 && (
-                          <div className="mb-3 space-y-2 border-t border-b border-border/40 py-2.5">
+                          <div className="mb-3 space-y-1.5 border-t border-b border-border/40 py-2.5">
                             {order.items.map((item, idx) => {
                               const vName = item.variantName || item.variant?.variantName || item.variant || item.selectedVariant?.variantName || item.selectedVariant;
                               const pName = item.product?.name || item.productName || item.name || "Product";
-                              const pId = item.productId || item.product?.id || item.id;
-                              const isDelivered = (order.status || "").toLowerCase() === "delivered";
-                              const reviewed = isDelivered ? isOrderItemReviewed(order.id, pId) : false;
-                              const existingReview = reviewed ? getOrderItemReview(order.id, pId) : null;
-
                               return (
-                                <div key={item.id || idx} className="flex flex-wrap sm:flex-nowrap justify-between items-center text-xs gap-2 py-1">
-                                  <span className="text-foreground/80 truncate max-w-[65%] font-medium">
+                                <div key={item.id || idx} className="flex justify-between items-center text-xs">
+                                  <span className="text-foreground/80 truncate max-w-[75%] font-medium">
                                     • {pName}
                                     {vName ? <span className="text-primary font-semibold"> ({vName})</span> : ""}
                                     <span className="text-muted-foreground ml-1">x{item.quantity || 1}</span>
                                   </span>
-
-                                  <div className="flex items-center gap-3">
-                                    <span className="font-semibold text-foreground/90">₹{(item.price || 0) * (item.quantity || 1)}</span>
-                                    {isDelivered && (
-                                      reviewed ? (
-                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {existingReview?.rating || 5}/5 Reviewed
-                                        </span>
-                                      ) : (
-                                        <button
-                                          type="button"
-                                          onClick={() => handleOpenReview(item, order.id)}
-                                          className="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-white shadow-sm hover:opacity-90 transition-all cursor-pointer flex items-center gap-1"
-                                          style={{ background: "linear-gradient(135deg, #a61c9b, #d82a81)" }}
-                                        >
-                                          <Star className="w-3 h-3 fill-white text-white" /> Write Review
-                                        </button>
-                                      )
-                                    )}
-                                  </div>
+                                  <span className="font-semibold text-foreground/90">₹{(item.price || 0) * (item.quantity || 1)}</span>
                                 </div>
                               );
                             })}
@@ -1100,11 +1051,6 @@ export function CustomerDashboard({
                 <div className="space-y-3">
                   {selectedOrder.items?.map((item, idx) => {
                     const variantName = item.variantName || item.variant?.variantName || item.variant || item.selectedVariant?.variantName || item.selectedVariant;
-                    const pId = item.productId || item.product?.id || item.id;
-                    const isDelivered = (selectedOrder.status || "").toLowerCase() === "delivered";
-                    const reviewed = isDelivered ? isOrderItemReviewed(selectedOrder.id, pId) : false;
-                    const existingReview = reviewed ? getOrderItemReview(selectedOrder.id, pId) : null;
-
                     return (
                       <div key={item.id || idx} className="flex justify-between items-center gap-3 bg-muted/10 p-2.5 rounded-xl border border-border/50">
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -1121,26 +1067,7 @@ export function CustomerDashboard({
                             <p className="text-xs text-muted-foreground mt-0.5">₹{item.price} × {item.quantity}</p>
                           </div>
                         </div>
-                        
-                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                          <span className="text-xs font-bold">₹{(item.price || 0) * (item.quantity || 1)}</span>
-                          {isDelivered && (
-                            reviewed ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                                <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" /> {existingReview?.rating || 5}/5
-                              </span>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => handleOpenReview(item, selectedOrder.id)}
-                                className="px-2 py-0.5 rounded-lg text-[10px] font-semibold text-white shadow-sm hover:opacity-90 transition-all cursor-pointer flex items-center gap-1"
-                                style={{ background: "linear-gradient(135deg, #a61c9b, #d82a81)" }}
-                              >
-                                <Star className="w-2.5 h-2.5 fill-white text-white" /> Write Review
-                              </button>
-                            )
-                          )}
-                        </div>
+                        <span className="text-xs font-bold flex-shrink-0">₹{(item.price || 0) * (item.quantity || 1)}</span>
                       </div>
                     );
                   })}
@@ -1365,18 +1292,6 @@ export function CustomerDashboard({
           </div>
         </div>
       )}
-      {/* Review Modal */}
-      <ReviewModal
-        isOpen={reviewModalOpen}
-        onClose={() => setReviewModalOpen(false)}
-        product={reviewTargetProduct}
-        orderId={reviewTargetOrderId}
-        user={user}
-        onReviewSubmitted={() => {
-          // Force re-render/update
-          setOrders([...orders]);
-        }}
-      />
     </div>
   );
 }

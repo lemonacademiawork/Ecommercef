@@ -1,5 +1,3 @@
-import { getReviewsForProduct, submitProductReview } from "./reviewService";
-
 let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://api.lemonhousecraft.in";
 
 // Ensure the base URL ends with /api to resolve endpoints correctly
@@ -815,36 +813,4 @@ export const api = {
       });
     },
   },
-
-  reviews: {
-    getReviews: async (productId) => {
-      try {
-        const res = await request(`/products/${productId}/reviews`);
-        if (res && res.success && res.data) return res;
-      } catch (e) {
-        // Backend endpoint fallback
-      }
-      return {
-        success: true,
-        data: getReviewsForProduct(productId),
-      };
-    },
-    submitReview: async (reviewData) => {
-      try {
-        const res = await request(`/products/${reviewData.productId}/reviews`, {
-          method: "POST",
-          body: JSON.stringify(reviewData),
-        });
-        if (res && res.success) return res;
-      } catch (e) {
-        // Backend endpoint fallback
-      }
-      const review = submitProductReview(reviewData);
-      return {
-        success: true,
-        data: review,
-      };
-    },
-  },
 };
-

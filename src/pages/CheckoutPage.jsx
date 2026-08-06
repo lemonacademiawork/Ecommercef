@@ -13,6 +13,7 @@ import { api } from "../services/api";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
 import logoImg from "@/assets/logo.png";
+import { SEO } from "../components/SEO";
 
 const STEPS = [
   { key: "shipping", label: "Shipping", Icon: MapPin },
@@ -793,6 +794,11 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
 
   return (
     <div className="min-h-screen" style={{ background: "#FFFDF7" }}>
+      <SEO
+        title="Checkout"
+        description="Secure checkout for your craft supplies order at Lemon House."
+        noindex={true}
+      />
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1
           className="text-2xl font-bold mb-6"
