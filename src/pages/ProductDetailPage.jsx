@@ -14,12 +14,23 @@ import {
   Share2,
   Copy,
   MessageCircle,
+  CheckCircle,
+  ThumbsUp,
+  MessageSquare,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { REVIEWS } from "../data";
 import { ProductCard } from "../components/ProductCard";
 import { api } from "../services/api";
 import { handleShareProduct, handleWhatsAppShare, handleCopyShareLink } from "../utils/share";
+import { ReviewModal } from "../components/ReviewModal";
+import {
+  getProductRatingSummary,
+  findCustomerDeliveredOrderForProduct,
+  isOrderItemReviewed,
+  getOrderItemReview,
+} from "../services/reviewService";
+
 
 const slideVariants = {
   enter: (direction) => ({
@@ -44,6 +55,7 @@ export function ProductDetailPage({
   onAddToCart,
   wishlist,
   onToggleWishlist,
+  user,
 }) {
   const [product, setProduct] = useState(null);
   const [related, setRelated] = useState([]);
@@ -56,6 +68,18 @@ export function ProductDetailPage({
   const [variants, setVariants] = useState([]);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [loadingVariants, setLoadingVariants] = useState(false);
+
+  // Reviews state
+  const [reviewsSummary, setReviewsSummary] = useState(null);
+  const [customerDeliveredMatch, setCustomerDeliveredMatch] = useState(null);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+
+  const refreshReviews = () => {
+    if (!productId) return;
+    const summary = getProductRatingSummary(productId);
+    setReviewsSummary(summary);
+  };
+
 
   const handleNextImage = () => {
     if (!product || !product.images || product.images.length <= 1) return;
@@ -119,6 +143,27 @@ export function ProductDetailPage({
             setLoadingVariants(false);
           }
 
+          // Load reviews summary
+          refreshReviews();
+
+          // Check if customer has a delivered order for this product
+          try {
+            let customerOrders = [];
+            const ordersRes = await api.orders.getOrders();
+            if (ordersRes && ordersRes.success && ordersRes.data) {
+              customerOrders = Array.isArray(ordersRes.data) ? ordersRes.data : (ordersRes.data.content || []);
+            }
+            const localOrders = JSON.parse(localStorage.getItem("localOrders") || "[]");
+            const allOrders = [...localOrders, ...customerOrders];
+            const match = findCustomerDeliveredOrderForProduct(productId, allOrders);
+            setCustomerDeliveredMatch(match);
+          } catch (e) {
+            // fallback local orders
+            const localOrders = JSON.parse(localStorage.getItem("localOrders") || "[]");
+            const match = findCustomerDeliveredOrderForProduct(productId, localOrders);
+            setCustomerDeliveredMatch(match);
+          }
+
           // load related products
           const relatedRes = await api.products.listProducts();
           if (relatedRes.success && relatedRes.data) {
@@ -137,7 +182,7 @@ export function ProductDetailPage({
     if (productId) {
       loadProduct();
     }
-  }, [productId]);
+  }, [productId, user]);
 
   const handleAddToCart = () => {
     onAddToCart(product, quantity, selectedVariant?.id);
@@ -379,15 +424,15 @@ export function ProductDetailPage({
                 {[1, 2, 3, 4, 5].map((s) => (
                   <Star
                     key={s}
-                    className={`w-4 h-4 ${s <= Math.round(product.rating) ? "text-secondary fill-current" : "text-muted-foreground"}`}
+                    className={`w-4 h-4 ${s <= Math.round(reviewsSummary?.average || product.rating || 4.8) ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30"}`}
                   />
                 ))}
-                <span className="text-sm font-semibold ml-1">
-                  {product.rating}
+                <span className="text-sm font-bold ml-1">
+                  {reviewsSummary?.average || product.rating || 4.8}
                 </span>
               </div>
               <span className="text-sm text-muted-foreground">
-                ({product.reviews} reviews)
+                ({reviewsSummary?.count ?? product.reviews ?? 0} reviews)
               </span>
               <span
                 className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isStockAvailable ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}
@@ -628,6 +673,173 @@ export function ProductDetailPage({
           </div>
         </div>
 
+        {/* Customer Reviews Section */}
+        <div className="mb-16 bg-card rounded-3xl border border-border/60 p-6 sm:p-8 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-8 pb-6 border-b border-border/60">
+            <div>
+              <h2
+                className="text-2xl font-bold text-foreground"
+                style={{ fontFamily: "Poppins, sans-serif" }}
+              >
+                Customer Reviews & Ratings
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Real feedback from verified craft buyers
+              </p>
+            </div>
+
+            {/* Verified buyer prompt / action */}
+            {customerDeliveredMatch && (
+              <div>
+                {isOrderItemReviewed(customerDeliveredMatch.order.id, product.id) ? (
+                  <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold">
+                    <CheckCircle className="w-4 h-4 text-amber-500" />
+                    You reviewed this product
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setReviewModalOpen(true)}
+                    className="px-5 py-2.5 rounded-2xl text-xs font-bold text-white shadow-md hover:opacity-90 transition-all cursor-pointer flex items-center gap-2"
+                    style={{ background: "linear-gradient(135deg, #a61c9b, #d82a81)" }}
+                  >
+                    <Star className="w-4 h-4 fill-white text-white" />
+                    Write a Review
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Delivery Review Banner for Verified Buyers */}
+          {customerDeliveredMatch && !isOrderItemReviewed(customerDeliveredMatch.order.id, product.id) && (
+            <div className="mb-8 p-4 rounded-2xl bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-amber-500/10 border border-primary/20 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                  <CheckCircle className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-foreground">You purchased & received this product!</h4>
+                  <p className="text-xs text-muted-foreground">Order #{customerDeliveredMatch.order.id} • Help fellow crafters by leaving a review</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReviewModalOpen(true)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm hover:opacity-90 transition-all cursor-pointer"
+                style={{ background: "linear-gradient(135deg, #a61c9b, #d82a81)" }}
+              >
+                Write Review
+              </button>
+            </div>
+          )}
+
+          {/* Overall Rating & Breakdown Grid */}
+          <div className="grid md:grid-cols-12 gap-8 mb-10 items-center bg-muted/20 p-6 rounded-2xl border border-border/40">
+            {/* Rating score summary */}
+            <div className="md:col-span-4 text-center md:border-r md:border-border/60 pr-0 md:pr-6">
+              <div className="text-5xl font-black text-foreground tracking-tight mb-2" style={{ fontFamily: "Poppins, sans-serif" }}>
+                {reviewsSummary?.average || 4.8}
+              </div>
+              <div className="flex items-center justify-center gap-1 mb-2">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star
+                    key={s}
+                    className={`w-5 h-5 ${
+                      s <= Math.round(reviewsSummary?.average || 4.8)
+                        ? "text-amber-400 fill-amber-400"
+                        : "text-muted-foreground/30"
+                    }`}
+                  />
+                ))}
+              </div>
+              <p className="text-xs font-medium text-muted-foreground">
+                Based on {reviewsSummary?.count || 0} customer reviews
+              </p>
+            </div>
+
+            {/* Rating percentage bars */}
+            <div className="md:col-span-8 space-y-2">
+              {[5, 4, 3, 2, 1].map((star) => {
+                const pct = reviewsSummary?.breakdown?.[star] || (star === 5 ? 85 : star === 4 ? 15 : 0);
+                return (
+                  <div key={star} className="flex items-center gap-3 text-xs">
+                    <span className="w-12 font-semibold text-muted-foreground flex items-center gap-1">
+                      {star} <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                    </span>
+                    <div className="flex-1 h-2.5 rounded-full bg-muted/80 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${pct}%`,
+                          background: star >= 4 ? "linear-gradient(90deg, #f59e0b, #d82a81)" : "#9ca3af",
+                        }}
+                      />
+                    </div>
+                    <span className="w-10 text-right font-medium text-muted-foreground">{pct}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Review List */}
+          <div className="space-y-4">
+            {(!reviewsSummary?.reviews || reviewsSummary.reviews.length === 0) ? (
+              <div className="text-center py-10 bg-muted/10 rounded-2xl border border-dashed border-border/80">
+                <MessageSquare className="w-10 h-10 text-muted-foreground/40 mx-auto mb-2" />
+                <p className="text-sm font-semibold text-foreground">No reviews yet</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Be the first verified customer to leave a review after receiving your order!</p>
+              </div>
+            ) : (
+              reviewsSummary.reviews.map((rev) => (
+                <div
+                  key={rev.id}
+                  className="bg-card p-5 rounded-2xl border border-border/60 hover:border-primary/30 transition-all duration-200"
+                >
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={rev.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(rev.author)}`}
+                        alt={rev.author}
+                        className="w-10 h-10 rounded-full object-cover border border-border bg-muted"
+                      />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-bold text-foreground">{rev.author}</h4>
+                          {rev.verifiedPurchase && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                              <CheckCircle className="w-3 h-3 text-green-600" /> Verified Buyer
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">{rev.date}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-0.5">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          className={`w-3.5 h-3.5 ${
+                            s <= (rev.rating || 5)
+                              ? "text-amber-400 fill-amber-400"
+                              : "text-muted-foreground/30"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-foreground/80 leading-relaxed pl-13">
+                    {rev.comment}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
         {/* Related Products */}
         {related.length > 0 && (
           <div>
@@ -650,6 +862,20 @@ export function ProductDetailPage({
               ))}
             </div>
           </div>
+        )}
+
+        {/* Review Modal for Verified Buyer */}
+        {customerDeliveredMatch && (
+          <ReviewModal
+            isOpen={reviewModalOpen}
+            onClose={() => setReviewModalOpen(false)}
+            product={product}
+            orderId={customerDeliveredMatch.order.id}
+            user={user}
+            onReviewSubmitted={() => {
+              refreshReviews();
+            }}
+          />
         )}
       </div>
     </div>

@@ -29,7 +29,7 @@ import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminSettingsPage } from "./pages/admin/AdminSettingsPage";
 
 // Route helper to extract parameter for ProductDetail
-const ProductDetailRouteWrapper = ({ navigate, onAddToCart, wishlist, onToggleWishlist }) => {
+const ProductDetailRouteWrapper = ({ navigate, onAddToCart, wishlist, onToggleWishlist, user }) => {
   const { id } = useParams();
   return (
     <ProductDetailPage
@@ -38,6 +38,7 @@ const ProductDetailRouteWrapper = ({ navigate, onAddToCart, wishlist, onToggleWi
       onAddToCart={onAddToCart}
       wishlist={wishlist}
       onToggleWishlist={onToggleWishlist}
+      user={user}
     />
   );
 };
@@ -508,6 +509,7 @@ export default function App() {
                 onAddToCart={handleAddToCart}
                 wishlist={wishlist}
                 onToggleWishlist={handleToggleWishlist}
+                user={user}
               />
             }
           />
