@@ -4,6 +4,23 @@
 <head>
 
   <meta charset="UTF-8" />
+  <!-- Meta Pixel Code -->
+  <script>
+    !function (f, b, e, v, n, t, s) {
+      if (f.fbq) return; n = f.fbq = function () {
+        n.callMethod ?
+          n.callMethod.apply(n, arguments) : n.queue.push(arguments)
+      };
+      if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
+      n.queue = []; t = b.createElement(e); t.async = !0;
+      t.src = v; s = b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t, s)
+    }(window, document, 'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '1280978840692348');
+    fbq('track', 'PageView');
+  </script>
+  <!-- End Meta Pixel Code -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
@@ -27,14 +44,16 @@
   <meta property="og:title" content="Lemon House - Candle Kits, Concrete Moulds, Lippan Art Kits & DIY Supplies" />
   <meta property="og:description"
     content="Shop complete candle kits, silicone & concrete moulds, lippan art kits, readymade kits, texture kits, basic bath salt & soap salt at Lemon House." />
-  <meta property="og:image" content="https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1200&h=630&fit=crop" />
+  <meta property="og:image"
+    content="https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1200&h=630&fit=crop" />
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Lemon House - Candle Kits, Concrete Moulds, Lippan Art Kits & DIY Supplies" />
   <meta name="twitter:description"
     content="Shop complete candle kits, silicone & concrete moulds, lippan art kits, readymade kits, texture kits, basic bath salt & soap salt at Lemon House." />
-  <meta name="twitter:image" content="https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1200&h=630&fit=crop" />
+  <meta name="twitter:image"
+    content="https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1200&h=630&fit=crop" />
 
   <style>
     html,
@@ -51,10 +70,12 @@
 </head>
 
 <body>
+  <noscript><img height="1" width="1" style="display:none"
+      src="https://www.facebook.com/tr?id=1280978840692348&ev=PageView&noscript=1" /></noscript>
 
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
 
 </body>
 
-</html>
+</html>
