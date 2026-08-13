@@ -263,7 +263,7 @@ export function ProductReviews({
               <MessageSquarePlus className="w-4 h-4" />
               Edit Your Review
             </button>
-          ) : (
+          ) : isEligible ? (
             <button
               onClick={handleOpenCreateForm}
               type="button"
@@ -275,7 +275,7 @@ export function ProductReviews({
               <MessageSquarePlus className="w-4 h-4" />
               Write a Review
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 

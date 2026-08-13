@@ -1,8 +1,9 @@
 import { StarRating } from "./StarRating";
 
 export function RatingSummary({ averageRating = 0, reviewCount = 0, ratingDistribution = {} }) {
-  const avg = Number(averageRating || 0).toFixed(1);
   const total = Number(reviewCount || 0);
+  const avg = total > 0 ? Number(averageRating || 0).toFixed(1) : "0.0";
+  const numRating = total > 0 ? Math.round(Number(averageRating || 0)) : 0;
 
   // Safe distribution object
   const dist = {
@@ -23,7 +24,7 @@ export function RatingSummary({ averageRating = 0, reviewCount = 0, ratingDistri
           <div className="text-4xl font-extrabold text-foreground tracking-tight mb-1" style={{ fontFamily: "Poppins, sans-serif" }}>
             {avg}
           </div>
-          <StarRating rating={Math.round(Number(avg))} size="md" className="mb-1" />
+          <StarRating rating={numRating} size="md" className="mb-1" />
           <p className="text-[11px] text-muted-foreground font-medium">
             Based on {total.toLocaleString()} {total === 1 ? "review" : "verified reviews"}
           </p>

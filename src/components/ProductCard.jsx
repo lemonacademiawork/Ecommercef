@@ -122,15 +122,19 @@ export function ProductCard({
         {/* Rating */}
         <div className="flex items-center gap-1 mb-2">
           <div className="flex">
-            {[1, 2, 3, 4, 5].map((s) => (
-              <Star
-                key={s}
-                className={`w-3 h-3 ${s <= Math.round(product.rating) ? "text-secondary fill-current" : "text-muted-foreground"}`}
-              />
-            ))}
+            {[1, 2, 3, 4, 5].map((s) => {
+              const hasReviews = (product.reviews > 0 || product.reviewCount > 0);
+              const isFilled = hasReviews && s <= Math.round(product.rating || 0);
+              return (
+                <Star
+                  key={s}
+                  className={`w-3 h-3 ${isFilled ? "text-secondary fill-current" : "text-muted-foreground/30"}`}
+                />
+              );
+            })}
           </div>
           <span className="text-xs text-muted-foreground">
-            ({product.reviews})
+            ({product.reviews || product.reviewCount || 0})
           </span>
         </div>
 

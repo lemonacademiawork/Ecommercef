@@ -154,8 +154,8 @@ export const mapProductData = (product) => {
     category: typeof product.category === "object" ? (product.category?.name || product.category?.id) : (product.categoryName || product.category || (product.categoryId ? product.categoryId.toString() : "")),
     categoryId: product.categoryId || (typeof product.category === "object" ? product.category?.id : null),
     categoryName: product.categoryName || (typeof product.category === "object" ? product.category?.name : (typeof product.category === "string" ? product.category : "")),
-    rating: product.rating || 4.5,
-    reviews: product.reviews || 0,
+    rating: (product.reviewCount || product.reviews) ? (product.averageRating || product.rating || 0) : 0,
+    reviews: product.reviewCount || product.reviews || 0,
   };
 };
 

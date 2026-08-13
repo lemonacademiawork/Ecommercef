@@ -215,8 +215,8 @@ export function ProductDetailPage({
     },
     "aggregateRating": {
       "@type": "AggregateRating",
-      "ratingValue": product.rating || 4.8,
-      "reviewCount": product.reviews || 12
+      "ratingValue": (product.reviews || product.reviewCount) ? (product.rating || 0) : 0,
+      "reviewCount": product.reviews || product.reviewCount || 0
     }
   };
 
@@ -433,18 +433,22 @@ export function ProductDetailPage({
             {/* Rating */}
             <div className="flex flex-wrap items-center gap-3 mb-4">
               <div className="flex items-center gap-1">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star
-                    key={s}
-                    className={`w-4 h-4 ${s <= Math.round(product.rating) ? "text-secondary fill-current" : "text-muted-foreground"}`}
-                  />
-                ))}
+                {[1, 2, 3, 4, 5].map((s) => {
+                  const hasReviews = Boolean(product.reviews > 0 || product.reviewCount > 0);
+                  const isFilled = hasReviews && s <= Math.round(product.rating || 0);
+                  return (
+                    <Star
+                      key={s}
+                      className={`w-4 h-4 ${isFilled ? "text-secondary fill-current" : "text-muted-foreground/30"}`}
+                    />
+                  );
+                })}
                 <span className="text-sm font-semibold ml-1">
-                  {product.rating}
+                  {(product.reviews > 0 || product.reviewCount > 0) ? Number(product.rating || 0).toFixed(1) : "0.0"}
                 </span>
               </div>
               <span className="text-sm text-muted-foreground">
-                ({product.reviews} reviews)
+                ({product.reviews || product.reviewCount || 0} reviews)
               </span>
               <a
                 href="#customer-reviews"
