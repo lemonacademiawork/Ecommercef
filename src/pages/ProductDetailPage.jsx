@@ -77,35 +77,64 @@ export function ProductDetailPage({
     async function loadProduct() {
       setLoading(true);
       try {
-        const res = await api.products.getProduct(productId);
-        if (res.success && res.data) {
-          setProduct(res.data);
-          setSelectedImage(0); // reset image index
+        let targetProduct = null;
 
-          const isVariable = Boolean(
-            res.data.hasVariants || 
-            res.data.has_variants || 
-            (Array.isArray(res.data.variants) && res.data.variants.length > 0)
-          );
+        // 1. Try single product endpoint first
+        try {
+          const res = await api.products.getProduct(productId);
+          if (res && res.data) {
+            targetProduct = res.data;
+          }
+        } catch (err) {
+          console.warn("api.products.getProduct error:", err);
+        }
+
+        // 2. Fallback to listProducts if single endpoint fails or returns null
+        if (!targetProduct) {
+          try {
+            const listRes = await api.products.listProducts({ all: true });
+            const allProds = Array.isArray(listRes?.data) ? listRes.data : (listRes?.content || []);
+            if (allProds.length > 0) {
+              targetProduct = allProds.find(
+                (p) =>
+                  String(p.id) === String(productId) ||
+                  p.slug === productId ||
+                  p.name?.toLowerCase() === decodeURIComponent(productId).toLowerCase()
+              );
+            }
+          } catch (listErr) {
+            console.warn("api.products.listProducts fallback error:", listErr);
+          }
+        }
+
+        if (targetProduct) {
+          setProduct(targetProduct);
+          setSelectedImage(0);
 
           setLoadingVariants(true);
           try {
             let activeVars = [];
-            if (Array.isArray(res.data.variants) && res.data.variants.length > 0) {
-              activeVars = res.data.variants.filter(v => v && (v.status === "ACTIVE" || v.status === true || v.active === true || v.status === undefined || v.status === null));
+            if (Array.isArray(targetProduct.variants) && targetProduct.variants.length > 0) {
+              activeVars = targetProduct.variants.filter(
+                (v) => v && (v.status === "ACTIVE" || v.status === true || v.active === true || v.status === undefined || v.status === null)
+              );
             }
 
             if (activeVars.length === 0) {
-              const varRes = await api.products.getVariants(productId);
+              const varRes = await api.products.getVariants(targetProduct.id || productId);
               const rawVars = Array.isArray(varRes) ? varRes : (varRes?.data || []);
-              activeVars = rawVars.filter(v => v && (v.status === "ACTIVE" || v.status === true || v.active === true || v.status === undefined || v.status === null));
+              activeVars = rawVars.filter(
+                (v) => v && (v.status === "ACTIVE" || v.status === true || v.active === true || v.status === undefined || v.status === null)
+              );
             }
 
             if (activeVars.length === 0) {
               try {
-                const adminVarRes = await api.admin.getVariants(productId);
+                const adminVarRes = await api.admin.getVariants(targetProduct.id || productId);
                 const rawAdminVars = Array.isArray(adminVarRes) ? adminVarRes : (adminVarRes?.data || []);
-                activeVars = rawAdminVars.filter(v => v && (v.status === "ACTIVE" || v.status === true || v.active === true || v.status === undefined || v.status === null));
+                activeVars = rawAdminVars.filter(
+                  (v) => v && (v.status === "ACTIVE" || v.status === true || v.active === true || v.status === undefined || v.status === null)
+                );
               } catch (adminErr) {
                 console.error("Admin variant fallback check:", adminErr);
               }
@@ -123,21 +152,32 @@ export function ProductDetailPage({
             setLoadingVariants(false);
           }
 
-          // load related products
-          const relatedRes = await api.products.listProducts();
-          if (relatedRes.success && relatedRes.data) {
-            const rel = relatedRes.data.filter(
-              (p) => (p.category === res.data.category || p.categoryId === res.data.categoryId) && p.id !== res.data.id
-            ).slice(0, 4);
+          // Related products
+          try {
+            const relatedRes = await api.products.listProducts();
+            const relData = Array.isArray(relatedRes?.data) ? relatedRes.data : [];
+            const rel = relData
+              .filter(
+                (p) =>
+                  (p.category === targetProduct.category || p.categoryId === targetProduct.categoryId) &&
+                  String(p.id) !== String(targetProduct.id)
+              )
+              .slice(0, 4);
             setRelated(rel);
+          } catch (relErr) {
+            console.error("Error loading related products:", relErr);
           }
+        } else {
+          setProduct(null);
         }
       } catch (err) {
         console.error("Error loading product detail:", err);
+        setProduct(null);
       } finally {
         setLoading(false);
       }
     }
+
     if (productId) {
       loadProduct();
     }
