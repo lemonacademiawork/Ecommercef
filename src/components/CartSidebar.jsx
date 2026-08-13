@@ -57,25 +57,25 @@ export function CartSidebar({
             className="fixed right-0 top-0 bottom-0 w-full sm:w-96 bg-card z-50 flex flex-col shadow-2xl transition-colors duration-300"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border">
+            <div className="sticky top-0 z-20 flex items-center justify-between p-4 bg-card border-b border-border shadow-sm">
               <div className="flex items-center gap-3">
                 <button
                   onClick={onClose}
                   type="button"
                   aria-label="Back"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-card hover:bg-muted text-foreground transition-all text-xs font-semibold cursor-pointer active:scale-95 shadow-sm"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-all text-xs font-bold cursor-pointer active:scale-95 shadow-sm"
                 >
                   <ArrowLeft className="w-4 h-4 text-primary" />
                   <span>Back</span>
                 </button>
                 <div>
                   <h2
-                    className="font-bold text-base sm:text-lg"
+                    className="font-bold text-base sm:text-lg text-foreground"
                     style={{ fontFamily: "Poppins, sans-serif" }}
                   >
                     My Cart
                   </h2>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-[11px] text-muted-foreground font-medium">
                     {items.reduce((s, i) => s + i.quantity, 0)} items
                   </p>
                 </div>
@@ -245,9 +245,11 @@ export function CartSidebar({
                     navigate("shop");
                     onClose();
                   }}
-                  className="w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  type="button"
+                  className="w-full py-2.5 text-xs font-semibold text-primary border border-primary/30 rounded-xl hover:bg-primary/5 transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-1"
                 >
-                  Continue Shopping
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Back to Shopping</span>
                 </button>
               </div>
             )}
