@@ -18,9 +18,9 @@ export function BackButton({ onClick, fallbackPath = "/", label = "Back", classN
     <button
       onClick={handleBack}
       type="button"
-      className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-sm font-medium text-foreground/80 hover:text-foreground bg-card border border-border/60 hover:bg-muted shadow-sm transition-all duration-200 active:scale-95 cursor-pointer ${className}`}
+      className={`inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary transition-colors cursor-pointer py-1 group ${className}`}
     >
-      <ArrowLeft className="w-4 h-4 text-primary" />
+      <ArrowLeft className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary group-hover:-translate-x-1 transition-all" />
       <span>{label}</span>
     </button>
   );

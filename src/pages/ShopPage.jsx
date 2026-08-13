@@ -75,11 +75,15 @@ export function ShopPage({
 
   const activeCategoryObj = useMemo(() => {
     if (selectedCategory === "all") return null;
+    const selStr = String(selectedCategory).toLowerCase().trim();
     return categories.find(
       (c) =>
-        String(c.id).toLowerCase() === String(selectedCategory).toLowerCase() ||
-        String(c.name).toLowerCase() === String(selectedCategory).toLowerCase() ||
-        String(c.idString || "").toLowerCase() === String(selectedCategory).toLowerCase()
+        String(c.id).toLowerCase() === selStr ||
+        String(c.name).toLowerCase() === selStr ||
+        String(c.idString || "").toLowerCase() === selStr ||
+        selStr.includes(String(c.name).toLowerCase()) ||
+        String(c.name).toLowerCase().includes(selStr) ||
+        (c.slug && String(c.slug).toLowerCase() === selStr)
     );
   }, [categories, selectedCategory]);
 
@@ -106,9 +110,6 @@ export function ShopPage({
             catId = selectedCategory;
           } else if (activeCategoryObj?.id) {
             catId = activeCategoryObj.id;
-          } else if (categories.length === 0) {
-            // Categories still loading; wait for name to UUID resolution to avoid backend UUID conversion error
-            return;
           }
         }
 
@@ -157,13 +158,35 @@ export function ShopPage({
   const filtered = useMemo(() => {
     let list = [...products];
 
+    if (selectedCategory !== "all") {
+      const selStr = String(selectedCategory).toLowerCase().trim();
+      const activeCatName = activeCategoryObj?.name ? String(activeCategoryObj.name).toLowerCase().trim() : "";
+      const activeCatId = activeCategoryObj?.id ? String(activeCategoryObj.id).toLowerCase().trim() : "";
+
+      list = list.filter((p) => {
+        const pCatId = String(p.categoryId || p.category?.id || "").toLowerCase().trim();
+        const pCatName = String(p.categoryName || p.category?.name || p.category || "").toLowerCase().trim();
+
+        if (!pCatId && !pCatName) return true;
+
+        return (
+          pCatId === selStr ||
+          pCatName === selStr ||
+          (activeCatId && pCatId === activeCatId) ||
+          (activeCatName && pCatName === activeCatName) ||
+          (selStr.length > 2 && pCatName.includes(selStr)) ||
+          (activeCatName && (pCatName.includes(activeCatName) || activeCatName.includes(pCatName)))
+        );
+      });
+    }
+
     list = list.filter(
       (p) => p.price >= priceRange[0] && p.price <= priceRange[1]
     );
     if (onlyInStock) list = list.filter((p) => p.inStock);
 
     return list;
-  }, [products, priceRange, onlyInStock]);
+  }, [products, selectedCategory, activeCategoryObj, priceRange, onlyInStock]);
 
   const activeFiltersCount = [
     selectedCategory !== "all",
