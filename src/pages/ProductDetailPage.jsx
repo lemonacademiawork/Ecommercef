@@ -77,64 +77,35 @@ export function ProductDetailPage({
     async function loadProduct() {
       setLoading(true);
       try {
-        let targetProduct = null;
+        const res = await api.products.getProduct(productId);
+        if (res.success && res.data) {
+          setProduct(res.data);
+          setSelectedImage(0); // reset image index
 
-        // 1. Try single product endpoint first
-        try {
-          const res = await api.products.getProduct(productId);
-          if (res && res.data) {
-            targetProduct = res.data;
-          }
-        } catch (err) {
-          console.warn("api.products.getProduct error:", err);
-        }
-
-        // 2. Fallback to listProducts if single endpoint fails or returns null
-        if (!targetProduct) {
-          try {
-            const listRes = await api.products.listProducts({ all: true });
-            const allProds = Array.isArray(listRes?.data) ? listRes.data : (listRes?.content || []);
-            if (allProds.length > 0) {
-              targetProduct = allProds.find(
-                (p) =>
-                  String(p.id) === String(productId) ||
-                  p.slug === productId ||
-                  p.name?.toLowerCase() === decodeURIComponent(productId).toLowerCase()
-              );
-            }
-          } catch (listErr) {
-            console.warn("api.products.listProducts fallback error:", listErr);
-          }
-        }
-
-        if (targetProduct) {
-          setProduct(targetProduct);
-          setSelectedImage(0);
+          const isVariable = Boolean(
+            res.data.hasVariants || 
+            res.data.has_variants || 
+            (Array.isArray(res.data.variants) && res.data.variants.length > 0)
+          );
 
           setLoadingVariants(true);
           try {
             let activeVars = [];
-            if (Array.isArray(targetProduct.variants) && targetProduct.variants.length > 0) {
-              activeVars = targetProduct.variants.filter(
-                (v) => v && (v.status === "ACTIVE" || v.status === true || v.active === true || v.status === undefined || v.status === null)
-              );
+            if (Array.isArray(res.data.variants) && res.data.variants.length > 0) {
+              activeVars = res.data.variants.filter(v => v && (v.status === "ACTIVE" || v.status === true || v.active === true || v.status === undefined || v.status === null));
             }
 
             if (activeVars.length === 0) {
-              const varRes = await api.products.getVariants(targetProduct.id || productId);
+              const varRes = await api.products.getVariants(productId);
               const rawVars = Array.isArray(varRes) ? varRes : (varRes?.data || []);
-              activeVars = rawVars.filter(
-                (v) => v && (v.status === "ACTIVE" || v.status === true || v.active === true || v.status === undefined || v.status === null)
-              );
+              activeVars = rawVars.filter(v => v && (v.status === "ACTIVE" || v.status === true || v.active === true || v.status === undefined || v.status === null));
             }
 
             if (activeVars.length === 0) {
               try {
-                const adminVarRes = await api.admin.getVariants(targetProduct.id || productId);
+                const adminVarRes = await api.admin.getVariants(productId);
                 const rawAdminVars = Array.isArray(adminVarRes) ? adminVarRes : (adminVarRes?.data || []);
-                activeVars = rawAdminVars.filter(
-                  (v) => v && (v.status === "ACTIVE" || v.status === true || v.active === true || v.status === undefined || v.status === null)
-                );
+                activeVars = rawAdminVars.filter(v => v && (v.status === "ACTIVE" || v.status === true || v.active === true || v.status === undefined || v.status === null));
               } catch (adminErr) {
                 console.error("Admin variant fallback check:", adminErr);
               }
@@ -152,32 +123,21 @@ export function ProductDetailPage({
             setLoadingVariants(false);
           }
 
-          // Related products
-          try {
-            const relatedRes = await api.products.listProducts();
-            const relData = Array.isArray(relatedRes?.data) ? relatedRes.data : [];
-            const rel = relData
-              .filter(
-                (p) =>
-                  (p.category === targetProduct.category || p.categoryId === targetProduct.categoryId) &&
-                  String(p.id) !== String(targetProduct.id)
-              )
-              .slice(0, 4);
+          // load related products
+          const relatedRes = await api.products.listProducts();
+          if (relatedRes.success && relatedRes.data) {
+            const rel = relatedRes.data.filter(
+              (p) => (p.category === res.data.category || p.categoryId === res.data.categoryId) && p.id !== res.data.id
+            ).slice(0, 4);
             setRelated(rel);
-          } catch (relErr) {
-            console.error("Error loading related products:", relErr);
           }
-        } else {
-          setProduct(null);
         }
       } catch (err) {
         console.error("Error loading product detail:", err);
-        setProduct(null);
       } finally {
         setLoading(false);
       }
     }
-
     if (productId) {
       loadProduct();
     }
@@ -276,149 +236,170 @@ export function ProductDetailPage({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
         {/* Main Product */}
-        <div className="grid lg:grid-cols-2 gap-10 mb-16">
-          {/* Images */}
-          <div className="space-y-3">
-            <div className="relative aspect-square rounded-2xl overflow-hidden bg-card border border-border/60 group transition-colors duration-300">
-              <div className="w-full h-full relative overflow-hidden">
-                <AnimatePresence initial={false} custom={direction}>
-                  <motion.img
-                    key={selectedImage}
-                    src={productImages[selectedImage] || productImages[0]}
-                    custom={direction}
-                    variants={slideVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    transition={{
-                      x: { type: "spring", stiffness: 300, damping: 30 },
-                      opacity: { duration: 0.2 },
-                    }}
-                    alt={product.name}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                </AnimatePresence>
+        <div className="grid lg:grid-cols-2 gap-10 mb-16 items-start">
+          {/* Left Column: Images & Reviews */}
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <div className="relative aspect-square rounded-2xl overflow-hidden bg-card border border-border/60 group transition-colors duration-300">
+                <div className="w-full h-full relative overflow-hidden">
+                  <AnimatePresence initial={false} custom={direction}>
+                    <motion.img
+                      key={selectedImage}
+                      src={productImages[selectedImage] || productImages[0]}
+                      custom={direction}
+                      variants={slideVariants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{
+                        x: { type: "spring", stiffness: 300, damping: 30 },
+                        opacity: { duration: 0.2 },
+                      }}
+                      alt={product.name}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  </AnimatePresence>
+                </div>
+
+                {/* Navigation Arrows */}
+                {productImages && productImages.length > 1 && (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePrevImage();
+                      }}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white text-foreground flex items-center justify-center shadow-md transition-all z-10 hover:scale-105 cursor-pointer"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNextImage();
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white text-foreground flex items-center justify-center shadow-md transition-all z-10 hover:scale-105 cursor-pointer"
+                    >
+                      <ChevronRight className="w-6 h-6" />
+                    </button>
+                  </>
+                )}
+
+                {/* Dots / Indicators */}
+                {productImages && productImages.length > 1 && (
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 bg-black/30 px-3 py-1.5 rounded-full backdrop-blur-sm">
+                    {productImages.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          setDirection(i > selectedImage ? 1 : -1);
+                          setSelectedImage(i);
+                        }}
+                        className={`w-2 h-2 rounded-full transition-all ${selectedImage === i ? "bg-white scale-125" : "bg-white/50 hover:bg-white/80"
+                          }`}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Badges */}
+                <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+                  {product.isBestSeller && (
+                    <span
+                      className="px-2.5 py-1 text-xs font-semibold rounded-full text-white"
+                      style={{ background: "#a61c9b" }}
+                    >
+                      Best Seller
+                    </span>
+                  )}
+                  {product.isNew && (
+                    <span
+                      className="px-2.5 py-1 text-xs font-semibold rounded-full text-white"
+                      style={{ background: "#2E7D32" }}
+                    >
+                      New
+                    </span>
+                  )}
+                  {product.discount && (
+                    <span
+                      className="px-2.5 py-1 text-xs font-semibold rounded-full"
+                      style={{ background: "#FFD54F", color: "#1a1a2e" }}
+                    >
+                      Save {product.discount}%
+                    </span>
+                  )}
+                </div>
+
+                {/* Share & Wishlist */}
+                <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
+                  <button
+                    type="button"
+                    onClick={() => handleShareProduct(product)}
+                    title="Share Product"
+                    className="w-10 h-10 rounded-full flex items-center justify-center bg-white/90 text-foreground hover:bg-primary hover:text-white transition-all shadow-md cursor-pointer hover:scale-105"
+                  >
+                    <Share2 className="w-5 h-5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onToggleWishlist(product.id)}
+                    title="Add to Wishlist"
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-md cursor-pointer hover:scale-105 ${wishlist.includes(product.id)
+                      ? "bg-primary text-white"
+                      : "bg-white/90 text-foreground hover:bg-primary hover:text-white"
+                      }`}
+                  >
+                    <Heart
+                      className={`w-5 h-5 ${wishlist.includes(product.id) ? "fill-current" : ""}`}
+                    />
+                  </button>
+                </div>
               </div>
 
-              {/* Navigation Arrows */}
+              {/* Thumbnails */}
               {productImages && productImages.length > 1 && (
-                <>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePrevImage();
-                    }}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white text-foreground flex items-center justify-center shadow-md transition-all z-10 hover:scale-105 cursor-pointer"
-                  >
-                    <ChevronLeft className="w-6 h-6" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleNextImage();
-                    }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white text-foreground flex items-center justify-center shadow-md transition-all z-10 hover:scale-105 cursor-pointer"
-                  >
-                    <ChevronRight className="w-6 h-6" />
-                  </button>
-                </>
-              )}
-
-              {/* Dots / Indicators */}
-              {productImages && productImages.length > 1 && (
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 bg-black/30 px-3 py-1.5 rounded-full backdrop-blur-sm">
-                  {productImages.map((_, i) => (
+                <div className="flex gap-2">
+                  {productImages.map((img, i) => (
                     <button
                       key={i}
                       onClick={() => {
                         setDirection(i > selectedImage ? 1 : -1);
                         setSelectedImage(i);
                       }}
-                      className={`w-2 h-2 rounded-full transition-all ${selectedImage === i ? "bg-white scale-125" : "bg-white/50 hover:bg-white/80"
+                      className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${selectedImage === i
+                        ? "border-primary"
+                        : "border-border hover:border-primary/50"
                         }`}
-                    />
+                    >
+                      <img
+                        src={img}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
                   ))}
                 </div>
               )}
-
-              {/* Badges */}
-              <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
-                {product.isBestSeller && (
-                  <span
-                    className="px-2.5 py-1 text-xs font-semibold rounded-full text-white"
-                    style={{ background: "#a61c9b" }}
-                  >
-                    Best Seller
-                  </span>
-                )}
-                {product.isNew && (
-                  <span
-                    className="px-2.5 py-1 text-xs font-semibold rounded-full text-white"
-                    style={{ background: "#2E7D32" }}
-                  >
-                    New
-                  </span>
-                )}
-                {product.discount && (
-                  <span
-                    className="px-2.5 py-1 text-xs font-semibold rounded-full"
-                    style={{ background: "#FFD54F", color: "#1a1a2e" }}
-                  >
-                    Save {product.discount}%
-                  </span>
-                )}
-              </div>
-
-              {/* Share & Wishlist */}
-              <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
-                <button
-                  type="button"
-                  onClick={() => handleShareProduct(product)}
-                  title="Share Product"
-                  className="w-10 h-10 rounded-full flex items-center justify-center bg-white/90 text-foreground hover:bg-primary hover:text-white transition-all shadow-md cursor-pointer hover:scale-105"
-                >
-                  <Share2 className="w-5 h-5" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onToggleWishlist(product.id)}
-                  title="Add to Wishlist"
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-md cursor-pointer hover:scale-105 ${wishlist.includes(product.id)
-                    ? "bg-primary text-white"
-                    : "bg-white/90 text-foreground hover:bg-primary hover:text-white"
-                    }`}
-                >
-                  <Heart
-                    className={`w-5 h-5 ${wishlist.includes(product.id) ? "fill-current" : ""}`}
-                  />
-                </button>
-              </div>
             </div>
 
-            {/* Thumbnails */}
-            {productImages && productImages.length > 1 && (
-              <div className="flex gap-2">
-                {productImages.map((img, i) => (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      setDirection(i > selectedImage ? 1 : -1);
-                      setSelectedImage(i);
-                    }}
-                    className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${selectedImage === i
-                      ? "border-primary"
-                      : "border-border hover:border-primary/50"
-                      }`}
-                  >
-                    <img
-                      src={img}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
+            {/* Shifted Customer Reviews Section */}
+            {product && (
+              <ProductReviews
+                productId={productId}
+                productSummary={{
+                  averageRating: product.averageRating || product.rating || 0,
+                  reviewCount: product.reviewCount || product.reviews || 0,
+                  ratingDistribution: product.ratingDistribution || {},
+                }}
+                onUpdateProductSummary={(updated) => {
+                  setProduct((prev) => (prev ? { ...prev, ...updated } : prev));
+                }}
+                navigate={navigate}
+                user={user}
+                isLoggedIn={isLoggedIn}
+                isAdmin={isAdmin}
+              />
             )}
           </div>
 
@@ -450,7 +431,7 @@ export function ProductDetailPage({
             </div>
 
             {/* Rating */}
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex flex-wrap items-center gap-3 mb-4">
               <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((s) => (
                   <Star
@@ -465,6 +446,16 @@ export function ProductDetailPage({
               <span className="text-sm text-muted-foreground">
                 ({product.reviews} reviews)
               </span>
+              <a
+                href="#customer-reviews"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById("customer-reviews")?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="text-xs font-semibold text-primary hover:underline cursor-pointer"
+              >
+                • Write a Review
+              </a>
               <span
                 className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isStockAvailable ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}
               >
@@ -703,25 +694,6 @@ export function ProductDetailPage({
             </div>
           </div>
         </div>
-
-        {/* Customer Reviews Section */}
-        {product && (
-          <ProductReviews
-            productId={productId}
-            productSummary={{
-              averageRating: product.averageRating || product.rating || 0,
-              reviewCount: product.reviewCount || product.reviews || 0,
-              ratingDistribution: product.ratingDistribution || {},
-            }}
-            onUpdateProductSummary={(updated) => {
-              setProduct((prev) => (prev ? { ...prev, ...updated } : prev));
-            }}
-            navigate={navigate}
-            user={user}
-            isLoggedIn={isLoggedIn}
-            isAdmin={isAdmin}
-          />
-        )}
 
         {/* Related Products */}
         {related.length > 0 && (

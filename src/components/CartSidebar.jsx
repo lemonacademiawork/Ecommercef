@@ -6,7 +6,6 @@ import {
   ShoppingBag,
   Tag,
   ArrowRight,
-  ArrowLeft,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useState } from "react";
@@ -57,33 +56,21 @@ export function CartSidebar({
             className="fixed right-0 top-0 bottom-0 w-full sm:w-96 bg-card z-50 flex flex-col shadow-2xl transition-colors duration-300"
           >
             {/* Header */}
-            <div className="sticky top-0 z-20 flex items-center justify-between p-4 bg-card border-b border-border shadow-sm">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={onClose}
-                  type="button"
-                  aria-label="Back"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-all text-xs font-bold cursor-pointer active:scale-95 shadow-sm"
+            <div className="flex items-center justify-between p-5 border-b border-border">
+              <div>
+                <h2
+                  className="font-bold text-lg"
+                  style={{ fontFamily: "Poppins, sans-serif" }}
                 >
-                  <ArrowLeft className="w-4 h-4 text-primary" />
-                  <span>Back</span>
-                </button>
-                <div>
-                  <h2
-                    className="font-bold text-base sm:text-lg text-foreground"
-                    style={{ fontFamily: "Poppins, sans-serif" }}
-                  >
-                    My Cart
-                  </h2>
-                  <p className="text-[11px] text-muted-foreground font-medium">
-                    {items.reduce((s, i) => s + i.quantity, 0)} items
-                  </p>
-                </div>
+                  My Cart
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  {items.reduce((s, i) => s + i.quantity, 0)} items
+                </p>
               </div>
               <button
                 onClick={onClose}
-                className="p-2 rounded-xl hover:bg-muted transition-colors text-muted-foreground hover:text-foreground cursor-pointer"
-                aria-label="Close cart"
+                className="p-2 rounded-xl hover:bg-muted transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -245,11 +232,9 @@ export function CartSidebar({
                     navigate("shop");
                     onClose();
                   }}
-                  type="button"
-                  className="w-full py-2.5 text-xs font-semibold text-primary border border-primary/30 rounded-xl hover:bg-primary/5 transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-1"
+                  className="w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Back to Shopping</span>
+                  Continue Shopping
                 </button>
               </div>
             )}

@@ -4,7 +4,7 @@ import { ReviewCard } from "./ReviewCard";
 import { ReviewForm } from "./ReviewForm";
 import { ReviewImageViewer } from "./ReviewImageViewer";
 import { DeleteReviewDialog } from "./DeleteReviewDialog";
-import { MessageSquarePlus, ChevronDown, Loader2, Sparkles, AlertCircle, Edit3, Trash2 } from "lucide-react";
+import { MessageSquarePlus, ChevronDown, Loader2, Sparkles, AlertCircle, ShoppingBag } from "lucide-react";
 import { api } from "../../services/api";
 import { toast } from "sonner";
 
@@ -26,8 +26,9 @@ export function ProductReviews({
   const [totalElements, setTotalElements] = useState(0);
 
   // Customer Eligibility & My Review
+  const [isEligible, setIsEligible] = useState(false);
+  const [checkingEligibility, setCheckingEligibility] = useState(false);
   const [myReview, setMyReview] = useState(null);
-  const [checkingMyReview, setCheckingMyReview] = useState(false);
 
   // UI Modals / Dialogs
   const [formOpen, setFormOpen] = useState(false);
@@ -86,27 +87,35 @@ export function ProductReviews({
     }
   }, [productId, page, sortBy]);
 
-  // Check my review if user is logged in
+  // Check eligibility and my review if user is logged in
   useEffect(() => {
     async function checkUserReviewStatus() {
       if (!isLoggedIn || !productId) {
+        setIsEligible(false);
         setMyReview(null);
         return;
       }
 
-      setCheckingMyReview(true);
+      setCheckingEligibility(true);
 
       try {
-        const myRevRes = await api.reviews.getMyReview(productId).catch(() => ({ success: false, data: null }));
+        // Fetch eligibility & existing review in parallel
+        const [eligRes, myRevRes] = await Promise.all([
+          api.reviews.checkEligibility(productId).catch(() => ({ success: false, data: false })),
+          api.reviews.getMyReview(productId).catch(() => ({ success: false, data: null })),
+        ]);
+
         if (myRevRes && myRevRes.success && myRevRes.data) {
           setMyReview(myRevRes.data);
+          setIsEligible(false); // already reviewed
         } else {
           setMyReview(null);
+          setIsEligible(Boolean(eligRes && eligRes.success && (eligRes.data === true || eligRes.data?.eligible === true)));
         }
       } catch (err) {
-        console.error("Error checking user review:", err);
+        console.error("Error checking review status:", err);
       } finally {
-        setCheckingMyReview(false);
+        setCheckingEligibility(false);
       }
     }
 
@@ -126,13 +135,19 @@ export function ProductReviews({
         });
       }
 
-      // Re-fetch my review
+      // Re-fetch my review & eligibility
       if (isLoggedIn) {
-        const myRevRes = await api.reviews.getMyReview(productId).catch(() => ({ success: false, data: null }));
+        const [eligRes, myRevRes] = await Promise.all([
+          api.reviews.checkEligibility(productId).catch(() => ({ success: false, data: false })),
+          api.reviews.getMyReview(productId).catch(() => ({ success: false, data: null })),
+        ]);
+
         if (myRevRes && myRevRes.success && myRevRes.data) {
           setMyReview(myRevRes.data);
+          setIsEligible(false);
         } else {
           setMyReview(null);
+          setIsEligible(Boolean(eligRes && eligRes.success && (eligRes.data === true || eligRes.data?.eligible === true)));
         }
       }
 
@@ -162,10 +177,6 @@ export function ProductReviews({
   };
 
   const handleOpenCreateForm = () => {
-    if (!isLoggedIn) {
-      navigate("login");
-      return;
-    }
     setEditingReview(null);
     setFormOpen(true);
   };
@@ -204,93 +215,126 @@ export function ProductReviews({
   const currentUserId = user?.id || user?.userId || null;
 
   return (
-    <div id="customer-reviews" className="mt-14 pt-10 border-t border-border/60">
-      {/* Reviews Header & CTA */}
-      {/* Simple, compact rating summary bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-card border border-border/60 shadow-sm mb-6">
-        <div className="flex items-center gap-3">
-          <span className="text-xl font-bold text-foreground" style={{ fontFamily: "Poppins, sans-serif" }}>
-            {totalElements > 0 || productSummary.reviewCount > 0 ? Number(productSummary.averageRating || 0).toFixed(1) : "0.0"}
-          </span>
-          <StarRating rating={Math.round(Number(productSummary.averageRating || 0))} size="sm" readOnly />
-          <span className="text-xs text-muted-foreground font-medium">
-            Based on {productSummary.reviewCount || totalElements} {(productSummary.reviewCount || totalElements) === 1 ? "review" : "reviews"}
-          </span>
+    <div id="customer-reviews" className="mt-8 pt-8 border-t border-border/60">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h2
+            className="text-xl font-bold text-foreground flex items-center gap-2"
+            style={{ fontFamily: "Poppins, sans-serif" }}
+          >
+            Customer Reviews
+            {totalElements > 0 && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                {totalElements}
+              </span>
+            )}
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Real feedback and ratings from crafters who love Lemon House products
+          </p>
         </div>
 
-        <div>
+        {/* Action Button / Review Status */}
+        <div className="shrink-0">
           {!isLoggedIn ? (
             <button
-              onClick={() => navigate("login")}
+              onClick={() => {
+                toast.info("Please sign in to write a review");
+                navigate("login");
+              }}
               type="button"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all shadow-sm cursor-pointer hover:opacity-90"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-semibold text-white transition-all shadow-md active:scale-95 cursor-pointer hover:opacity-90"
               style={{
                 background: "linear-gradient(135deg, #a61c9b, #d82a81)",
               }}
             >
-              <MessageSquarePlus className="w-3.5 h-3.5" />
+              <MessageSquarePlus className="w-4 h-4" />
               Sign in to Write a Review
             </button>
           ) : myReview ? (
             <button
               onClick={() => handleOpenEditForm(myReview)}
               type="button"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-primary border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-semibold text-white transition-all shadow-md active:scale-95 cursor-pointer hover:opacity-90"
+              style={{
+                background: "linear-gradient(135deg, #a61c9b, #d82a81)",
+              }}
             >
-              <Edit3 className="w-3.5 h-3.5" />
+              <MessageSquarePlus className="w-4 h-4" />
               Edit Your Review
             </button>
           ) : (
             <button
               onClick={handleOpenCreateForm}
               type="button"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all shadow-sm cursor-pointer hover:opacity-90"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-semibold text-white transition-all shadow-md active:scale-95 cursor-pointer hover:opacity-90"
               style={{
                 background: "linear-gradient(135deg, #a61c9b, #d82a81)",
               }}
             >
-              <MessageSquarePlus className="w-3.5 h-3.5" />
+              <MessageSquarePlus className="w-4 h-4" />
               Write a Review
             </button>
           )}
         </div>
       </div>
 
-      {/* Current User Review Section (If user has already reviewed) */}
-      {isLoggedIn && myReview && (
+      {/* Rating Summary */}
+      <div className="mb-8">
+        <RatingSummary
+          averageRating={productSummary.averageRating}
+          reviewCount={productSummary.reviewCount || totalElements}
+          ratingDistribution={productSummary.ratingDistribution}
+        />
+      </div>
+
+      {/* Customer Review Status Banner */}
+      {isLoggedIn && (
         <div className="mb-8">
-          <div className="p-5 rounded-3xl bg-card border border-primary/40 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-primary flex items-center gap-1.5 uppercase tracking-wider">
-                <Sparkles className="w-4 h-4 text-primary" /> Your Review
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleOpenEditForm(myReview)}
-                  type="button"
-                  className="text-xs font-semibold text-primary hover:underline cursor-pointer flex items-center gap-1"
-                >
-                  <Edit3 className="w-3.5 h-3.5" /> Edit
-                </button>
-                <span className="text-muted-foreground">•</span>
-                <button
-                  onClick={() => setReviewToDelete(myReview)}
-                  type="button"
-                  className="text-xs font-semibold text-destructive hover:underline cursor-pointer flex items-center gap-1"
-                >
-                  <Trash2 className="w-3.5 h-3.5" /> Delete
-                </button>
-              </div>
+          {checkingEligibility ? (
+            <div className="p-4 rounded-2xl bg-card border border-border/60 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              Checking review status...
             </div>
-            <ReviewCard
-              review={myReview}
-              currentUserId={currentUserId}
-              isAdmin={isAdmin}
-              onEdit={handleOpenEditForm}
-              onDelete={setReviewToDelete}
-              onOpenImage={handleOpenImage}
-            />
-          </div>
+          ) : myReview ? (
+            <div className="p-5 rounded-2xl bg-card border border-primary/30 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-bold text-primary flex items-center gap-1.5 uppercase tracking-wider">
+                  <Sparkles className="w-4 h-4 text-primary" /> Your Review
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleOpenEditForm(myReview)}
+                    type="button"
+                    className="text-xs font-semibold text-primary hover:underline cursor-pointer"
+                  >
+                    Edit Review
+                  </button>
+                  <span className="text-muted-foreground">•</span>
+                  <button
+                    onClick={() => setReviewToDelete(myReview)}
+                    type="button"
+                    className="text-xs font-semibold text-destructive hover:underline cursor-pointer"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+              <ReviewCard
+                review={myReview}
+                currentUserId={currentUserId}
+                isAdmin={isAdmin}
+                onEdit={handleOpenEditForm}
+                onDelete={setReviewToDelete}
+                onOpenImage={handleOpenImage}
+              />
+            </div>
+          ) : !isEligible ? (
+            <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 flex items-center gap-3 text-xs text-muted-foreground">
+              <ShoppingBag className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <span>You can review this product after purchasing and receiving your order.</span>
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -333,26 +377,26 @@ export function ProductReviews({
           ))}
         </div>
       ) : reviews.length === 0 ? (
-        <div className="bg-card rounded-3xl border border-border/60 p-10 sm:p-12 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4 text-2xl">
+        <div className="bg-card rounded-2xl border border-border/60 p-10 text-center">
+          <div className="w-12 h-12 rounded-full bg-muted/50 text-muted-foreground flex items-center justify-center mx-auto mb-3 text-xl">
             💬
           </div>
-          <h4 className="font-bold text-base text-foreground mb-1">No reviews yet</h4>
-          <p className="text-xs text-muted-foreground max-w-sm mx-auto mb-6 leading-relaxed">
-            Be the first to share your experience with this craft product! Upload up to 2 photos with your review.
+          <h4 className="font-bold text-sm text-foreground mb-1">No reviews yet</h4>
+          <p className="text-xs text-muted-foreground max-w-sm mx-auto mb-4">
+            Be the first to share your experience with this craft item!
           </p>
-
-          <button
-            onClick={handleOpenCreateForm}
-            type="button"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-semibold text-white transition-all shadow-md active:scale-95 cursor-pointer hover:opacity-90"
-            style={{
-              background: "linear-gradient(135deg, #a61c9b, #d82a81)",
-            }}
-          >
-            <MessageSquarePlus className="w-4 h-4" />
-            Write the First Review
-          </button>
+          {isLoggedIn && isEligible && (
+            <button
+              onClick={handleOpenCreateForm}
+              type="button"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold text-white transition-all shadow-md active:scale-95 cursor-pointer"
+              style={{
+                background: "linear-gradient(135deg, #a61c9b, #d82a81)",
+              }}
+            >
+              <MessageSquarePlus className="w-4 h-4" /> Write the First Review
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-4">

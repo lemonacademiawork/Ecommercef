@@ -409,17 +409,10 @@ export const api = {
         data: mapProductDataArray(res.data),
       })),
     getProduct: (id) =>
-      cachedRequest(`/products/${id}`).then((res) => {
-        const rawProduct = res?.data || (res && res.id ? res : null);
-        return {
-          ...res,
-          success: res?.success !== undefined ? res.success : Boolean(rawProduct),
-          data: mapProductData(rawProduct),
-        };
-      }).catch((err) => {
-        console.error(`Error in getProduct API for ${id}:`, err);
-        return { success: false, data: null };
-      }),
+      cachedRequest(`/products/${id}`).then((res) => ({
+        ...res,
+        data: mapProductData(res.data),
+      })),
     getVariants: (id) =>
       cachedRequest(`/products/${id}/variants`).then((res) => {
         const dataList = Array.isArray(res) ? res : (res && Array.isArray(res.data) ? res.data : (res && Array.isArray(res.content) ? res.content : []));
