@@ -128,18 +128,11 @@ export function LandingPage({
                 <button
                   type="button"
                   onClick={() => {
-                    if (window.innerWidth < 768) {
-                      navigate("shop");
+                    const catElem = document.getElementById("categories");
+                    if (catElem) {
+                      catElem.scrollIntoView({ behavior: "smooth", block: "start" });
                     } else {
-                      const catElem = document.getElementById("categories");
-                      if (catElem) {
-                        const headerOffset = 70;
-                        const elementPosition = catElem.getBoundingClientRect().top;
-                        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-                        window.scrollTo({ top: offsetPosition, behavior: "smooth" });
-                      } else {
-                        navigate("shop");
-                      }
+                      window.location.hash = "#categories";
                     }
                   }}
                   className="flex items-center gap-2 px-7 py-3.5 rounded-2xl font-semibold text-base border-2 border-primary/30 text-primary hover:border-primary hover:bg-primary/5 transition-all cursor-pointer active:scale-95 relative z-10"
