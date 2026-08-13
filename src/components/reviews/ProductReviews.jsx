@@ -206,70 +206,54 @@ export function ProductReviews({
   return (
     <div id="customer-reviews" className="mt-14 pt-10 border-t border-border/60">
       {/* Reviews Header & CTA */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h2
-            className="text-2xl font-bold text-foreground flex items-center gap-2"
-            style={{ fontFamily: "Poppins, sans-serif" }}
-          >
-            Customer Reviews
-            {totalElements > 0 && (
-              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary">
-                {totalElements}
-              </span>
-            )}
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Real feedback and ratings from crafters who love Lemon House products
-          </p>
+      {/* Simple, compact rating summary bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-card border border-border/60 shadow-sm mb-6">
+        <div className="flex items-center gap-3">
+          <span className="text-xl font-bold text-foreground" style={{ fontFamily: "Poppins, sans-serif" }}>
+            {totalElements > 0 || productSummary.reviewCount > 0 ? Number(productSummary.averageRating || 0).toFixed(1) : "0.0"}
+          </span>
+          <StarRating rating={Math.round(Number(productSummary.averageRating || 0))} size="sm" readOnly />
+          <span className="text-xs text-muted-foreground font-medium">
+            Based on {productSummary.reviewCount || totalElements} {(productSummary.reviewCount || totalElements) === 1 ? "review" : "reviews"}
+          </span>
         </div>
 
-        {/* Action Button: Write a Review / Sign In */}
         <div>
           {!isLoggedIn ? (
             <button
               onClick={() => navigate("login")}
               type="button"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-semibold text-white transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer hover:opacity-90"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all shadow-sm cursor-pointer hover:opacity-90"
               style={{
                 background: "linear-gradient(135deg, #a61c9b, #d82a81)",
               }}
             >
-              <MessageSquarePlus className="w-4 h-4" />
+              <MessageSquarePlus className="w-3.5 h-3.5" />
               Sign in to Write a Review
             </button>
           ) : myReview ? (
             <button
               onClick={() => handleOpenEditForm(myReview)}
               type="button"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold text-primary border-2 border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-primary border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all cursor-pointer"
             >
-              <Edit3 className="w-4 h-4" />
+              <Edit3 className="w-3.5 h-3.5" />
               Edit Your Review
             </button>
           ) : (
             <button
               onClick={handleOpenCreateForm}
               type="button"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-semibold text-white transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer hover:opacity-90"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all shadow-sm cursor-pointer hover:opacity-90"
               style={{
                 background: "linear-gradient(135deg, #a61c9b, #d82a81)",
               }}
             >
-              <MessageSquarePlus className="w-4 h-4" />
+              <MessageSquarePlus className="w-3.5 h-3.5" />
               Write a Review
             </button>
           )}
         </div>
-      </div>
-
-      {/* Rating Summary Card */}
-      <div className="mb-8">
-        <RatingSummary
-          averageRating={productSummary.averageRating}
-          reviewCount={productSummary.reviewCount || totalElements}
-          ratingDistribution={productSummary.ratingDistribution}
-        />
       </div>
 
       {/* Current User Review Section (If user has already reviewed) */}

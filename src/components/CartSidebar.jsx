@@ -6,6 +6,7 @@ import {
   ShoppingBag,
   Tag,
   ArrowRight,
+  ArrowLeft,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useState } from "react";
@@ -56,21 +57,33 @@ export function CartSidebar({
             className="fixed right-0 top-0 bottom-0 w-full sm:w-96 bg-card z-50 flex flex-col shadow-2xl transition-colors duration-300"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-5 border-b border-border">
-              <div>
-                <h2
-                  className="font-bold text-lg"
-                  style={{ fontFamily: "Poppins, sans-serif" }}
+            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={onClose}
+                  type="button"
+                  aria-label="Back"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-card hover:bg-muted text-foreground transition-all text-xs font-semibold cursor-pointer active:scale-95 shadow-sm"
                 >
-                  My Cart
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  {items.reduce((s, i) => s + i.quantity, 0)} items
-                </p>
+                  <ArrowLeft className="w-4 h-4 text-primary" />
+                  <span>Back</span>
+                </button>
+                <div>
+                  <h2
+                    className="font-bold text-base sm:text-lg"
+                    style={{ fontFamily: "Poppins, sans-serif" }}
+                  >
+                    My Cart
+                  </h2>
+                  <p className="text-[11px] text-muted-foreground">
+                    {items.reduce((s, i) => s + i.quantity, 0)} items
+                  </p>
+                </div>
               </div>
               <button
                 onClick={onClose}
-                className="p-2 rounded-xl hover:bg-muted transition-colors"
+                className="p-2 rounded-xl hover:bg-muted transition-colors text-muted-foreground hover:text-foreground cursor-pointer"
+                aria-label="Close cart"
               >
                 <X className="w-5 h-5" />
               </button>
