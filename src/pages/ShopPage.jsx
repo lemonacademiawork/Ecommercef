@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { ProductCard } from "../components/ProductCard";
 import { api } from "../services/api";
 import { SEO } from "../components/SEO";
+import { BackButton } from "../components/BackButton";
 
 const SORT_OPTIONS = [
   { value: "popular", label: "Most Popular" },
@@ -393,8 +394,11 @@ export function ShopPage({
         schema={shopBreadcrumbSchema}
       />
       {/* Header */}
-      <div className="bg-card border-b border-border/60 py-8 transition-colors duration-300">
+      <div className="bg-card border-b border-border/60 py-6 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-3">
+            <BackButton />
+          </div>
           <h1
             className="text-3xl font-bold mb-1"
             style={{ fontFamily: "Poppins, sans-serif" }}

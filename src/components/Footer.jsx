@@ -100,14 +100,6 @@ export function Footer({ navigate }) {
                   </li>
                 ))}
                 <li>
-                  <a
-                    href={swaggerUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-white/60 hover:text-white text-sm transition-colors inline-block"
-                  >
-                    API Docs
-                  </a>
                 </li>
               </ul>
             </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { MapPin, Phone, Mail, Clock, Send, ChevronDown, Instagram, Youtube, Facebook } from "lucide-react";
+import { BackButton } from "../components/BackButton";
 
 const WhatsAppIcon = (props) => (
   <svg
@@ -54,18 +55,23 @@ export function ContactPage() {
     <div className="min-h-screen" style={{ background: "#FFFDF7" }}>
       {/* Hero */}
       <div
-        className="py-14 text-center"
+        className="py-14"
         style={{ background: "linear-gradient(135deg, #fff0f8, #FFFDF7)" }}
       >
-        <h1
-          className="text-4xl font-extrabold mb-2"
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="mb-4 flex justify-start">
+            <BackButton />
+          </div>
+          <h1
+            className="text-4xl font-extrabold mb-2"
           style={{ fontFamily: "Poppins, sans-serif", color: "#a61c9b" }}
         >
           Contact Us
         </h1>
-        <p className="text-muted-foreground">
-          We'd love to hear from you. Reach out anytime!
-        </p>
+          <p className="text-muted-foreground">
+            We'd love to hear from you. Reach out anytime!
+          </p>
+        </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">

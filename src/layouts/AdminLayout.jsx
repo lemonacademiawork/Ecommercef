@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import logoImg from "../assets/logo.png";
+import { BackButton } from "../components/BackButton";
 
 export function AdminLayout({ isLoggedIn, isAdmin, onLogout }) {
   const location = useLocation();
@@ -148,6 +149,9 @@ export function AdminLayout({ isLoggedIn, isAdmin, onLogout }) {
 
       {/* Main Content Area */}
       <main className="flex-1 min-w-0 p-4 sm:p-6 overflow-auto lg:h-screen">
+        <div className="mb-4">
+          <BackButton label="Back to Store" fallbackPath="/" />
+        </div>
         <Outlet />
       </main>
     </div>

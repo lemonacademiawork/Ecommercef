@@ -127,12 +127,19 @@ export function LandingPage({
                   Shop Now <ArrowRight className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() =>
-                    document
-                      .getElementById("categories")
-                      ?.scrollIntoView({ behavior: "smooth" })
-                  }
-                  className="flex items-center gap-2 px-7 py-3.5 rounded-2xl font-semibold text-base border-2 border-primary/30 text-primary hover:border-primary hover:bg-primary/5 transition-all"
+                  type="button"
+                  onClick={() => {
+                    const catElem = document.getElementById("categories");
+                    if (catElem) {
+                      const headerOffset = 80;
+                      const elementPosition = catElem.getBoundingClientRect().top;
+                      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                      window.scrollTo({ top: offsetPosition, behavior: "smooth" });
+                    } else {
+                      navigate("shop");
+                    }
+                  }}
+                  className="flex items-center gap-2 px-7 py-3.5 rounded-2xl font-semibold text-base border-2 border-primary/30 text-primary hover:border-primary hover:bg-primary/5 transition-all cursor-pointer active:scale-95 z-10 relative"
                 >
                   Explore Categories
                 </button>
@@ -314,7 +321,7 @@ export function LandingPage({
               {categories.slice(0, 10).map((cat) => (
                 <button
                   key={cat.id}
-                  onClick={() => navigate("shop")}
+                  onClick={() => navigate("shop", cat.id || cat.name)}
                   className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-border bg-white dark:bg-zinc-900 snap-center flex-shrink-0 cursor-pointer"
                 >
                   <span

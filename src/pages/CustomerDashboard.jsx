@@ -17,6 +17,7 @@ import { motion } from "motion/react";
 import { PRODUCTS } from "../data";
 import { api } from "../services/api";
 import { toast } from "sonner";
+import { BackButton } from "../components/BackButton";
 
 const getOrderTotal = (order) => {
   const amount = Number(order?.totalAmount || order?.total || order?.amount || 0);
@@ -319,6 +320,9 @@ export function CustomerDashboard({
   return (
     <div className="min-h-screen bg-background transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-6">
+          <BackButton />
+        </div>
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Sidebar */}
           <aside className="lg:w-64 flex-shrink-0">

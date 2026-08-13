@@ -5,6 +5,7 @@ import logoImg from "../assets/logo.png";
 import { api } from "../services/api";
 import { toast } from "sonner";
 import { useNavigate, useLocation } from "react-router";
+import { BackButton } from "../components/BackButton";
 
 export function LoginPage({ navigate, onLogin }) {
   const location = useLocation();
@@ -243,6 +244,9 @@ export function LoginPage({ navigate, onLogin }) {
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-sm"
         >
+          <div className="mb-6">
+            <BackButton />
+          </div>
           {/* Logo for mobile */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
             <img
@@ -617,6 +621,9 @@ export function RegisterPage({ navigate, onLogin }) {
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-sm"
         >
+          <div className="mb-6">
+            <BackButton />
+          </div>
           <div className="flex items-center gap-2 mb-8 lg:hidden">
             <img
               src={logoImg}

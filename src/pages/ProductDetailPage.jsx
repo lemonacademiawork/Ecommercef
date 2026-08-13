@@ -21,6 +21,7 @@ import { ProductCard } from "../components/ProductCard";
 import { api } from "../services/api";
 import { handleShareProduct, handleWhatsAppShare, handleCopyShareLink } from "../utils/share";
 import { SEO } from "../components/SEO";
+import { BackButton } from "../components/BackButton";
 
 const slideVariants = {
   enter: (direction) => ({
@@ -232,12 +233,9 @@ export function ProductDetailPage({
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Breadcrumb */}
-        <button
-          onClick={() => navigate("shop")}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Shop
-        </button>
+        <div className="mb-6">
+          <BackButton label="Back to Shop" fallbackPath="/shop" />
+        </div>
 
         {/* Main Product */}
         <div className="grid lg:grid-cols-2 gap-10 mb-16">

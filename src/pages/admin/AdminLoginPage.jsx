@@ -5,6 +5,7 @@ import logoImg from "../../assets/logo.png";
 import { api } from "../../services/api";
 import { toast } from "sonner";
 import { useNavigate } from "react-router";
+import { BackButton } from "../../components/BackButton";
 
 export function AdminLoginPage({ onLogin }) {
   const navigate = useNavigate();
@@ -98,6 +99,9 @@ export function AdminLoginPage({ onLogin }) {
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-sm"
         >
+          <div className="mb-6">
+            <BackButton label="Back to Store" fallbackPath="/" />
+          </div>
           {/* Logo for mobile */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
             <img
