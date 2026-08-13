@@ -9,7 +9,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { REVIEWS } from "../data";
 import { ProductCard } from "../components/ProductCard";
 import { api } from "../services/api";
 import heroCollageImg from "../assets/hero_collage.jpg";
@@ -401,74 +400,6 @@ export function LandingPage({
 
 
 
-      {/* Reviews */}
-      <section className="py-16 transition-colors duration-300" style={{ background: "var(--testimonials-bg)" }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10">
-            <h2
-              className="text-3xl font-bold mb-2"
-              style={{ fontFamily: "Poppins, sans-serif" }}
-            >
-              What Crafters Are Saying
-            </h2>
-            <p className="text-muted-foreground">
-              Join thousands of happy customers
-            </p>
-            <div className="flex items-center justify-center gap-2 mt-3">
-              <div className="flex">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star
-                    key={s}
-                    className="w-5 h-5 text-secondary fill-current"
-                  />
-                ))}
-              </div>
-              <span className="font-bold">4.9</span>
-              <span className="text-muted-foreground text-sm">
-                from 12,400+ reviews
-              </span>
-            </div>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {REVIEWS.map((review, i) => (
-              <motion.div
-                key={review.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="bg-card rounded-2xl p-5 border border-border/60 shadow-sm transition-colors duration-300"
-              >
-                <div className="flex mb-3">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <Star
-                      key={s}
-                      className={`w-4 h-4 ${s <= review.rating ? "text-secondary fill-current" : "text-muted-foreground"}`}
-                    />
-                  ))}
-                </div>
-                <p className="text-sm text-foreground/80 leading-relaxed mb-4">
-                  "{review.comment}"
-                </p>
-                <div className="flex items-center gap-3">
-                  <img
-                    src={review.avatar}
-                    alt={review.author}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-9 h-9 rounded-full object-cover bg-muted"
-                  />
-                  <div>
-                    <p className="text-sm font-semibold">{review.author}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {review.date}
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

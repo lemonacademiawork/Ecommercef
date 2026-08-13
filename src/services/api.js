@@ -457,6 +457,41 @@ export const api = {
     },
   },
 
+  reviews: {
+    getReviews: (productId, params = {}) => {
+      const query = new URLSearchParams();
+      if (params.page !== undefined) query.append("page", params.page);
+      if (params.size !== undefined) query.append("size", params.size || 10);
+      if (params.sortBy) query.append("sortBy", params.sortBy);
+      const qStr = query.toString();
+      return request(`/products/${productId}/reviews${qStr ? `?${qStr}` : ""}`);
+    },
+    checkEligibility: (productId) =>
+      request(`/products/${productId}/reviews/can-review`),
+    getMyReview: (productId) =>
+      request(`/products/${productId}/reviews/me`),
+    createReview: (productId, formData) => {
+      clearApiCache();
+      return request(`/products/${productId}/reviews`, {
+        method: "POST",
+        body: formData,
+      });
+    },
+    updateReview: (reviewId, formData) => {
+      clearApiCache();
+      return request(`/reviews/${reviewId}`, {
+        method: "PUT",
+        body: formData,
+      });
+    },
+    deleteReview: (reviewId) => {
+      clearApiCache();
+      return request(`/reviews/${reviewId}`, {
+        method: "DELETE",
+      });
+    },
+  },
+
   categories: {
     listCategories: (all = false, search = "") => {
       const showAll = typeof all === "object" && all !== null ? !!all.all : !!all;

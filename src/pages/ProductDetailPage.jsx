@@ -16,12 +16,11 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { REVIEWS } from "../data";
 import { ProductCard } from "../components/ProductCard";
 import { api } from "../services/api";
 import { handleShareProduct, handleWhatsAppShare, handleCopyShareLink } from "../utils/share";
 import { SEO } from "../components/SEO";
-import { BackButton } from "../components/BackButton";
+import { ProductReviews } from "../components/reviews/ProductReviews";
 
 const slideVariants = {
   enter: (direction) => ({
@@ -46,6 +45,9 @@ export function ProductDetailPage({
   onAddToCart,
   wishlist,
   onToggleWishlist,
+  isLoggedIn = false,
+  isAdmin = false,
+  user = null,
 }) {
   const [product, setProduct] = useState(null);
   const [related, setRelated] = useState([]);
@@ -232,10 +234,6 @@ export function ProductDetailPage({
         schema={productSchema}
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Breadcrumb */}
-        <div className="mb-6">
-          <BackButton label="Back to Shop" fallbackPath="/shop" />
-        </div>
 
         {/* Main Product */}
         <div className="grid lg:grid-cols-2 gap-10 mb-16">
@@ -665,6 +663,25 @@ export function ProductDetailPage({
             </div>
           </div>
         </div>
+
+        {/* Customer Reviews Section */}
+        {product && (
+          <ProductReviews
+            productId={productId}
+            productSummary={{
+              averageRating: product.averageRating || product.rating || 0,
+              reviewCount: product.reviewCount || product.reviews || 0,
+              ratingDistribution: product.ratingDistribution || {},
+            }}
+            onUpdateProductSummary={(updated) => {
+              setProduct((prev) => (prev ? { ...prev, ...updated } : prev));
+            }}
+            navigate={navigate}
+            user={user}
+            isLoggedIn={isLoggedIn}
+            isAdmin={isAdmin}
+          />
+        )}
 
         {/* Related Products */}
         {related.length > 0 && (

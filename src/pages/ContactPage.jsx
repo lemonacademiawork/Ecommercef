@@ -59,9 +59,6 @@ export function ContactPage() {
         style={{ background: "linear-gradient(135deg, #fff0f8, #FFFDF7)" }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="mb-4 flex justify-start">
-            <BackButton />
-          </div>
           <h1
             className="text-4xl font-extrabold mb-2"
           style={{ fontFamily: "Poppins, sans-serif", color: "#a61c9b" }}

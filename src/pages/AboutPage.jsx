@@ -37,12 +37,8 @@ export function AboutPage({ navigate }) {
         className="relative py-20 overflow-hidden"
         style={{ background: "linear-gradient(135deg, #fff0f8, #FFFDF7)" }}
       >
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="mb-6 flex justify-start">
-            <BackButton />
-          </div>
-          <div className="text-center">
-            <img
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+          <img
               src={logoImg}
             alt="Lemon House Logo"
             className="w-20 h-20 object-contain mx-auto mb-5 rounded-full shadow-md bg-white p-1.5 border border-border/55"
@@ -59,8 +55,7 @@ export function AboutPage({ navigate }) {
               limits.
             </p>
           </div>
-        </div>
-      </section>
+        </section>
 
       {/* Mission & Vision */}
       <section className="py-16 bg-white">

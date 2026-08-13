@@ -1,7 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router";
 
-export function BackButton({ onClick, fallbackPath = "/", label = "Back", className = "" }) {
+export function BackButton({ onClick, fallbackPath = "/", label = "", iconOnly = false, className = "" }) {
   const reactNavigator = useNavigate();
 
   const handleBack = () => {
@@ -18,10 +18,11 @@ export function BackButton({ onClick, fallbackPath = "/", label = "Back", classN
     <button
       onClick={handleBack}
       type="button"
-      className={`inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary transition-colors cursor-pointer py-1 group ${className}`}
+      aria-label={label || "Go back"}
+      className={`inline-flex items-center justify-center p-2 rounded-xl text-foreground/80 hover:text-primary hover:bg-muted/80 transition-all cursor-pointer group active:scale-95 ${className}`}
     >
-      <ArrowLeft className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary group-hover:-translate-x-1 transition-all" />
-      <span>{label}</span>
+      <ArrowLeft className="w-5 h-5 text-foreground group-hover:text-primary group-hover:-translate-x-0.5 transition-all" />
+      {label && !iconOnly ? <span className="text-xs font-semibold ml-1.5">{label}</span> : null}
     </button>
   );
 }
