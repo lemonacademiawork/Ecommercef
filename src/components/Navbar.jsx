@@ -3,7 +3,6 @@ import logoImg from "@/assets/logo.png";
 import {
   ShoppingCart,
   Heart,
-  Search,
   Menu,
   X,
   User,
@@ -30,7 +29,6 @@ export function Navbar({
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
 
   const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
 
@@ -103,31 +101,8 @@ export function Navbar({
             })}
           </nav>
 
-          {/* Search Bar (desktop) */}
-          <div className="hidden lg:flex items-center relative">
-            <Search className="absolute left-3 w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search crafts, supplies..."
-              value={searchQuery}
-              onChange={(e) => {
-                onSearchChange(e.target.value);
-                if (e.target.value) navigate("shop");
-              }}
-              className="pl-9 pr-4 py-2 rounded-xl text-sm border border-border bg-muted/30 w-56 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-            />
-          </div>
-
           {/* Right Actions */}
           <div className="flex items-center gap-1">
-            {/* Mobile Search */}
-            <button
-              onClick={() => setSearchOpen(!searchOpen)}
-              className="lg:hidden p-2 rounded-xl hover:bg-muted transition-colors text-foreground/70"
-            >
-              <Search className="w-5 h-5" />
-            </button>
-
             {/* Wishlist */}
             <button
               onClick={() => navigate(isAdmin ? "admin" : "dashboard")}
@@ -243,33 +218,6 @@ export function Navbar({
             </button>
           </div>
         </div>
-
-        {/* Mobile Search */}
-        <AnimatePresence>
-          {searchOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="lg:hidden overflow-hidden pb-3"
-            >
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Search crafts, supplies..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    onSearchChange(e.target.value);
-                    if (e.target.value) navigate("shop");
-                  }}
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm border border-border bg-muted/30 focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  autoFocus
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Mobile Nav */}
         <AnimatePresence>
