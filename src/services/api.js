@@ -353,7 +353,10 @@ export const api = {
       const queryString = query.toString();
       const endpoint = `/products${queryString ? `?${queryString}` : ""}`;
 
-      return cachedRequest(endpoint, 5 * 60 * 1000).then((res) => ({
+      // Bypass cache when search term is present for real-time accurate results
+      const ttl = params.search ? 0 : 5 * 60 * 1000;
+
+      return cachedRequest(endpoint, ttl).then((res) => ({
         ...res,
         data: mapProductDataArray(res.data),
         pagination: res.data && typeof res.data === "object" && !Array.isArray(res.data) ? {

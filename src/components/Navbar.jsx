@@ -3,6 +3,7 @@ import logoImg from "@/assets/logo.png";
 import {
   ShoppingCart,
   Heart,
+  Search,
   Menu,
   X,
   User,
@@ -24,13 +25,21 @@ export function Navbar({
   user,
   onCartOpen,
   onLogout,
-  searchQuery,
-  onSearchChange,
+  searchQuery = "",
+  onSearchChange = () => {},
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
+
+  const handleSearchInput = (val) => {
+    onSearchChange(val);
+    if (window.location.pathname !== "/shop") {
+      navigate("shop");
+    }
+  };
 
   const navLinks = [
     { label: "Home", page: "home" },
@@ -42,11 +51,11 @@ export function Navbar({
   return (
     <header className="sticky top-0 z-50 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-border/50 shadow-sm transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-16 gap-4">
           {/* Logo */}
           <button
             onClick={() => navigate("home")}
-            className="flex items-center gap-2 group"
+            className="flex items-center gap-2 group shrink-0"
           >
             <img
               src={logoImg}
@@ -69,7 +78,7 @@ export function Navbar({
             </div>
           </button>
 
-          {/* Desktop Nav */}
+          {/* Desktop Nav Links */}
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => {
               if (link.href) {
@@ -79,7 +88,7 @@ export function Navbar({
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all text-foreground/70 hover:text-foreground hover:bg-muted"
+                    className="px-3 py-2 rounded-lg text-sm font-medium transition-all text-foreground/70 hover:text-foreground hover:bg-muted"
                   >
                     {link.label}
                   </a>
@@ -89,7 +98,7 @@ export function Navbar({
                 <button
                   key={link.page}
                   onClick={() => navigate(link.page)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                     currentPage === link.page
                       ? "bg-primary/10 text-primary"
                       : "text-foreground/70 hover:text-foreground hover:bg-muted"
@@ -101,8 +110,37 @@ export function Navbar({
             })}
           </nav>
 
-          {/* Right Actions */}
-          <div className="flex items-center gap-1">
+          {/* Right Section (Search Bar + Actions) */}
+          <div className="flex items-center gap-2 flex-1 justify-end max-w-xl">
+            {/* Desktop Search Bar */}
+            <div className="hidden md:flex items-center relative flex-1 max-w-xs">
+              <Search className="absolute left-3 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => handleSearchInput(e.target.value)}
+                className="w-full pl-9 pr-8 py-2 rounded-full text-xs sm:text-sm border border-border/80 bg-muted/40 hover:bg-muted focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all text-foreground"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => handleSearchInput("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Mobile Search Icon Button */}
+            <button
+              onClick={() => setSearchOpen(!searchOpen)}
+              className="md:hidden p-2 rounded-xl hover:bg-muted transition-colors text-foreground/70"
+              title="Search products"
+            >
+              <Search className="w-5 h-5" />
+            </button>
             {/* Wishlist */}
             <button
               onClick={() => navigate(isAdmin ? "admin" : "dashboard")}

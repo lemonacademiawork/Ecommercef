@@ -503,6 +503,7 @@ export default function App() {
                 wishlist={wishlist}
                 onToggleWishlist={handleToggleWishlist}
                 searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
               />
             }
           />

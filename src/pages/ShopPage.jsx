@@ -21,6 +21,7 @@ export function ShopPage({
   wishlist,
   onToggleWishlist,
   searchQuery,
+  onSearchChange,
 }) {
   const location = useLocation();
   const productsGridRef = useRef(null);
@@ -34,6 +35,12 @@ export function ShopPage({
   const [onlyInStock, setOnlyInStock] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [localSearch, setLocalSearch] = useState(searchQuery || "");
+
+  // Sync searchQuery prop changes from Navbar
+  useEffect(() => {
+    setLocalSearch(searchQuery || "");
+    setCurrentPage(0);
+  }, [searchQuery]);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(0);
@@ -158,6 +165,17 @@ export function ShopPage({
   const filtered = useMemo(() => {
     let list = [...products];
 
+    if (localSearch && localSearch.trim()) {
+      const q = localSearch.toLowerCase().trim();
+      list = list.filter((p) => {
+        const name = String(p.name || "").toLowerCase();
+        const desc = String(p.description || "").toLowerCase();
+        const cat = String(p.categoryName || p.category || "").toLowerCase();
+        const tags = Array.isArray(p.tags) ? p.tags.join(" ").toLowerCase() : "";
+        return name.includes(q) || desc.includes(q) || cat.includes(q) || tags.includes(q);
+      });
+    }
+
     if (selectedCategory !== "all") {
       const selStr = String(selectedCategory).toLowerCase().trim();
       const activeCatName = activeCategoryObj?.name ? String(activeCategoryObj.name).toLowerCase().trim() : "";
@@ -186,7 +204,7 @@ export function ShopPage({
     if (onlyInStock) list = list.filter((p) => p.inStock);
 
     return list;
-  }, [products, selectedCategory, activeCategoryObj, priceRange, onlyInStock]);
+  }, [products, localSearch, selectedCategory, activeCategoryObj, priceRange, onlyInStock]);
 
   const activeFiltersCount = [
     selectedCategory !== "all",
@@ -433,48 +451,58 @@ export function ShopPage({
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" ref={productsGridRef}>
-        {/* Search + Sort bar */}
-        <div className="flex flex-wrap gap-3 mb-6">
-          <div className="relative flex-1 min-w-48">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={localSearch}
-              onChange={handleSearchChange}
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm border border-border/60 bg-card focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all dark:text-foreground"
-            />
-          </div>
-
-          {/* Sort */}
-          <div className="relative">
-            <select
-              value={sortBy}
-              onChange={handleSortChange}
-              className="appearance-none pl-3 pr-8 py-2.5 rounded-xl text-sm border border-border/60 bg-card focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer transition-all dark:text-foreground"
-            >
-              {SORT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          </div>
-
-          {/* Filter toggle (mobile) */}
-          <button
-            onClick={() => setFiltersOpen(true)}
-            className="lg:hidden flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm border border-border/60 bg-card font-medium transition-all cursor-pointer dark:text-foreground"
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-            Filters
-            {activeFiltersCount > 0 && (
-              <span className="w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center">
-                {activeFiltersCount}
-              </span>
+        {/* Sort & Active Search bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+          <div className="flex items-center gap-2">
+            {localSearch && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-semibold">
+                <Search className="w-3.5 h-3.5" />
+                <span>Search: <strong>"{localSearch}"</strong></span>
+                <button
+                  onClick={() => {
+                    setLocalSearch("");
+                    if (onSearchChange) onSearchChange("");
+                  }}
+                  className="hover:text-primary/70 cursor-pointer p-0.5 rounded-full hover:bg-primary/20 transition-colors"
+                  title="Clear search filter"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
             )}
-          </button>
+          </div>
+
+          <div className="flex items-center gap-3 ml-auto">
+            {/* Sort */}
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={handleSortChange}
+                className="appearance-none pl-3 pr-8 py-2.5 rounded-xl text-sm border border-border/60 bg-card focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer transition-all dark:text-foreground"
+              >
+                {SORT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            </div>
+
+            {/* Filter toggle (mobile) */}
+            <button
+              onClick={() => setFiltersOpen(true)}
+              className="lg:hidden flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm border border-border/60 bg-card font-medium transition-all cursor-pointer dark:text-foreground"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              Filters
+              {activeFiltersCount > 0 && (
+                <span className="w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         <div className="flex gap-6">
