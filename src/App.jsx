@@ -313,7 +313,7 @@ export default function App() {
       let next;
       if (qty <= 0) {
         next = prev.filter((i) =>
-          cartItemId ? (i.cartItemId === cartItemId || i.uniqueKey === cartItemId) : String(i.id) !== String(id)
+          cartItemId ? (i.cartItemId !== cartItemId && i.uniqueKey !== cartItemId) : String(i.id) !== String(id)
         );
       } else {
         next = prev.map((i) =>
@@ -345,7 +345,7 @@ export default function App() {
   const handleRemoveFromCart = async (id, cartItemId) => {
     setCartItems((prev) => {
       const next = prev.filter((i) =>
-        cartItemId ? (i.cartItemId === cartItemId || i.uniqueKey === cartItemId) : String(i.id) !== String(id)
+        cartItemId ? (i.cartItemId !== cartItemId && i.uniqueKey !== cartItemId) : String(i.id) !== String(id)
       );
       localStorage.setItem("guestCart", JSON.stringify(next));
       return next;

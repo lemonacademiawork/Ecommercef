@@ -36,8 +36,8 @@ export function CartPage({
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-4">
-          <BackButton label="Back" fallbackPath="/shop" />
+        <div className="mb-6 flex items-center justify-between">
+          <BackButton label="Back to Shop" fallbackPath="/shop" />
         </div>
         <div className="mb-8">
           <h1
