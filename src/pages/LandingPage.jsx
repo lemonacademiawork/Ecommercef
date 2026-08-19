@@ -48,8 +48,20 @@ export function LandingPage({
       .finally(() => setProductsLoading(false));
   }, []);
 
-  const isReadymadeKit = (p) => {
+  const isWatchProduct = (p) => {
     if (!p) return false;
+    const catName = String(p.categoryName || p.category || "").toLowerCase();
+    const name = String(p.name || "").toLowerCase();
+    const sub = String(p.subcategory || p.subCategory || "").toLowerCase();
+    return (
+      catName.includes("watch") ||
+      name.includes("watch") ||
+      sub.includes("watch")
+    );
+  };
+
+  const isReadymadeKit = (p) => {
+    if (!p || isWatchProduct(p)) return false;
     const catName = String(p.categoryName || p.category || "").toLowerCase();
     const name = String(p.name || "").toLowerCase();
     const sub = String(p.subcategory || p.subCategory || "").toLowerCase();
@@ -58,17 +70,21 @@ export function LandingPage({
     return (
       catName.includes("kit") ||
       catName.includes("readymade") ||
+      catName.includes("ready made") ||
       name.includes("kit") ||
       name.includes("readymade") ||
+      name.includes("ready made") ||
       sub.includes("kit") ||
       sub.includes("readymade") ||
+      sub.includes("ready made") ||
       desc.includes("readymade") ||
+      desc.includes("ready made") ||
       tags.includes("kit") ||
       tags.includes("readymade")
     );
   };
 
-  const featuredProducts = products.filter((p) => p.isBestSeller || isReadymadeKit(p));
+  const featuredProducts = products.filter((p) => !isWatchProduct(p) && (isReadymadeKit(p) || p.isBestSeller));
   const newArrivals = products.filter((p) => p.isNew).slice(0, 4);
 
   const homeSchema = {
