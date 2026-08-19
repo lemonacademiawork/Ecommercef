@@ -176,6 +176,7 @@ export function AdminUsersPage() {
                 <SortHeader label="Name" field="name" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <SortHeader label="Email" field="email" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide">Phone</th>
+                <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide">Address & Pincode</th>
                 <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide">Role</th>
                 <SortHeader label="Joined" field="createdAt" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
               </tr>
@@ -186,7 +187,7 @@ export function AdminUsersPage() {
                 : users.length === 0
                 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center">
+                    <td colSpan={7} className="py-12 text-center">
                       <Users className="w-10 h-10 text-muted-foreground/40 mx-auto mb-2" />
                       <p className="text-muted-foreground text-sm">
                         {searchParam ? `No results found matching "${searchParam}"` : "No users found"}
@@ -198,6 +199,21 @@ export function AdminUsersPage() {
                   const isActive = user.active !== false;
                   const roleLabel = (user.role || "").replace("ROLE_", "");
                   const isAdmin = roleLabel.toUpperCase() === "ADMIN";
+
+                  // Extract Address & Pincode
+                  let pin = user.pincode || user.postalCode || user.zipCode || user.pin;
+                  let addressLine = "";
+
+                  if (typeof user.address === "string" && user.address.trim()) {
+                    addressLine = user.address.trim();
+                  } else if (typeof user.address === "object" && user.address !== null) {
+                    const a = user.address;
+                    pin = pin || a.postalCode || a.pincode || a.zipCode || a.pin;
+                    addressLine = [a.streetAddress || a.addressLine1 || a.street, a.city, a.state].filter(Boolean).join(", ");
+                  } else {
+                    addressLine = [user.street, user.city, user.state].filter(Boolean).join(", ");
+                  }
+
                   return (
                     <tr key={user.id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 font-semibold text-muted-foreground text-xs">#{user.id}</td>
@@ -217,6 +233,18 @@ export function AdminUsersPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{user.phone || "N/A"}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground max-w-xs">
+                        <div className="space-y-1">
+                          <p className="truncate font-medium text-foreground">{addressLine || "No street address"}</p>
+                          {pin ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-amber-100 text-amber-950 px-2 py-0.5 rounded-full border border-amber-300">
+                              📍 PIN: {pin}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground/60">No PIN code</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
                           {isActive ? "Active" : "Inactive"}

@@ -595,6 +595,7 @@ export function AdminOrdersPage() {
               <tr>
                 {[
                   "Order ID",
+                  "Customer & Address",
                   "Date",
                   "Items Count",
                   "Total Amount",
@@ -626,13 +627,30 @@ export function AdminOrdersPage() {
                     </td>
                   </tr>
                 )
-                : orders.map((order) => (
+                : orders.map((order) => {
+                  const addrPin = order.address?.postalCode || order.address?.pincode || order.address?.zipCode;
+                  const custName = order.address?.fullName || order.address?.name || order.customerName || order.user?.name || "Customer";
+                  const addrLine = order.address?.city || order.address?.state ? `${order.address.city || ""}, ${order.address.state || ""}` : (order.address?.streetAddress || order.address?.addressLine1 || "");
+                  return (
                 <tr
                   key={order.id}
                   className="hover:bg-muted/30 transition-colors"
                 >
                   <td className="px-4 py-3 font-semibold text-primary">
                     #{order.id}
+                  </td>
+                  <td className="px-4 py-3 text-xs max-w-xs">
+                    <div className="space-y-0.5">
+                      <p className="font-bold text-foreground">{custName}</p>
+                      {addrLine && <p className="text-muted-foreground truncate text-[11px]">{addrLine}</p>}
+                      {addrPin ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-amber-100 text-amber-950 px-2 py-0.5 rounded-full border border-amber-300">
+                          📍 PIN: {addrPin}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground/60">No PIN code</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : order.date}
@@ -671,7 +689,8 @@ export function AdminOrdersPage() {
                     </button>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -765,10 +784,17 @@ export function AdminOrdersPage() {
                   <div className="pt-4 border-t border-border">
                     <h3 className="text-sm font-semibold mb-2">Shipping Address</h3>
                     <div className="text-xs space-y-1 text-muted-foreground">
-                      <p className="font-semibold text-foreground">{selectedOrder.address.fullName || selectedOrder.address.name}</p>
+                      <p className="font-semibold text-foreground text-sm">{selectedOrder.address.fullName || selectedOrder.address.name}</p>
                       <p>{selectedOrder.address.streetAddress || selectedOrder.address.addressLine1}</p>
-                      <p>{selectedOrder.address.city}, {selectedOrder.address.state} - {selectedOrder.address.postalCode || selectedOrder.address.zipCode}</p>
-                      <p>Phone: {selectedOrder.address.phoneNumber || selectedOrder.address.phone}</p>
+                      <p>{selectedOrder.address.city}, {selectedOrder.address.state}</p>
+                      {(selectedOrder.address.postalCode || selectedOrder.address.pincode || selectedOrder.address.zipCode) && (
+                        <p className="pt-1">
+                          <span className="inline-flex items-center gap-1 text-xs font-bold bg-amber-100 text-amber-950 px-2.5 py-1 rounded-lg border border-amber-300">
+                            📍 PIN / Postal Code: {selectedOrder.address.postalCode || selectedOrder.address.pincode || selectedOrder.address.zipCode}
+                          </span>
+                        </p>
+                      )}
+                      <p className="pt-1 font-medium">Phone: {selectedOrder.address.phoneNumber || selectedOrder.address.phone || "N/A"}</p>
                     </div>
                   </div>
                 )}

@@ -48,7 +48,27 @@ export function LandingPage({
       .finally(() => setProductsLoading(false));
   }, []);
 
-  const featuredProducts = products.filter((p) => p.isBestSeller).slice(0, 4);
+  const isReadymadeKit = (p) => {
+    if (!p) return false;
+    const catName = String(p.categoryName || p.category || "").toLowerCase();
+    const name = String(p.name || "").toLowerCase();
+    const sub = String(p.subcategory || p.subCategory || "").toLowerCase();
+    const desc = String(p.description || "").toLowerCase();
+    const tags = Array.isArray(p.tags) ? p.tags.join(" ").toLowerCase() : String(p.tags || "").toLowerCase();
+    return (
+      catName.includes("kit") ||
+      catName.includes("readymade") ||
+      name.includes("kit") ||
+      name.includes("readymade") ||
+      sub.includes("kit") ||
+      sub.includes("readymade") ||
+      desc.includes("readymade") ||
+      tags.includes("kit") ||
+      tags.includes("readymade")
+    );
+  };
+
+  const featuredProducts = products.filter((p) => p.isBestSeller || isReadymadeKit(p));
   const newArrivals = products.filter((p) => p.isNew).slice(0, 4);
 
   const homeSchema = {
