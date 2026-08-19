@@ -48,11 +48,34 @@ export function LandingPage({
       .finally(() => setProductsLoading(false));
   }, []);
 
+  const getCategoryNameString = (p) => {
+    if (!p) return "";
+    if (typeof p.categoryName === "string" && p.categoryName) return p.categoryName;
+    if (typeof p.category === "string" && p.category) return p.category;
+    if (typeof p.category === "object" && p.category !== null) {
+      return p.category.name || p.category.title || p.category.label || "";
+    }
+    return "";
+  };
+
+  const getSubcategoryNameString = (p) => {
+    if (!p) return "";
+    if (typeof p.subcategory === "string" && p.subcategory) return p.subcategory;
+    if (typeof p.subCategory === "string" && p.subCategory) return p.subCategory;
+    if (typeof p.subcategory === "object" && p.subcategory !== null) {
+      return p.subcategory.name || p.subcategory.title || "";
+    }
+    if (typeof p.subCategory === "object" && p.subCategory !== null) {
+      return p.subCategory.name || p.subCategory.title || "";
+    }
+    return "";
+  };
+
   const isWatchProduct = (p) => {
     if (!p) return false;
-    const catName = String(p.categoryName || p.category || "").toLowerCase();
+    const catName = getCategoryNameString(p).toLowerCase();
     const name = String(p.name || "").toLowerCase();
-    const sub = String(p.subcategory || p.subCategory || "").toLowerCase();
+    const sub = getSubcategoryNameString(p).toLowerCase();
     return (
       catName.includes("watch") ||
       name.includes("watch") ||
@@ -62,25 +85,38 @@ export function LandingPage({
 
   const isReadymadeKit = (p) => {
     if (!p || isWatchProduct(p)) return false;
-    const catName = String(p.categoryName || p.category || "").toLowerCase();
+    const catName = getCategoryNameString(p).toLowerCase();
     const name = String(p.name || "").toLowerCase();
-    const sub = String(p.subcategory || p.subCategory || "").toLowerCase();
+    const sub = getSubcategoryNameString(p).toLowerCase();
     const desc = String(p.description || "").toLowerCase();
     const tags = Array.isArray(p.tags) ? p.tags.join(" ").toLowerCase() : String(p.tags || "").toLowerCase();
     return (
       catName.includes("kit") ||
       catName.includes("readymade") ||
       catName.includes("ready made") ||
+      catName.includes("ready-made") ||
+      catName.includes("diy") ||
       name.includes("kit") ||
       name.includes("readymade") ||
       name.includes("ready made") ||
+      name.includes("ready-made") ||
+      name.includes("diy") ||
+      name.includes("flower") ||
+      name.includes("chenille") ||
+      name.includes("stem") ||
+      name.includes("cleaner") ||
       sub.includes("kit") ||
       sub.includes("readymade") ||
       sub.includes("ready made") ||
+      sub.includes("ready-made") ||
+      sub.includes("diy") ||
       desc.includes("readymade") ||
       desc.includes("ready made") ||
+      desc.includes("kit") ||
       tags.includes("kit") ||
-      tags.includes("readymade")
+      tags.includes("readymade") ||
+      tags.includes("ready made") ||
+      tags.includes("diy")
     );
   };
 
