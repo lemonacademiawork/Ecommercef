@@ -37,8 +37,8 @@ export function LandingPage({
       .catch((err) => console.error("Error loading landing categories:", err))
       .finally(() => setCategoriesLoading(false));
 
-    // Fetch products independently
-    api.products.listProducts()
+    // Fetch all products independently
+    api.products.listProducts({ all: true, size: 200 })
       .then((prodRes) => {
         if (prodRes.success && prodRes.data) {
           setProducts(prodRes.data);
@@ -74,7 +74,7 @@ export function LandingPage({
   const isWatchProduct = (p) => {
     if (!p) return false;
     const catName = getCategoryNameString(p).toLowerCase();
-    const name = String(p.name || "").toLowerCase();
+    const name = String(p.name || p.title || "").toLowerCase();
     const sub = getSubcategoryNameString(p).toLowerCase();
     return (
       catName.includes("watch") ||
@@ -86,16 +86,22 @@ export function LandingPage({
   const isReadymadeKit = (p) => {
     if (!p || isWatchProduct(p)) return false;
     const catName = getCategoryNameString(p).toLowerCase();
-    const name = String(p.name || "").toLowerCase();
     const sub = getSubcategoryNameString(p).toLowerCase();
+    const name = String(p.name || p.title || "").toLowerCase();
     const desc = String(p.description || "").toLowerCase();
     const tags = Array.isArray(p.tags) ? p.tags.join(" ").toLowerCase() : String(p.tags || "").toLowerCase();
+
     return (
       catName.includes("kit") ||
       catName.includes("readymade") ||
       catName.includes("ready made") ||
       catName.includes("ready-made") ||
       catName.includes("diy") ||
+      sub.includes("kit") ||
+      sub.includes("readymade") ||
+      sub.includes("ready made") ||
+      sub.includes("ready-made") ||
+      sub.includes("diy") ||
       name.includes("kit") ||
       name.includes("readymade") ||
       name.includes("ready made") ||
@@ -105,22 +111,24 @@ export function LandingPage({
       name.includes("chenille") ||
       name.includes("stem") ||
       name.includes("cleaner") ||
-      sub.includes("kit") ||
-      sub.includes("readymade") ||
-      sub.includes("ready made") ||
-      sub.includes("ready-made") ||
-      sub.includes("diy") ||
+      name.includes("bouquet") ||
+      name.includes("making") ||
       desc.includes("readymade") ||
       desc.includes("ready made") ||
+      desc.includes("ready-made") ||
       desc.includes("kit") ||
+      desc.includes("diy") ||
       tags.includes("kit") ||
       tags.includes("readymade") ||
       tags.includes("ready made") ||
+      tags.includes("ready-made") ||
       tags.includes("diy")
     );
   };
 
-  const featuredProducts = products.filter((p) => !isWatchProduct(p) && (isReadymadeKit(p) || p.isBestSeller));
+  const readymadeKits = products.filter((p) => !isWatchProduct(p) && isReadymadeKit(p));
+  const otherBestSellers = products.filter((p) => !isWatchProduct(p) && p.isBestSeller && !isReadymadeKit(p));
+  const featuredProducts = [...readymadeKits, ...otherBestSellers];
   const newArrivals = products.filter((p) => p.isNew).slice(0, 4);
 
   const homeSchema = {
