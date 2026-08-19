@@ -393,17 +393,19 @@ export function ShopPage({
 
   const catName = activeCategoryObj ? activeCategoryObj.name : (selectedCategory !== "all" ? selectedCategory : "");
 
-  let seoTitle = "Shop All Craft Supplies & DIY Materials";
+  let seoTitle = "Shop Rakhi Gifts, Raksha Bandhan Gifts & Craft Supplies";
   if (catName) {
-    seoTitle = `${catName} - Craft Supplies`;
+    seoTitle = `${catName} - Rakhi Gifts & Craft Supplies`;
   } else if (localSearch) {
     seoTitle = `Search results for "${localSearch}"`;
   }
 
-  let seoDescription = `Browse our catalog of ${totalElem || "1,000+"} craft supplies, resin art tools, yarns, and DIY materials at Lemon House. Fast nationwide delivery.`;
+  let seoDescription = `Browse unique Rakhi gifts, Rakhi gifts for brother & sister, handcrafted Rakhi gift sets, candle gifts for Rakhi, and DIY materials at Lemon House. Fast nationwide delivery.`;
   if (catName) {
-    seoDescription = `Explore high-quality ${catName} craft supplies and DIY tools at Lemon House. Shop best sellers with fast nationwide delivery.`;
+    seoDescription = `Explore high-quality ${catName}, unique Rakhi gifts, and Raksha Bandhan gift ideas at Lemon House. Fast nationwide delivery.`;
   }
+
+  const rakhiKeywords = "Rakhi gifts, Raksha Bandhan gifts, Rakhi gifts for brother, Rakhi gifts for sister, unique Rakhi gifts, Rakhi gift sets, handcrafted Rakhi gifts, candle gifts for Rakhi, Raksha Bandhan gift ideas, craft supplies, DIY materials";
 
   const shopBreadcrumbSchema = {
     "@context": "https://schema.org",
@@ -435,6 +437,7 @@ export function ShopPage({
       <SEO
         title={seoTitle}
         description={seoDescription}
+        keywords={rakhiKeywords}
         schema={shopBreadcrumbSchema}
       />
       {/* Header */}
