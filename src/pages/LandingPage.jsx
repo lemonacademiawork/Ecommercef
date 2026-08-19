@@ -126,9 +126,8 @@ export function LandingPage({
     );
   };
 
-  const readymadeKits = products.filter((p) => !isWatchProduct(p) && isReadymadeKit(p));
-  const otherBestSellers = products.filter((p) => !isWatchProduct(p) && p.isBestSeller && !isReadymadeKit(p));
-  const featuredProducts = [...readymadeKits, ...otherBestSellers];
+  // Best Sellers section on Home Page shows exclusively ALL ReadyMade Kits
+  const featuredProducts = products.filter((p) => !isWatchProduct(p) && isReadymadeKit(p));
   const newArrivals = products.filter((p) => p.isNew).slice(0, 4);
 
   const homeSchema = {
