@@ -2,11 +2,11 @@ import { Helmet } from "react-helmet-async";
 
 const DEFAULT_SITE_NAME = "Lemon House";
 const DEFAULT_DOMAIN = "https://lemonhousecraft.in";
-const DEFAULT_TITLE = "Lemon House - Candle Kits, Concrete Moulds, Lippan Art Kits & Craft Supplies";
+const DEFAULT_TITLE = "Lemon House - Rakhi Gifts, Raksha Bandhan Gifts, Handcrafted Gift Sets & Craft Supplies";
 const DEFAULT_DESCRIPTION =
-  "Shop complete candle kits, silicone & concrete moulds, lippan art kits, readymade kits, texture kits, basic bath salt & soap salt at Lemon House. Fast nationwide shipping & 50,000+ happy crafters.";
+  "Shop unique Rakhi gifts, Rakhi gifts for brother & sister, handcrafted Rakhi gift sets, candle gifts for Rakhi, complete candle kits, silicone moulds & DIY materials at Lemon House. Fast nationwide shipping & 50,000+ happy crafters.";
 const DEFAULT_KEYWORDS =
-  "candle, concrete, moulds, complete candle kit, lippanart kit, readymade kits, basic bath salt, basic soap salt, texture kit, pipe kit, silicone, craft supplies, DIY materials, Lemon House";
+  "Rakhi gifts, Raksha Bandhan gifts, Rakhi gifts for brother, Rakhi gifts for sister, unique Rakhi gifts, Rakhi gift sets, handcrafted Rakhi gifts, candle gifts for Rakhi, Raksha Bandhan gift ideas, candle, concrete, moulds, complete candle kit, lippanart kit, readymade kits, basic bath salt, basic soap salt, texture kit, pipe kit, silicone, craft supplies, DIY materials, Lemon House";
 const DEFAULT_IMAGE =
   "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1200&h=630&fit=crop";
 

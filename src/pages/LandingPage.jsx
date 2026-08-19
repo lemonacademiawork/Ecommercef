@@ -103,9 +103,9 @@ export function LandingPage({
   return (
     <div className="min-h-screen">
       <SEO
-        title="Lemon House - Complete Candle Kits, Concrete & Silicone Moulds, Lippan Art Kits"
-        description="Shop complete candle kits, silicone & concrete moulds, lippan art kits, readymade kits, texture kits, basic bath salt & soap salt at Lemon House. Fast nationwide shipping."
-        keywords="candle, concrete, moulds, complete candle kit, lippanart kit, readymade kits, basic bath salt, basic soap salt, texture kit, pipe kit, silicone, craft supplies, DIY materials, Lemon House"
+        title="Lemon House - Rakhi Gifts, Raksha Bandhan Gifts, Handcrafted Gift Sets & Craft Supplies"
+        description="Shop unique Rakhi gifts, Rakhi gifts for brother & sister, handcrafted Rakhi gift sets, candle gifts for Rakhi, complete candle kits, silicone moulds & DIY materials at Lemon House. Fast nationwide shipping."
+        keywords="Rakhi gifts, Raksha Bandhan gifts, Rakhi gifts for brother, Rakhi gifts for sister, unique Rakhi gifts, Rakhi gift sets, handcrafted Rakhi gifts, candle gifts for Rakhi, Raksha Bandhan gift ideas, candle, concrete, moulds, complete candle kit, lippanart kit, readymade kits, basic bath salt, basic soap salt, texture kit, pipe kit, silicone, craft supplies, DIY materials, Lemon House"
         schema={homeSchema}
       />
       {/* Hero Section */}
