@@ -8,6 +8,9 @@ export function getOptimizedImageUrl(url, options = {}) {
     return url || "";
   }
 
+  const trimmedUrl = url.trim();
+  if (!trimmedUrl) return "";
+
   // Handle preset shortcut (string or number)
   let opts = options;
   if (typeof options === "string" || typeof options === "number") {
@@ -36,11 +39,11 @@ export function getOptimizedImageUrl(url, options = {}) {
   } = opts;
 
   // 1. Cloudinary URLs
-  if (url.includes("res.cloudinary.com") || url.includes("cloudinary.com")) {
-    const uploadIndex = url.indexOf("/upload/");
+  if (trimmedUrl.includes("res.cloudinary.com") || trimmedUrl.includes("cloudinary.com")) {
+    const uploadIndex = trimmedUrl.indexOf("/upload/");
     if (uploadIndex !== -1) {
-      const prefix = url.substring(0, uploadIndex + 8); // includes '/upload/'
-      const rest = url.substring(uploadIndex + 8);
+      const prefix = trimmedUrl.substring(0, uploadIndex + 8); // includes '/upload/'
+      const rest = trimmedUrl.substring(uploadIndex + 8);
 
       // Build transformation string
       const transforms = [];
@@ -52,45 +55,53 @@ export function getOptimizedImageUrl(url, options = {}) {
 
       const transformStr = transforms.join(",");
 
-      // Check if `rest` already starts with a version string (e.g. v1234567...)
-      const versionMatch = rest.match(/^(v\d+\/.*)/);
+      // Check if `rest` starts with signature (e.g. s--xxx--/)
+      let restPath = rest;
+      let signaturePrefix = "";
+      const sigMatch = restPath.match(/^(s--[^/]+--\/)(.*)/);
+      if (sigMatch) {
+        signaturePrefix = sigMatch[1];
+        restPath = sigMatch[2];
+      }
+
+      // Check if `restPath` already starts with a version string (e.g. v1234567...)
+      const versionMatch = restPath.match(/^(v\d+\/.*)/);
       if (versionMatch) {
-        // No existing transformations before version
-        return `${prefix}${transformStr}/${rest}`;
+        return `${prefix}${signaturePrefix}${transformStr}/${restPath}`;
       }
 
       // If existing transformations exist before v\d+/
-      const matchWithVersion = rest.match(/^([^/]+)\/(v\d+\/.*)/);
+      const matchWithVersion = restPath.match(/^([^/]+)\/(v\d+\/.*)/);
       if (matchWithVersion) {
         const versionAndPath = matchWithVersion[2];
-        return `${prefix}${transformStr}/${versionAndPath}`;
+        return `${prefix}${signaturePrefix}${transformStr}/${versionAndPath}`;
       }
 
       // If no version string, check if first segment looks like transformations (contains _ or ,)
-      const parts = rest.split("/");
+      const parts = restPath.split("/");
       if (parts.length > 1 && (parts[0].includes("_") || parts[0].includes(","))) {
         parts[0] = transformStr;
-        return `${prefix}${parts.join("/")}`;
+        return `${prefix}${signaturePrefix}${parts.join("/")}`;
       }
 
       // Default: prepend transformation string
-      return `${prefix}${transformStr}/${rest}`;
+      return `${prefix}${signaturePrefix}${transformStr}/${restPath}`;
     }
   }
 
   // 2. Unsplash URLs
-  if (url.includes("images.unsplash.com")) {
+  if (trimmedUrl.includes("images.unsplash.com")) {
     try {
-      const parsed = new URL(url);
+      const parsed = new URL(trimmedUrl);
       if (width) parsed.searchParams.set("w", width.toString());
       if (height) parsed.searchParams.set("h", height.toString());
       if (format) parsed.searchParams.set("auto", format === "auto" ? "format" : format);
       if (quality && quality !== "auto") parsed.searchParams.set("q", quality.toString());
       return parsed.toString();
     } catch (e) {
-      return url;
+      return trimmedUrl;
     }
   }
 
-  return url;
+  return trimmedUrl;
 }

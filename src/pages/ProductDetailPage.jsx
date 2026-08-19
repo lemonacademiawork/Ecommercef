@@ -176,9 +176,16 @@ export function ProductDetailPage({
     );
   }
 
-  const productImages = (product && Array.isArray(product.images) && product.images.length > 0)
+  const rawImages = (product && Array.isArray(product.images) && product.images.length > 0)
     ? product.images
     : [product?.image || product?.imageUrl || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&h=600&fit=crop&auto=format"];
+
+  const productImages = rawImages.map(img => getOptimizedImageUrl(img, { width: 800 }));
+
+  const variantImg = selectedVariant?.imageUrl || selectedVariant?.image;
+  const currentMainImage = variantImg 
+    ? getOptimizedImageUrl(variantImg, { width: 800 }) 
+    : getOptimizedImageUrl(productImages[selectedImage] || productImages[0], { width: 800 });
 
   const currentPrice = selectedVariant 
     ? (selectedVariant.discountedPrice || selectedVariant.price) 
@@ -231,7 +238,7 @@ export function ProductDetailPage({
             : `Buy ${product.name} online at Lemon House for ₹${currentPrice}. Premium craft supplies & DIY materials.`
         }
         ogType="product"
-        ogImage={productImages[0]}
+        ogImage={getOptimizedImageUrl(currentMainImage || productImages[0], { width: 1200 })}
         schema={productSchema}
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -245,8 +252,8 @@ export function ProductDetailPage({
                 <div className="w-full h-full relative overflow-hidden">
                   <AnimatePresence initial={false} custom={direction}>
                     <motion.img
-                      key={selectedImage}
-                      src={getOptimizedImageUrl(productImages[selectedImage] || productImages[0], { width: 800 })}
+                      key={selectedImage + (selectedVariant?.id || '')}
+                      src={currentMainImage}
                       custom={direction}
                       variants={slideVariants}
                       initial="enter"

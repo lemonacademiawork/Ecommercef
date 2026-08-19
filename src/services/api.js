@@ -1,3 +1,5 @@
+import { getOptimizedImageUrl } from "../utils/cloudinary";
+
 let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://api.lemonhousecraft.in";
 
 // Ensure the base URL ends with /api to resolve endpoints correctly
@@ -80,7 +82,8 @@ export const mapCategoryData = (cat) => {
       key.toLowerCase().includes(cat.name?.toLowerCase())
   );
   const extra = matched ? mapping[matched] : defaultMap;
-  const categoryImage = cat.imageUrl || cat.image || (extra.image !== "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=300&fit=crop&auto=format" ? extra.image : null);
+  const rawCatImg = cat.imageUrl || cat.image || (extra.image !== "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=300&fit=crop&auto=format" ? extra.image : null);
+  const categoryImage = getOptimizedImageUrl(rawCatImg || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=300&fit=crop&auto=format", { width: 500 });
 
   return {
     ...cat,
@@ -88,8 +91,8 @@ export const mapCategoryData = (cat) => {
     idString: extra.idString || cat.id.toString(),
     icon: extra.icon || "🛍️",
     color: extra.color,
-    imageUrl: categoryImage || cat.imageUrl || cat.image,
-    image: categoryImage || cat.imageUrl || cat.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=300&fit=crop&auto=format",
+    imageUrl: categoryImage,
+    image: categoryImage,
     count: cat.count || 0,
   };
 };
@@ -126,18 +129,32 @@ export const mapProductData = (product) => {
     }
   }
 
-  // Filter out any empty strings
-  parsedImages = parsedImages.filter(img => img && img.trim() !== "");
+  // Filter out any empty strings and optimize Cloudinary delivery URLs
+  parsedImages = parsedImages
+    .filter(img => img && img.trim() !== "")
+    .map(img => getOptimizedImageUrl(img, { width: 800 }));
 
   if (parsedImages.length === 0) {
-    parsedImages = [product.imageUrl || product.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&h=600&fit=crop&auto=format"];
+    const rawFallback = product.imageUrl || product.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&h=600&fit=crop&auto=format";
+    parsedImages = [getOptimizedImageUrl(rawFallback, { width: 800 })];
   }
+
+  const primaryImage = getOptimizedImageUrl(product.imageUrl || product.image || parsedImages[0], { width: 800 });
+
+  const mappedVariants = Array.isArray(product.variants)
+    ? product.variants.map(v => v ? {
+        ...v,
+        image: getOptimizedImageUrl(v.image || v.imageUrl, { width: 800 }),
+        imageUrl: getOptimizedImageUrl(v.imageUrl || v.image, { width: 800 }),
+      } : v)
+    : [];
 
   return {
     ...product,
     id: product.id,
     description: desc,
-    image: product.imageUrl || parsedImages[0] || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&h=600&fit=crop&auto=format",
+    image: primaryImage,
+    imageUrl: primaryImage,
     images: parsedImages,
     subcategoryId: product.subcategoryId || product.sub_category_id || null,
     subcategory: product.subcategory || product.subCategory || null,
@@ -146,8 +163,8 @@ export const mapProductData = (product) => {
     metaTitle: product.metaTitle || "",
     metaDescription: product.metaDescription || "",
     metaKeywords: product.metaKeywords || "",
-    hasVariants: Boolean(product.hasVariants || product.has_variants || (Array.isArray(product.variants) && product.variants.length > 0)),
-    variants: Array.isArray(product.variants) ? product.variants : [],
+    hasVariants: Boolean(product.hasVariants || product.has_variants || (mappedVariants.length > 0)),
+    variants: mappedVariants,
     inStock: product.stock > 0,
     tags: product.tags || [],
     materials: product.materials || [],
@@ -419,9 +436,14 @@ export const api = {
     getVariants: (id) =>
       cachedRequest(`/products/${id}/variants`).then((res) => {
         const dataList = Array.isArray(res) ? res : (res && Array.isArray(res.data) ? res.data : (res && Array.isArray(res.content) ? res.content : []));
+        const mapped = dataList.map(v => v ? {
+          ...v,
+          image: getOptimizedImageUrl(v.image || v.imageUrl, { width: 800 }),
+          imageUrl: getOptimizedImageUrl(v.imageUrl || v.image, { width: 800 }),
+        } : v);
         return {
           success: true,
-          data: dataList,
+          data: mapped,
         };
       }).catch((err) => {
         console.error("Error in getVariants API:", err);
@@ -747,9 +769,14 @@ export const api = {
     getVariants: (productId) =>
       request(`/admin/products/${productId}/variants`).then((res) => {
         const dataList = Array.isArray(res) ? res : (res && Array.isArray(res.data) ? res.data : (res && Array.isArray(res.content) ? res.content : []));
+        const mapped = dataList.map(v => v ? {
+          ...v,
+          image: getOptimizedImageUrl(v.image || v.imageUrl, { width: 800 }),
+          imageUrl: getOptimizedImageUrl(v.imageUrl || v.image, { width: 800 }),
+        } : v);
         return {
           success: true,
-          data: dataList,
+          data: mapped,
         };
       }).catch((err) => {
         console.error("Error in admin.getVariants API:", err);

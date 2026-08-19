@@ -15,6 +15,7 @@ import { ContactPage } from "./pages/ContactPage";
 import { Toaster } from "sonner";
 import { toast } from "sonner";
 import { api } from "./services/api";
+import { getOptimizedImageUrl } from "./utils/cloudinary";
 
 // Layouts
 import { CustomerLayout } from "./layouts/CustomerLayout";
@@ -239,7 +240,7 @@ export default function App() {
               cartItemId: item.id || item.cartItemId || `${prodId}-${item.variantId || item.variant?.id || ''}`,
               name: item.product?.name || catProd?.name || item.productName || item.name || "Craft Supply",
               price: item.variant ? (item.variant.discountedPrice || item.variant.price) : (item.product?.price || catProd?.price || item.price || 0),
-              image: item.product?.imageUrl || item.product?.image || catProd?.image || catProd?.imageUrl || item.imageUrl || item.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=400&fit=crop&auto=format",
+              image: getOptimizedImageUrl(item.product?.imageUrl || item.product?.image || catProd?.image || catProd?.imageUrl || item.imageUrl || item.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=400&fit=crop&auto=format", { width: 200 }),
               quantity: item.quantity || 1,
               weight: catProd?.weight || item.product?.weight || item.weight || 0,
               length: catProd?.length || item.product?.length || item.length || 0,
@@ -286,7 +287,7 @@ export default function App() {
             variantId,
             uniqueKey,
             name: product.name || "Craft Supply",
-            image: product.image || product.imageUrl || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=400&fit=crop&auto=format",
+            image: getOptimizedImageUrl(product.image || product.imageUrl || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=400&fit=crop&auto=format", { width: 200 }),
             price: product.price || 0,
           },
         ];
