@@ -121,27 +121,96 @@ export function ShopPage({
           }
         }
 
-        const prodRes = await api.products.listProducts({
-          page: currentPage,
-          size: pageSize,
-          categoryId: catId,
-          search: localSearch,
-          sortBy: sortBy,
-        });
+        if (selectedCategory === "all") {
+          // When "All" is selected, fetch products by querying categories dynamically to ensure
+          // all active products across all categories are displayed (preventing default GET /api/products from limiting to Bestseller/ReadyMade Kits only)
+          let combinedProducts = [];
+          const seenIds = new Set();
 
-        if (prodRes.success && prodRes.data) {
-          setProducts(prodRes.data);
-        }
-        if (prodRes.pagination) {
-          setPagination(prodRes.pagination);
-        } else if (prodRes.data) {
+          if (categories && categories.length > 0) {
+            const catResults = await Promise.all(
+              categories.map((c) =>
+                api.products
+                  .listProducts({
+                    categoryId: c.id,
+                    page: 0,
+                    size: 100,
+                    search: localSearch,
+                    sortBy: sortBy,
+                  })
+                  .catch(() => null)
+              )
+            );
+
+            for (const res of catResults) {
+              if (res?.success && Array.isArray(res.data)) {
+                for (const prod of res.data) {
+                  if (prod && prod.id && !seenIds.has(prod.id)) {
+                    seenIds.add(prod.id);
+                    combinedProducts.push(prod);
+                  }
+                }
+              }
+            }
+          }
+
+          if (combinedProducts.length === 0) {
+            const prodRes = await api.products.listProducts({
+              page: currentPage,
+              size: pageSize,
+              search: localSearch,
+              sortBy: sortBy,
+            });
+            if (prodRes.success && prodRes.data) {
+              combinedProducts = prodRes.data;
+            }
+          }
+
+          if (sortBy === "price-asc") {
+            combinedProducts.sort((a, b) => (a.price || 0) - (b.price || 0));
+          } else if (sortBy === "price-desc") {
+            combinedProducts.sort((a, b) => (b.price || 0) - (a.price || 0));
+          } else if (sortBy === "newest") {
+            combinedProducts.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
+          } else if (sortBy === "rating") {
+            combinedProducts.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+          }
+
+          const startIdx = currentPage * pageSize;
+          const paginatedSlice = combinedProducts.slice(startIdx, startIdx + pageSize);
+
+          setProducts(paginatedSlice.length > 0 ? paginatedSlice : combinedProducts);
           setPagination({
             pageNumber: currentPage,
             pageSize: pageSize,
-            totalElements: prodRes.data.length,
-            totalPages: Math.max(1, Math.ceil(prodRes.data.length / pageSize)),
-            last: true,
+            totalElements: combinedProducts.length,
+            totalPages: Math.max(1, Math.ceil(combinedProducts.length / pageSize)),
+            last: (currentPage + 1) * pageSize >= combinedProducts.length,
           });
+        } else {
+          // Specific category requested: call GET /api/products?categoryId={catId}
+          const prodRes = await api.products.listProducts({
+            page: currentPage,
+            size: pageSize,
+            categoryId: catId,
+            search: localSearch,
+            sortBy: sortBy,
+          });
+
+          if (prodRes.success && prodRes.data) {
+            setProducts(prodRes.data);
+          }
+          if (prodRes.pagination) {
+            setPagination(prodRes.pagination);
+          } else if (prodRes.data) {
+            setPagination({
+              pageNumber: currentPage,
+              pageSize: pageSize,
+              totalElements: prodRes.data.length,
+              totalPages: Math.max(1, Math.ceil(prodRes.data.length / pageSize)),
+              last: true,
+            });
+          }
         }
       } catch (err) {
         console.error("Error loading shop data:", err);
@@ -152,7 +221,7 @@ export function ShopPage({
     }
 
     loadProducts();
-  }, [currentPage, pageSize, selectedCategory, activeCategoryObj, categories.length, localSearch, sortBy]);
+  }, [currentPage, pageSize, selectedCategory, activeCategoryObj, categories, localSearch, sortBy]);
 
   const isCatSelected = (cat) => {
     if (selectedCategory === "all") return false;
