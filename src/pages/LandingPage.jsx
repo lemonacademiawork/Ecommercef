@@ -37,8 +37,8 @@ export function LandingPage({
       .catch((err) => console.error("Error loading landing categories:", err))
       .finally(() => setCategoriesLoading(false));
 
-    // Fetch all products independently
-    api.products.listProducts({ all: true, size: 200 })
+    // Fetch Bestsellers list directly from homepage bestseller endpoint
+    api.products.listProducts({ page: 0, size: 8 })
       .then((prodRes) => {
         if (prodRes.success && prodRes.data) {
           setProducts(prodRes.data);
@@ -48,86 +48,7 @@ export function LandingPage({
       .finally(() => setProductsLoading(false));
   }, []);
 
-  const getCategoryNameString = (p) => {
-    if (!p) return "";
-    if (typeof p.categoryName === "string" && p.categoryName) return p.categoryName;
-    if (typeof p.category === "string" && p.category) return p.category;
-    if (typeof p.category === "object" && p.category !== null) {
-      return p.category.name || p.category.title || p.category.label || "";
-    }
-    return "";
-  };
-
-  const getSubcategoryNameString = (p) => {
-    if (!p) return "";
-    if (typeof p.subcategory === "string" && p.subcategory) return p.subcategory;
-    if (typeof p.subCategory === "string" && p.subCategory) return p.subCategory;
-    if (typeof p.subcategory === "object" && p.subcategory !== null) {
-      return p.subcategory.name || p.subcategory.title || "";
-    }
-    if (typeof p.subCategory === "object" && p.subCategory !== null) {
-      return p.subCategory.name || p.subCategory.title || "";
-    }
-    return "";
-  };
-
-  const isWatchProduct = (p) => {
-    if (!p) return false;
-    const catName = getCategoryNameString(p).toLowerCase();
-    const name = String(p.name || p.title || "").toLowerCase();
-    const sub = getSubcategoryNameString(p).toLowerCase();
-    return (
-      catName.includes("watch") ||
-      name.includes("watch") ||
-      sub.includes("watch")
-    );
-  };
-
-  const isReadymadeKit = (p) => {
-    if (!p || isWatchProduct(p)) return false;
-    const catName = getCategoryNameString(p).toLowerCase();
-    const sub = getSubcategoryNameString(p).toLowerCase();
-    const name = String(p.name || p.title || "").toLowerCase();
-    const desc = String(p.description || "").toLowerCase();
-    const tags = Array.isArray(p.tags) ? p.tags.join(" ").toLowerCase() : String(p.tags || "").toLowerCase();
-
-    return (
-      catName.includes("kit") ||
-      catName.includes("readymade") ||
-      catName.includes("ready made") ||
-      catName.includes("ready-made") ||
-      catName.includes("diy") ||
-      sub.includes("kit") ||
-      sub.includes("readymade") ||
-      sub.includes("ready made") ||
-      sub.includes("ready-made") ||
-      sub.includes("diy") ||
-      name.includes("kit") ||
-      name.includes("readymade") ||
-      name.includes("ready made") ||
-      name.includes("ready-made") ||
-      name.includes("diy") ||
-      name.includes("flower") ||
-      name.includes("chenille") ||
-      name.includes("stem") ||
-      name.includes("cleaner") ||
-      name.includes("bouquet") ||
-      name.includes("making") ||
-      desc.includes("readymade") ||
-      desc.includes("ready made") ||
-      desc.includes("ready-made") ||
-      desc.includes("kit") ||
-      desc.includes("diy") ||
-      tags.includes("kit") ||
-      tags.includes("readymade") ||
-      tags.includes("ready made") ||
-      tags.includes("ready-made") ||
-      tags.includes("diy")
-    );
-  };
-
-  // Best Sellers section on Home Page shows exclusively ALL ReadyMade Kits
-  const featuredProducts = products.filter((p) => !isWatchProduct(p) && isReadymadeKit(p));
+  const featuredProducts = products;
   const newArrivals = products.filter((p) => p.isNew).slice(0, 4);
 
   const homeSchema = {
@@ -449,10 +370,10 @@ export function LandingPage({
               </h2>
             </div>
             <button
-              onClick={() => navigate("shop")}
-              className="hidden sm:flex items-center gap-1 text-primary font-semibold text-sm hover:gap-2 transition-all"
+              onClick={() => navigate("shop", "07d3dfde-8e1b-46bc-9536-16854323021e")}
+              className="hidden sm:flex items-center gap-1 text-primary font-semibold text-sm hover:gap-2 transition-all cursor-pointer"
             >
-              See all <ArrowRight className="w-4 h-4" />
+              See All Ready Made Kits <ArrowRight className="w-4 h-4" />
             </button>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -466,6 +387,16 @@ export function LandingPage({
                 onToggleWishlist={onToggleWishlist}
               />
             ))}
+          </div>
+
+          {/* Redirect button to dedicated Ready Made Kits shop page */}
+          <div className="mt-8 text-center flex justify-center">
+            <button
+              onClick={() => navigate("shop", "07d3dfde-8e1b-46bc-9536-16854323021e")}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-primary text-primary font-semibold text-sm hover:bg-primary hover:text-white transition-all cursor-pointer shadow-sm"
+            >
+              See All Ready Made Kits <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </section>
