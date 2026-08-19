@@ -103,9 +103,9 @@ export function LandingPage({
   return (
     <div className="min-h-screen">
       <SEO
-        title="Lemon House - Rakhi Gifts, Raksha Bandhan Gifts, Handcrafted Gift Sets & Craft Supplies"
-        description="Shop unique Rakhi gifts, Rakhi gifts for brother & sister, handcrafted Rakhi gift sets, candle gifts for Rakhi, complete candle kits, silicone moulds & DIY materials at Lemon House. Fast nationwide shipping."
-        keywords="Rakhi gifts, Raksha Bandhan gifts, Rakhi gifts for brother, Rakhi gifts for sister, unique Rakhi gifts, Rakhi gift sets, handcrafted Rakhi gifts, candle gifts for Rakhi, Raksha Bandhan gift ideas, candle, concrete, moulds, complete candle kit, lippanart kit, readymade kits, basic bath salt, basic soap salt, texture kit, pipe kit, silicone, craft supplies, DIY materials, Lemon House"
+        title="Lemon House - Handcrafted Products, Handmade Gifts, Scented Candles & Home Décor"
+        description="Discover handcrafted products, handmade gifts, scented candles, soy candles, luxury candle gift sets, aesthetic home décor, and unique gifts for Rakhi, birthdays & anniversaries at Lemon House. Fast nationwide shipping."
+        keywords="handcrafted products, handmade gifts, artisan crafts, Indian handicrafts, scented candles, soy candles, decorative candles, luxury candles, candle gift sets, thoughtful gifts, unique gifts, premium gifts, personalized gifts, gift ideas, home décor, aesthetic décor, handmade home décor, room décor, Rakhi gifts, Raksha Bandhan gifts, birthday gifts, anniversary gifts, wedding gifts, festive gifts, Rakhi gifts for brother, Rakhi gifts for sister, unique Rakhi gifts, Rakhi gift sets, handcrafted Rakhi gifts, candle gifts for Rakhi, Raksha Bandhan gift ideas, complete candle kit, lippanart kit, readymade kits, silicone moulds, craft supplies, DIY materials, Lemon House"
         schema={homeSchema}
       />
       {/* Hero Section */}

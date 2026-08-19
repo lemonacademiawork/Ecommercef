@@ -2,11 +2,11 @@ import { Helmet } from "react-helmet-async";
 
 const DEFAULT_SITE_NAME = "Lemon House";
 const DEFAULT_DOMAIN = "https://lemonhousecraft.in";
-const DEFAULT_TITLE = "Lemon House - Rakhi Gifts, Raksha Bandhan Gifts, Handcrafted Gift Sets & Craft Supplies";
+const DEFAULT_TITLE = "Lemon House - Handcrafted Products, Handmade Gifts, Scented Candles & Home Décor";
 const DEFAULT_DESCRIPTION =
-  "Shop unique Rakhi gifts, Rakhi gifts for brother & sister, handcrafted Rakhi gift sets, candle gifts for Rakhi, complete candle kits, silicone moulds & DIY materials at Lemon House. Fast nationwide shipping & 50,000+ happy crafters.";
+  "Discover handcrafted products, handmade gifts, scented candles, soy candles, luxury candle gift sets, aesthetic home décor, and unique gifts for Rakhi, birthdays & anniversaries at Lemon House. Premium artisan crafts with fast nationwide shipping.";
 const DEFAULT_KEYWORDS =
-  "Rakhi gifts, Raksha Bandhan gifts, Rakhi gifts for brother, Rakhi gifts for sister, unique Rakhi gifts, Rakhi gift sets, handcrafted Rakhi gifts, candle gifts for Rakhi, Raksha Bandhan gift ideas, candle, concrete, moulds, complete candle kit, lippanart kit, readymade kits, basic bath salt, basic soap salt, texture kit, pipe kit, silicone, craft supplies, DIY materials, Lemon House";
+  "handcrafted products, handmade gifts, artisan crafts, Indian handicrafts, scented candles, soy candles, decorative candles, luxury candles, candle gift sets, thoughtful gifts, unique gifts, premium gifts, personalized gifts, gift ideas, home décor, aesthetic décor, handmade home décor, room décor, Rakhi gifts, Raksha Bandhan gifts, birthday gifts, anniversary gifts, wedding gifts, festive gifts, Rakhi gifts for brother, Rakhi gifts for sister, unique Rakhi gifts, Rakhi gift sets, handcrafted Rakhi gifts, candle gifts for Rakhi, Raksha Bandhan gift ideas, complete candle kit, lippanart kit, readymade kits, silicone moulds, craft supplies, DIY materials, Lemon House";
 const DEFAULT_IMAGE =
   "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1200&h=630&fit=crop";
 
