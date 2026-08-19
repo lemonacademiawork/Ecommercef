@@ -21,6 +21,7 @@ import { api } from "../services/api";
 import { handleShareProduct, handleWhatsAppShare, handleCopyShareLink } from "../utils/share";
 import { SEO } from "../components/SEO";
 import { ProductReviews } from "../components/reviews/ProductReviews";
+import { getOptimizedImageUrl } from "../utils/cloudinary";
 
 const slideVariants = {
   enter: (direction) => ({
@@ -245,7 +246,7 @@ export function ProductDetailPage({
                   <AnimatePresence initial={false} custom={direction}>
                     <motion.img
                       key={selectedImage}
-                      src={productImages[selectedImage] || productImages[0]}
+                      src={getOptimizedImageUrl(productImages[selectedImage] || productImages[0], { width: 800 })}
                       custom={direction}
                       variants={slideVariants}
                       initial="enter"
@@ -373,8 +374,10 @@ export function ProductDetailPage({
                         }`}
                     >
                       <img
-                        src={img}
+                        src={getOptimizedImageUrl(img, { width: 160 })}
                         alt=""
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover"
                       />
                     </button>

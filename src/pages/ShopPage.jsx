@@ -6,6 +6,7 @@ import { ProductCard } from "../components/ProductCard";
 import { api } from "../services/api";
 import { SEO } from "../components/SEO";
 import { BackButton } from "../components/BackButton";
+import { getOptimizedImageUrl } from "../utils/cloudinary";
 
 const SORT_OPTIONS = [
   { value: "popular", label: "Most Popular" },
@@ -310,8 +311,10 @@ export function ShopPage({
                 <div className="flex items-center gap-2.5 min-w-0">
                   {catImg ? (
                     <img
-                      src={catImg}
+                      src={getOptimizedImageUrl(catImg, { width: 100 })}
                       alt={cat.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-5 h-5 rounded-md object-cover flex-shrink-0 border border-border/50 bg-muted"
                     />
                   ) : (

@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { SEO } from "../components/SEO";
 import { BackButton } from "../components/BackButton";
+import { getOptimizedImageUrl } from "../utils/cloudinary";
 
 export function CartPage({
   items,
@@ -87,7 +88,7 @@ export function CartPage({
                     className="bg-card rounded-2xl p-4 border border-border/60 flex flex-col sm:flex-row items-center gap-4 shadow-sm"
                   >
                     <img
-                      src={item.image}
+                      src={getOptimizedImageUrl(item.image, { width: 200 })}
                       alt={item.name}
                       loading="lazy"
                       decoding="async"

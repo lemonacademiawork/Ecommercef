@@ -3,6 +3,7 @@ import { X, Upload, Trash2, Loader2, AlertCircle, Sparkles } from "lucide-react"
 import { StarRating } from "./StarRating";
 import { toast } from "sonner";
 import { api } from "../../services/api";
+import { getOptimizedImageUrl } from "../../utils/cloudinary";
 
 export function ReviewForm({
   productId,
@@ -227,7 +228,7 @@ export function ReviewForm({
               {/* Existing retained images */}
               {retainedImages.map((imgUrl, idx) => (
                 <div key={`retained-${idx}`} className="relative w-20 h-20 rounded-2xl overflow-hidden border border-border bg-muted shadow-sm group">
-                  <img src={imgUrl} alt="Retained preview" className="w-full h-full object-cover" />
+                  <img src={getOptimizedImageUrl(imgUrl, { width: 200 })} alt="Retained preview" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => handleRemoveRetained(idx)}

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { AdminPagination } from "../../components/AdminPagination";
 import SearchInput from "../../components/SearchInput";
 import { useDebounce } from "../../hooks/useDebounce";
+import { getOptimizedImageUrl } from "../../utils/cloudinary";
 
 const CATEGORY_SUBCATEGORIES_MAP = {
   "resin": ["Resin Moulds", "Epoxy Resin", "Pigments & Glitter", "Tools & Mixers"],
@@ -693,8 +694,10 @@ export function AdminProductsPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <img
-                          src={product.image || product.imageUrl || "https://via.placeholder.com/40"}
+                          src={getOptimizedImageUrl(product.image || product.imageUrl || "https://via.placeholder.com/40", { width: 100 })}
                           alt={product.name}
+                          loading="lazy"
+                          decoding="async"
                           className="w-10 h-10 rounded-lg object-cover bg-muted flex-shrink-0 border border-border"
                         />
                         <span className="font-medium line-clamp-2 max-w-[200px]">{product.name}</span>
@@ -886,7 +889,7 @@ export function AdminProductsPage() {
                     >
                       {img ? (
                         <>
-                          <img src={img} alt={`slot-${idx}`} className="w-full h-full object-cover" />
+                          <img src={getOptimizedImageUrl(img, { width: 200 })} alt={`slot-${idx}`} className="w-full h-full object-cover" />
                           <button
                             type="button"
                             onClick={() => removeSlotImage(idx)}

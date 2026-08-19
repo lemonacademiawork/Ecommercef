@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { AdminPagination } from "../../components/AdminPagination";
 import SearchInput from "../../components/SearchInput";
 import { useDebounce } from "../../hooks/useDebounce";
+import { getOptimizedImageUrl } from "../../utils/cloudinary";
 
 const statusColors = {
   PAID: "bg-green-100 text-green-800 border border-green-200 font-bold",
@@ -739,8 +740,10 @@ export function AdminOrdersPage() {
                       <div key={item.id} className="flex gap-3 justify-between items-start">
                         <div className="flex gap-2.5">
                           <img
-                            src={item.product?.imageUrl || item.product?.image || item.imageUrl || item.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format"}
+                            src={getOptimizedImageUrl(item.product?.imageUrl || item.product?.image || item.imageUrl || item.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format", { width: 100 })}
                             alt={item.product?.name || item.productName || item.name || "Product"}
+                            loading="lazy"
+                            decoding="async"
                             className="w-11 h-11 object-cover rounded-lg bg-muted flex-shrink-0 border border-border"
                           />
                           <div>
@@ -781,8 +784,10 @@ export function AdminOrdersPage() {
                       className="block group relative overflow-hidden rounded-xl border border-border shadow-sm max-w-xs hover:opacity-95 transition-all"
                     >
                       <img
-                        src={selectedOrder.paymentScreenshotUrl || selectedOrder.paymentScreenshot || selectedOrder.screenshotUrl}
+                        src={getOptimizedImageUrl(selectedOrder.paymentScreenshotUrl || selectedOrder.paymentScreenshot || selectedOrder.screenshotUrl, { width: 500 })}
                         alt="Payment Screenshot"
+                        loading="lazy"
+                        decoding="async"
                         className="w-full max-h-48 object-cover rounded-xl"
                       />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-semibold transition-opacity">

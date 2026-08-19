@@ -18,6 +18,7 @@ import { PRODUCTS } from "../data";
 import { api } from "../services/api";
 import { toast } from "sonner";
 import { BackButton } from "../components/BackButton";
+import { getOptimizedImageUrl } from "../utils/cloudinary";
 
 const getOrderTotal = (order) => {
   const amount = Number(order?.totalAmount || order?.total || order?.amount || 0);
@@ -648,8 +649,10 @@ export function CustomerDashboard({
                       >
                         <div className="relative aspect-square overflow-hidden bg-muted">
                           <img
-                            src={product.image}
+                            src={getOptimizedImageUrl(product.image, { width: 400 })}
                             alt={product.name}
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           />
                           <button
@@ -1056,8 +1059,10 @@ export function CustomerDashboard({
                       <div key={item.id || idx} className="flex justify-between items-center gap-3 bg-muted/10 p-2.5 rounded-xl border border-border/50">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <img
-                            src={item.product?.imageUrl || item.product?.image || item.imageUrl || item.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format"}
+                            src={getOptimizedImageUrl(item.product?.imageUrl || item.product?.image || item.imageUrl || item.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format", { width: 100 })}
                             alt={item.product?.name || item.productName || item.name || "Product"}
+                            loading="lazy"
+                            decoding="async"
                             className="w-10 h-10 object-cover rounded-lg bg-muted flex-shrink-0 border border-border"
                           />
                           <div className="min-w-0">
@@ -1279,8 +1284,10 @@ export function CustomerDashboard({
                     className="block group relative overflow-hidden rounded-xl border border-border/60 shadow-sm max-w-xs hover:opacity-95 transition-all"
                   >
                     <img
-                      src={selectedOrder.paymentScreenshotUrl || selectedOrder.paymentScreenshot || selectedOrder.screenshotUrl}
+                      src={getOptimizedImageUrl(selectedOrder.paymentScreenshotUrl || selectedOrder.paymentScreenshot || selectedOrder.screenshotUrl, { width: 500 })}
                       alt="Payment Proof"
+                      loading="lazy"
+                      decoding="async"
                       className="w-full max-h-48 object-cover rounded-xl"
                     />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-semibold transition-opacity">

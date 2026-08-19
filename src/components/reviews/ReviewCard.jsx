@@ -1,5 +1,6 @@
 import { CheckCircle2, Trash2, Edit3, User, Image as ImageIcon } from "lucide-react";
 import { StarRating } from "./StarRating";
+import { getOptimizedImageUrl } from "../../utils/cloudinary";
 
 export function ReviewCard({
   review,
@@ -36,8 +37,10 @@ export function ReviewCard({
         <div className="flex items-center gap-3 min-w-0">
           {userAvatar ? (
             <img
-              src={userAvatar}
+              src={getOptimizedImageUrl(userAvatar, { width: 100 })}
               alt={userName}
+              loading="lazy"
+              decoding="async"
               className="w-10 h-10 rounded-full object-cover border border-border bg-muted flex-shrink-0"
             />
           ) : (
@@ -109,8 +112,10 @@ export function ReviewCard({
               className="relative w-16 h-16 rounded-xl overflow-hidden border border-border/80 bg-muted group cursor-pointer active:scale-95 transition-all shadow-sm"
             >
               <img
-                src={url}
+                src={getOptimizedImageUrl(url, { width: 200 })}
                 alt={`Review photo ${idx + 1}`}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
               />
               <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">

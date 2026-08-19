@@ -1,5 +1,6 @@
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { getOptimizedImageUrl } from "../../utils/cloudinary";
 
 export function ReviewImageViewer({ activeUrl, photos = [], onClose }) {
   const [currentIndex, setCurrentIndex] = useState(() => {
@@ -37,7 +38,7 @@ export function ReviewImageViewer({ activeUrl, photos = [], onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         <img
-          src={photos[currentIndex]}
+          src={getOptimizedImageUrl(photos[currentIndex], { width: 1000 })}
           alt={`Review image ${currentIndex + 1}`}
           className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
         />

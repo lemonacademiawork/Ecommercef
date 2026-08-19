@@ -8,6 +8,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { getOptimizedImageUrl } from "../utils/cloudinary";
 import { useState } from "react";
 
 export function CartSidebar({
@@ -110,8 +111,10 @@ export function CartSidebar({
                       className="flex gap-3 bg-muted/30 rounded-2xl p-3"
                     >
                       <img
-                        src={item.image}
+                        src={getOptimizedImageUrl(item.image, { width: 150 })}
                         alt={item.name}
+                        loading="lazy"
+                        decoding="async"
                         className="w-16 h-16 rounded-xl object-cover flex-shrink-0 bg-muted"
                       />
                       <div className="flex-1 min-w-0">

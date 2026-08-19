@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Heart, Star, ShoppingCart, Share2 } from "lucide-react";
 import { motion } from "motion/react";
 import { handleShareProduct } from "../utils/share";
+import { getOptimizedImageUrl } from "../utils/cloudinary";
 
 export function ProductCard({
   product,
@@ -33,7 +34,7 @@ export function ProductCard({
       {/* Image */}
       <div className="relative aspect-square overflow-hidden bg-muted">
         <img
-          src={product.image}
+          src={getOptimizedImageUrl(product.image, { width: 500 })}
           alt={product.name}
           loading="lazy"
           decoding="async"

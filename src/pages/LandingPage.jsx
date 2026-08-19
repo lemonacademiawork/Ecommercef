@@ -13,6 +13,7 @@ import { ProductCard } from "../components/ProductCard";
 import { api } from "../services/api";
 import heroCollageImg from "../assets/hero_collage.jpg";
 import { SEO } from "../components/SEO";
+import { getOptimizedImageUrl } from "../utils/cloudinary";
 
 export function LandingPage({
   navigate,
@@ -171,7 +172,7 @@ export function LandingPage({
               className="hidden lg:block w-full max-w-lg justify-self-center rounded-3xl overflow-hidden"
             >
               <img
-                src={heroCollageImg}
+                src={getOptimizedImageUrl(heroCollageImg, { width: 800 })}
                 alt="Lemon House Crafts Collage"
                 loading="lazy"
                 decoding="async"
@@ -278,7 +279,7 @@ export function LandingPage({
                   >
                     {(cat.imageUrl || cat.image) ? (
                       <img
-                        src={cat.imageUrl || cat.image}
+                        src={getOptimizedImageUrl(cat.imageUrl || cat.image, { width: 150 })}
                         alt={cat.name}
                         loading="lazy"
                         decoding="async"
@@ -326,7 +327,7 @@ export function LandingPage({
                   >
                     {(cat.imageUrl || cat.image) ? (
                       <img
-                        src={cat.imageUrl || cat.image}
+                        src={getOptimizedImageUrl(cat.imageUrl || cat.image, { width: 150 })}
                         alt={cat.name}
                         loading="lazy"
                         decoding="async"

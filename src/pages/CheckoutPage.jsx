@@ -15,6 +15,7 @@ import confetti from "canvas-confetti";
 import logoImg from "@/assets/logo.png";
 import { SEO } from "../components/SEO";
 import { BackButton } from "../components/BackButton";
+import { getOptimizedImageUrl } from "../utils/cloudinary";
 
 const STEPS = [
   { key: "shipping", label: "Shipping", Icon: MapPin },
@@ -1135,8 +1136,10 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                           className="flex gap-3 p-3 bg-muted/30 rounded-xl"
                         >
                           <img
-                            src={item.image}
+                            src={getOptimizedImageUrl(item.image, { width: 150 })}
                             alt={item.name}
+                            loading="lazy"
+                            decoding="async"
                             className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-muted"
                           />
                           <div className="flex-1">

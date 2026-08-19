@@ -4,6 +4,7 @@ import { api } from "../../services/api";
 import { toast } from "sonner";
 import SearchInput from "../../components/SearchInput";
 import { useDebounce } from "../../hooks/useDebounce";
+import { getOptimizedImageUrl } from "../../utils/cloudinary";
 
 // ─── Skeleton Row ─────────────────────────────────────────────────────────────
 function SkeletonRow() {
@@ -270,7 +271,7 @@ export function AdminCategoriesPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {cat.imageUrl || cat.image
-                          ? <img src={cat.imageUrl || cat.image} alt={cat.name} className="w-9 h-9 rounded-lg object-cover bg-muted flex-shrink-0 border border-border" />
+                          ? <img src={getOptimizedImageUrl(cat.imageUrl || cat.image, { width: 100 })} alt={cat.name} loading="lazy" decoding="async" className="w-9 h-9 rounded-lg object-cover bg-muted flex-shrink-0 border border-border" />
                           : <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-sm flex-shrink-0">{cat.icon || "📦"}</div>
                         }
                         <div>
@@ -394,7 +395,7 @@ export function AdminCategoriesPage() {
                   </label>
                 </div>
                 {categoryForm.imageUrl && (
-                  <img src={categoryForm.imageUrl} alt="preview" className="w-16 h-16 object-cover rounded-lg mt-2 border border-border" />
+                  <img src={getOptimizedImageUrl(categoryForm.imageUrl, { width: 200 })} alt="preview" loading="lazy" decoding="async" className="w-16 h-16 object-cover rounded-lg mt-2 border border-border" />
                 )}
               </div>
 
