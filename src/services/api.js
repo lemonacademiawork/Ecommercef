@@ -370,8 +370,8 @@ export const api = {
       const queryString = query.toString();
       const endpoint = `/products${queryString ? `?${queryString}` : ""}`;
 
-      // Bypass cache when search term is present for real-time accurate results
-      const ttl = params.search ? 0 : 5 * 60 * 1000;
+      // Bypass cache when search term is present or all=true for real-time accurate results
+      const ttl = (params.search || params.all) ? 0 : 5 * 60 * 1000;
 
       return cachedRequest(endpoint, ttl).then((res) => ({
         ...res,
