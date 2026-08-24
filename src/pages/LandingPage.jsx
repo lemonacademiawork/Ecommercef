@@ -60,7 +60,7 @@ export function LandingPage({
     "publisher": {
       "@type": "Organization",
       "name": "Lemon House",
-      "logo": "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=400&fit=crop"
+      "logo": "https://lemonhousecraft.in/logo.png"
     }
   };
 

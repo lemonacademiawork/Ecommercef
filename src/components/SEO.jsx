@@ -8,7 +8,7 @@ const DEFAULT_DESCRIPTION =
 const DEFAULT_KEYWORDS =
   "handcrafted products, handmade gifts, artisan crafts, Indian handicrafts, scented candles, soy candles, decorative candles, luxury candles, candle gift sets, thoughtful gifts, unique gifts, premium gifts, personalized gifts, gift ideas, home décor, aesthetic décor, handmade home décor, room décor, Rakhi gifts, Raksha Bandhan gifts, birthday gifts, anniversary gifts, wedding gifts, festive gifts, Rakhi gifts for brother, Rakhi gifts for sister, unique Rakhi gifts, Rakhi gift sets, handcrafted Rakhi gifts, candle gifts for Rakhi, Raksha Bandhan gift ideas, complete candle kit, lippanart kit, readymade kits, silicone moulds, craft supplies, DIY materials, Lemon House";
 const DEFAULT_IMAGE =
-  "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1200&h=630&fit=crop";
+  "https://lemonhousecraft.in/og-image.jpg";
 
 export function SEO({
   title,
@@ -50,6 +50,10 @@ export function SEO({
       <meta property="og:description" content={description} />
       <meta property="og:url" content={currentUrl} />
       <meta property="og:image" content={ogImage} />
+      <meta property="og:image:secure_url" content={ogImage} />
+      <meta property="og:image:type" content="image/jpeg" />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
 
       {/* Twitter Tags */}
       <meta name="twitter:card" content="summary_large_image" />
