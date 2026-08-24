@@ -52,8 +52,8 @@ export function SEO({
       <meta property="og:image" content={ogImage} />
       <meta property="og:image:secure_url" content={ogImage} />
       <meta property="og:image:type" content="image/jpeg" />
-      <meta property="og:image:width" content="1200" />
-      <meta property="og:image:height" content="630" />
+      <meta property="og:image:width" content="1024" />
+      <meta property="og:image:height" content="833" />
 
       {/* Twitter Tags */}
       <meta name="twitter:card" content="summary_large_image" />
