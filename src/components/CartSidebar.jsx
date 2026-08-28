@@ -24,17 +24,15 @@ export function CartSidebar({
   const [couponError, setCouponError] = useState("");
 
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const discount = appliedCoupon === "LEMON20" ? Math.round(subtotal * 0.2) : 0;
+  const discount = 0;
   const total = subtotal - discount;
 
   const handleCoupon = () => {
-    if (coupon.trim().toUpperCase() === "LEMON20") {
-      setAppliedCoupon("LEMON20");
-      setCoupon("");
-      setCouponError("");
-    } else {
-      setCouponError("Invalid coupon code. Try LEMON20");
+    if (!coupon.trim()) {
+      setCouponError("Please enter a coupon code");
+      return;
     }
+    setCouponError("Invalid coupon code");
   };
 
   return (
@@ -195,7 +193,7 @@ export function CartSidebar({
                   )}
                   {appliedCoupon && (
                     <p className="text-xs text-accent mt-1">
-                      ✓ LEMON20 applied — 20% off!
+                      ✓ {appliedCoupon} applied!
                     </p>
                   )}
                 </div>
@@ -208,7 +206,7 @@ export function CartSidebar({
                   </div>
                   {discount > 0 && (
                     <div className="flex justify-between text-accent">
-                      <span>Discount (LEMON20)</span>
+                      <span>Discount ({appliedCoupon})</span>
                       <span>-₹{discount}</span>
                     </div>
                   )}

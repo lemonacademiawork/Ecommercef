@@ -16,17 +16,15 @@ export function CartPage({
   const [couponError, setCouponError] = useState("");
 
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const discount = appliedCoupon === "LEMON20" ? Math.round(subtotal * 0.2) : 0;
+  const discount = 0;
   const total = subtotal - discount;
 
   const handleCoupon = () => {
-    if (coupon.trim().toUpperCase() === "LEMON20") {
-      setAppliedCoupon("LEMON20");
-      setCoupon("");
-      setCouponError("");
-    } else {
-      setCouponError("Invalid coupon code. Try LEMON20");
+    if (!coupon.trim()) {
+      setCouponError("Please enter a coupon code");
+      return;
     }
+    setCouponError("Invalid coupon code");
   };
 
   return (
@@ -164,7 +162,7 @@ export function CartPage({
                     <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                       type="text"
-                      placeholder="e.g. LEMON20"
+                      placeholder="Coupon code"
                       value={coupon}
                       onChange={(e) => setCoupon(e.target.value)}
                       className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm border border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -182,7 +180,7 @@ export function CartPage({
                 )}
                 {appliedCoupon && (
                   <p className="text-xs text-emerald-600 font-medium mt-1.5">
-                    ✓ LEMON20 applied — 20% off!
+                    ✓ {appliedCoupon} applied!
                   </p>
                 )}
               </div>
@@ -195,7 +193,7 @@ export function CartPage({
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-emerald-600 font-medium">
-                    <span>Discount (LEMON20)</span>
+                    <span>Discount ({appliedCoupon})</span>
                     <span>-₹{discount}</span>
                   </div>
                 )}
