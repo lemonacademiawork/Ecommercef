@@ -20,8 +20,6 @@ import { getOptimizedImageUrl } from "../utils/cloudinary";
 const STEPS = [
   { key: "shipping", label: "Shipping", Icon: MapPin },
   { key: "delivery", label: "Delivery", Icon: Truck },
-  { key: "payment", label: "Payment", Icon: CreditCard },
-  { key: "review", label: "Review", Icon: ClipboardList },
 ];
 
 export function CheckoutPage({ items, navigate, onOrderComplete }) {
@@ -687,142 +685,48 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                   </motion.div>
                 )}
 
-                {step === "payment" && (
-                  <motion.div
-                    key="payment"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                  >
-                    <h2
-                      className="font-bold text-lg mb-5"
-                      style={{ fontFamily: "Poppins, sans-serif" }}
-                    >
-                      Payment Method
-                    </h2>
-                    <div className="p-5 rounded-2xl border-2 border-primary bg-primary/5 flex items-center gap-4 shadow-sm">
-                      <span className="text-3xl">💳</span>
-                      <div className="flex-1">
-                        <p className="font-bold text-sm text-foreground">Razorpay Secure Payment Gateway</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Supports UPI (GPay, PhonePe, Paytm), Credit & Debit Cards, Netbanking, and Wallets
-                        </p>
-                      </div>
-                      <span className="text-xs font-extrabold text-primary px-3 py-1 bg-primary/10 rounded-full uppercase tracking-wider">
-                        Default Gateway
-                      </span>
-                    </div>
-                  </motion.div>
-                )}
-
-                {step === "review" && (
-                  <motion.div
-                    key="review"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                  >
-                    <h2
-                      className="font-bold text-lg mb-5"
-                      style={{ fontFamily: "Poppins, sans-serif" }}
-                    >
-                      Review Order
-                    </h2>
-                    <div className="space-y-3 mb-5">
-                      {items.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex gap-3 p-3 bg-muted/30 rounded-xl"
-                        >
-                          <img
-                            src={getOptimizedImageUrl(item.image, { width: 150 })}
-                            alt={item.name}
-                            loading="lazy"
-                            decoding="async"
-                            className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-muted"
-                          />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium line-clamp-1">
-                              {item.name}
-                            </p>
-                            {item.variantName && (
-                              <p className="text-xs text-muted-foreground font-medium">
-                                Option: {item.variantName}
-                              </p>
-                            )}
-                            <p className="text-xs text-muted-foreground">
-                              Qty: {item.quantity}
-                            </p>
-                          </div>
-                          <span className="text-sm font-semibold">
-                            ₹{item.price * item.quantity}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="text-sm space-y-1.5 p-4 bg-muted/30 rounded-xl">
-                      <div className="flex justify-between text-muted-foreground">
-                        <span>Ship to</span>
-                        <span className="font-medium text-foreground">
-                          {useSavedAddress && selectedSavedAddress
-                            ? `${selectedSavedAddress.fullName}, ${selectedSavedAddress.city}`
-                            : `${form.name}, ${form.city}`}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-muted-foreground">
-                        <span>Delivery</span>
-                        <span className="font-medium text-foreground capitalize">
-                          {form.deliveryMethod} ({shipping === 0 ? "FREE" : `₹${shipping}`})
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-muted-foreground">
-                        <span>Payment</span>
-                        <span className="font-medium text-foreground uppercase">
-                          {form.paymentMethod}
-                        </span>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
               </AnimatePresence>
 
               {/* Navigation Buttons */}
               <div className="flex gap-3 mt-6">
                 {stepIndex > 0 && (
                   <button
+                    type="button"
                     onClick={() => setStep(STEPS[stepIndex - 1].key)}
-                    className="flex-1 py-3 rounded-2xl text-sm font-semibold border border-border hover:bg-muted transition-all"
+                    className="flex-1 py-3 rounded-2xl text-sm font-semibold border border-border hover:bg-muted transition-all cursor-pointer"
                   >
                     Back
                   </button>
                 )}
-                {stepIndex < STEPS.length - 1 ? (
+                {step === "shipping" ? (
                   <button
+                    type="button"
                     onClick={handleContinue}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold text-sm"
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold text-sm cursor-pointer hover:opacity-90 transition-all shadow-sm"
                     style={{
                       background: "linear-gradient(135deg, #a61c9b, #d82a81)",
                     }}
                   >
-                    Continue <ChevronRight className="w-4 h-4" />
+                    Continue to Delivery <ChevronRight className="w-4 h-4" />
                   </button>
                 ) : (
                   <button
+                    type="button"
                     onClick={placeOrder}
-                    disabled={isPlacing}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isPlacing || loadingRates}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:opacity-90 transition-all cursor-pointer"
                     style={{
-                      background: "linear-gradient(135deg, #2E7D32, #388e3c)",
+                      background: "linear-gradient(135deg, #a61c9b, #d82a81)",
                     }}
                   >
                     {isPlacing ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Placing Order...
+                        Opening Razorpay...
                       </>
                     ) : (
                       <>
-                        <PartyPopper className="w-4 h-4" /> Place Order
+                        <CreditCard className="w-4 h-4" /> Proceed to Pay ₹{total}
                       </>
                     )}
                   </button>
