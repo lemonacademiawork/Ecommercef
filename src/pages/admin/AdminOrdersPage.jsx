@@ -11,6 +11,7 @@ import { getOptimizedImageUrl } from "../../utils/cloudinary";
 const statusColors = {
   PAID: "bg-green-100 text-green-800 border border-green-200 font-bold",
   PAYMENT_PENDING: "bg-amber-100 text-amber-800 border border-amber-200 font-bold",
+  PAYMENT_FAILED: "bg-red-100 text-red-800 border border-red-200 font-bold",
 };
 
 const getOrderTotal = (order) => {
@@ -47,9 +48,20 @@ const getOrderTotal = (order) => {
   return itemsSubtotal + shipping;
 };
 
-const isPaid = (order) => {
-  if (!order) return false;
-  if (order.isPaid === true || order.paid === true || order.paymentApproved === true) return true;
+const getOrderStatusInfo = (order) => {
+  if (!order) return { displayStatus: "PAYMENT_PENDING", badgeClass: "PAYMENT_PENDING" };
+
+  if (typeof order === "string") {
+    const s = order.toUpperCase();
+    if (s === "PAID" || s === "CONFIRMED" || s === "COMPLETED" || s === "SUCCESS") {
+      return { displayStatus: "PAID", badgeClass: "PAID" };
+    }
+    if (s === "PAYMENT_FAILED" || s === "FAILED" || s === "CANCELLED") {
+      return { displayStatus: "PAYMENT_FAILED", badgeClass: "PAYMENT_FAILED" };
+    }
+    return { displayStatus: "PAYMENT_PENDING", badgeClass: "PAYMENT_PENDING" };
+  }
+
   const s = String(order.status || order.orderStatus || "").toUpperCase();
   const ps = String(
     order.paymentStatus || 
@@ -59,26 +71,27 @@ const isPaid = (order) => {
     ""
   ).toUpperCase();
 
-  return (
-    s === "PAID" ||
-    ps === "PAID" ||
-    ps === "SUCCESS" ||
-    ps === "CAPTURED" ||
-    ps === "COMPLETED"
-  );
+  const isPaid = order.isPaid === true || order.paid === true || order.paymentApproved === true || ps === "PAID" || ps === "SUCCESS" || ps === "CAPTURED" || ps === "COMPLETED" || s === "CONFIRMED" || s === "PAID";
+  const isFailed = order.isPaymentFailed === true || ps === "FAILED" || ps === "CANCELLED" || ps === "EXPIRED" || s === "PAYMENT_FAILED" || s === "FAILED" || s === "CANCELLED";
+  const isPending = order.isPaymentPending === true || ps === "PENDING" || ps === "UNPAID" || ps === "PAYMENT_PENDING" || s === "PAYMENT_PENDING" || s === "PENDING" || s === "UNPAID" || s === "CREATED";
+
+  if (isPaid) {
+    return { displayStatus: "PAID", badgeClass: "PAID" };
+  } else if (isFailed) {
+    return { displayStatus: "PAYMENT_FAILED", badgeClass: "PAYMENT_FAILED" };
+  } else if (isPending) {
+    return { displayStatus: "PAYMENT_PENDING", badgeClass: "PAYMENT_PENDING" };
+  }
+
+  return { displayStatus: "PAYMENT_PENDING", badgeClass: "PAYMENT_PENDING" };
+};
+
+const isPaymentPending = (order) => {
+  return getOrderStatusInfo(order).displayStatus === "PAYMENT_PENDING";
 };
 
 const getDisplayStatus = (order) => {
-  if (!order) return "PAYMENT_PENDING";
-  if (typeof order === "string") {
-    const s = order.toUpperCase();
-    if (s === "PAID" || s === "SUCCESS" || s === "COMPLETED") return "PAID";
-    return "PAYMENT_PENDING";
-  }
-  if (isPaid(order)) {
-    return "PAID";
-  }
-  return "PAYMENT_PENDING";
+  return getOrderStatusInfo(order).displayStatus;
 };
 
 export function AdminOrdersPage() {
@@ -659,6 +672,7 @@ export function AdminOrdersPage() {
                         {[
                           "PAYMENT_PENDING",
                           "PAID",
+                          "PAYMENT_FAILED",
                         ].map((s) => (
                           <option key={s} value={s}>
                             {s}
