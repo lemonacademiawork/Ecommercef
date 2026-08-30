@@ -47,9 +47,9 @@ const getOrderTotal = (order) => {
   return itemsSubtotal + shipping;
 };
 
-const isPaymentPending = (order) => {
+const isPaid = (order) => {
   if (!order) return false;
-  if (order.isPaymentPending === true) return true;
+  if (order.isPaid === true || order.paid === true || order.paymentApproved === true) return true;
   const s = String(order.status || order.orderStatus || "").toUpperCase();
   const ps = String(
     order.paymentStatus || 
@@ -60,21 +60,11 @@ const isPaymentPending = (order) => {
   ).toUpperCase();
 
   return (
-    s === "PAYMENT_PENDING" ||
-    s === "PENDING" ||
-    s === "UNPAID" ||
-    s === "AWAITING_PAYMENT" ||
-    s === "CREATED" ||
-    ps === "PAYMENT_PENDING" ||
-    ps === "PENDING" ||
-    ps === "UNPAID" ||
-    ps === "AWAITING_PAYMENT" ||
-    ps === "PROCESSING" ||
-    ps === "SUBMITTED" ||
-    ps === "IN_REVIEW" ||
-    order.paymentApproved === false ||
-    order.isPaid === false ||
-    order.paid === false
+    s === "PAID" ||
+    ps === "PAID" ||
+    ps === "SUCCESS" ||
+    ps === "CAPTURED" ||
+    ps === "COMPLETED"
   );
 };
 
@@ -82,15 +72,13 @@ const getDisplayStatus = (order) => {
   if (!order) return "PAYMENT_PENDING";
   if (typeof order === "string") {
     const s = order.toUpperCase();
-    if (s === "PENDING" || s === "PAYMENT_PENDING" || s === "UNPAID" || s === "CREATED") {
-      return "PAYMENT_PENDING";
-    }
-    return "PAID";
-  }
-  if (isPaymentPending(order)) {
+    if (s === "PAID" || s === "SUCCESS" || s === "COMPLETED") return "PAID";
     return "PAYMENT_PENDING";
   }
-  return "PAID";
+  if (isPaid(order)) {
+    return "PAID";
+  }
+  return "PAYMENT_PENDING";
 };
 
 export function AdminOrdersPage() {
