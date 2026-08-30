@@ -1273,29 +1273,6 @@ export function CustomerDashboard({
                 );
               })()}
 
-              {/* Payment Screenshot Preview (if exists) */}
-              {(selectedOrder.paymentScreenshotUrl || selectedOrder.paymentScreenshot || selectedOrder.screenshotUrl) && (
-                <div className="pt-4 border-t border-border">
-                  <h3 className="text-xs font-semibold mb-2 uppercase text-muted-foreground">Submitted Payment Proof</h3>
-                  <a
-                    href={selectedOrder.paymentScreenshotUrl || selectedOrder.paymentScreenshot || selectedOrder.screenshotUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block group relative overflow-hidden rounded-xl border border-border/60 shadow-sm max-w-xs hover:opacity-95 transition-all"
-                  >
-                    <img
-                      src={getOptimizedImageUrl(selectedOrder.paymentScreenshotUrl || selectedOrder.paymentScreenshot || selectedOrder.screenshotUrl, { width: 500 })}
-                      alt="Payment Proof"
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full max-h-48 object-cover rounded-xl"
-                    />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-semibold transition-opacity">
-                      Click to view full image ↗
-                    </div>
-                  </a>
-                </div>
-              )}
             </div>
           </div>
         </div>

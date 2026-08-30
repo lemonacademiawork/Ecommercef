@@ -834,7 +834,6 @@ export const api = {
   },
 
   payments: {
-    getQrDetails: () => request("/payments/qr"),
     createRazorpayOrder: (params) => {
       let orderId = null;
       let amount = null;
@@ -865,17 +864,5 @@ export const api = {
         method: "POST",
         body: JSON.stringify(paymentDetails),
       }),
-    submitQrPayment: (orderId, paymentScreenshot, transactionId = null) => {
-      const formData = new FormData();
-      formData.append("orderId", orderId);
-      formData.append("paymentScreenshot", paymentScreenshot);
-      if (transactionId) {
-        formData.append("transactionId", transactionId);
-      }
-      return request("/payments/qr/submit", {
-        method: "POST",
-        body: formData,
-      });
-    },
   },
 };

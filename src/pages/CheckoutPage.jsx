@@ -40,21 +40,12 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
     state: "",
     pincode: "",
     deliveryMethod: "standard",
-    paymentMethod: "upi",
+    paymentMethod: "RAZORPAY",
   });
 
   const [shippingRates, setShippingRates] = useState([]);
   const [loadingRates, setLoadingRates] = useState(false);
   const [ratesError, setRatesError] = useState("");
-
-  const [qrDetails, setQrDetails] = useState(null);
-  const [loadingQr, setLoadingQr] = useState(false);
-  const [qrPaymentOrder, setQrPaymentOrder] = useState(null);
-  const [submittingQr, setSubmittingQr] = useState(false);
-  const [qrForm, setQrForm] = useState({
-    transactionId: "",
-    screenshotFile: null,
-  });
 
   const updateForm = (key, value) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -152,20 +143,6 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
     }
   }, []);
 
-  useEffect(() => {
-    if (step === "payment") {
-      setLoadingQr(true);
-      api.payments.getQrDetails()
-        .then(res => {
-          if (res.success && res.data) {
-            setQrDetails(res.data);
-          }
-        })
-        .catch(err => console.error("Error fetching QR details:", err))
-        .finally(() => setLoadingQr(false));
-    }
-  }, [step]);
-
   const activeRate = shippingRates.find(r => r.courierName === form.deliveryMethod);
   const shipping = activeRate ? Number(activeRate.rate) : 0;
 
@@ -179,160 +156,6 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
       script.onerror = () => resolve(false);
       document.body.appendChild(script);
     });
-  };
-
-  const executeOrderCreation = async (finalAddressId, transactionId = null) => {
-    let orderRes;
-    try {
-      orderRes = await api.orders.createOrder({
-        addressId: finalAddressId,
-        items: items.map(item => ({
-          productId: item.productId || item.id,
-          variantId: item.variantId || undefined,
-          quantity: item.quantity
-        }))
-      });
-      if (!orderRes.success) {
-        throw new Error(orderRes.message || "Failed to create order");
-      }
-    } catch (backendErr) {
-      console.warn("Backend order creation failed, falling back to mock:", backendErr);
-      const mockId = "LH-" + Math.floor(1000 + Math.random() * 9000);
-      orderRes = {
-        success: true,
-        message: "Order placed successfully (Offline Fallback)",
-        data: {
-          id: mockId,
-        }
-      };
-
-      // Save mock order to localStorage so it persists and displays on dashboard
-      try {
-        const mockOrder = {
-          id: mockId,
-          status: "PENDING",
-          createdAt: new Date().toISOString(),
-          totalAmount: total,
-          items: items.map(item => ({
-            id: item.cartItemId || Math.floor(Math.random() * 10000),
-            price: item.price,
-            quantity: item.quantity,
-            product: {
-              id: item.productId || item.id,
-              name: item.productName || item.name || "Craft Item",
-              imageUrl: item.imageUrl || item.image || logoImg,
-              image: item.imageUrl || item.image || logoImg
-            }
-          })),
-          address: {
-            fullName: form.name,
-            phone: form.phone,
-            addressLine1: form.address,
-            city: form.city,
-            state: form.state,
-            pincode: form.pincode
-          },
-          paymentMethod: form.paymentMethod || "COD",
-          shippingCharge: shipping,
-          awbNumber: "AWB" + Math.floor(100000000 + Math.random() * 900000000),
-          courierName: activeRate?.courierName || (form.deliveryMethod === "express" ? "Express Delivery" : "Delhivery"),
-          shipmentStatus: "Processing",
-          trackingEvents: [
-            {
-              timestamp: new Date().toLocaleString(),
-              location: "Warehouse",
-              activity: "Order details received"
-            }
-          ],
-          transactionId: transactionId
-        };
-        const existingLocal = JSON.parse(localStorage.getItem("localOrders") || "[]");
-        existingLocal.push(mockOrder);
-        localStorage.setItem("localOrders", JSON.stringify(existingLocal));
-      } catch (localErr) {
-        console.error("Failed to save local mock order", localErr);
-      }
-    }
-
-    if (orderRes.success) {
-      setConfirmedOrderTotal(total);
-      try {
-        await api.cart.clearCart();
-      } catch (cartErr) {
-        console.error("Cart clear error", cartErr);
-      }
-
-      setConfirmedOrderId(orderRes.data?.id || "LH-" + Math.floor(Math.random() * 10000));
-      setStep("confirmed");
-      onOrderComplete();
-
-      // Trigger visual wow confetti celebration
-      try {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
-      } catch (confettiErr) {
-        console.error("Failed to run confetti", confettiErr);
-      }
-    } else {
-      throw new Error(orderRes.message || "Failed to place order");
-    }
-  };
-
-  const handleQrSubmit = async (e) => {
-    e.preventDefault();
-    if (!qrForm.screenshotFile) {
-      toast.error("Please upload your payment screenshot.");
-      return;
-    }
-    setSubmittingQr(true);
-    try {
-      const res = await api.payments.submitQrPayment(
-        qrPaymentOrder.id,
-        qrForm.screenshotFile,
-        qrForm.transactionId || null
-      );
-      if (res.success) {
-        toast.success("Payment screenshot uploaded successfully! Pending verification.");
-
-        // Finalize order screen
-        setConfirmedOrderTotal(qrPaymentOrder.total);
-        try {
-          await api.cart.clearCart();
-        } catch (cartErr) {
-          console.error("Cart clear error", cartErr);
-        }
-        setConfirmedOrderId(qrPaymentOrder.id);
-        setStep("confirmed");
-        onOrderComplete();
-
-        // Confetti celebration
-        try {
-          confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: { y: 0.6 }
-          });
-        } catch (cErr) { }
-      } else {
-        throw new Error(res.message || "Failed to submit payment details.");
-      }
-    } catch (err) {
-      console.warn("Backend QR submission failed, completing order with mock success:", err);
-      toast.success("Payment screenshot uploaded! Pending verification.");
-      setConfirmedOrderTotal(qrPaymentOrder.total);
-      try {
-        await api.cart.clearCart();
-      } catch (cartErr) { }
-      setConfirmedOrderId(qrPaymentOrder.id);
-      setStep("confirmed");
-      onOrderComplete();
-    } finally {
-      setSubmittingQr(false);
-      setQrPaymentOrder(null);
-    }
   };
 
   const placeOrder = async () => {
@@ -363,185 +186,142 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
         }
       }
 
-      if (form.paymentMethod === "razorpay") {
-        const loaded = await loadRazorpayScript();
-        if (!loaded) {
-          toast.error("Failed to load Razorpay SDK. Please check your connection.");
-          setIsPlacing(false);
-          return;
-        }
-
-        const orderPayload = {
-          addressId: finalAddressId,
-          items: items.map(item => ({
-            productId: item.productId || item.id,
-            variantId: item.variantId || undefined,
-            quantity: item.quantity
-          }))
-        };
-
-        // Create the backend order first to obtain an orderId
-        let backendOrderId = null;
-        try {
-          const preOrderRes = await api.orders.createOrder(orderPayload);
-
-          if (preOrderRes && preOrderRes.success === false) {
-            throw new Error(preOrderRes.message || "Failed to create order on backend.");
-          }
-
-          backendOrderId = preOrderRes.id || preOrderRes.orderId || preOrderRes.data?.id || preOrderRes.data?.orderId;
-
-          if (!backendOrderId) {
-            throw new Error("Order creation succeeded but orderId is missing from response.");
-          }
-        } catch (preErr) {
-          console.error("Pre-order creation failed before Razorpay widget:", preErr);
-          toast.error(preErr.message || "Failed to create order.");
-          setIsPlacing(false);
-          return;
-        }
-
-        let rzpOrderRes = null;
-        const rzpPayload = {
-          orderId: backendOrderId,
-          amount: Math.round(total * 100),
-          currency: "INR",
-          receipt: `receipt_${backendOrderId}`,
-        };
-
-        try {
-          rzpOrderRes = await api.payments.createRazorpayOrder(rzpPayload);
-        } catch (rzpErr) {
-          console.error("Could not pre-create Razorpay order id:", rzpErr);
-          toast.error(rzpErr.message || "Failed to create Razorpay payment order.");
-          setIsPlacing(false);
-          return;
-        }
-
-        // Backend response: { success: true, data: { razorpayOrderId: "order_XXX", amount: 178.83, currency: "INR" } }
-        // request() returns the parsed JSON directly, so rzpOrderRes.data.razorpayOrderId is the correct path
-        const razorpayOrderId = rzpOrderRes?.data?.razorpayOrderId;
-        const razorpayAmount = rzpOrderRes?.data?.amount;
-        const razorpayCurrency = rzpOrderRes?.data?.currency || "INR";
-
-        if (!razorpayOrderId) {
-          console.error("razorpayOrderId is undefined! Full response data keys:", rzpOrderRes?.data ? Object.keys(rzpOrderRes.data) : "data is null/undefined");
-          toast.error("Razorpay order ID missing from backend response.");
-          setIsPlacing(false);
-          return;
-        }
-
-        // Amount from backend is in rupees, Razorpay checkout expects paise (smallest unit)
-        const amountInPaise = Math.round(razorpayAmount * 100);
-
-        const logoUrl = logoImg?.startsWith("http")
-          ? logoImg
-          : `${window.location.origin}${logoImg?.startsWith("/") ? "" : "/"}${logoImg}`;
-
-        const options = {
-          key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_live_T0cB0EYllXBVHc",
-          amount: amountInPaise,
-          currency: razorpayCurrency,
-          order_id: razorpayOrderId,
-          name: "Lemon House",
-          description: "Order Payment",
-          image: logoUrl,
-          handler: async function (response) {
-            try {
-              setIsPlacing(true);
-              // Verify payment signature with backend
-              try {
-                await api.payments.verifyRazorpayPayment({
-                  razorpayOrderId: response.razorpay_order_id,
-                  razorpayPaymentId: response.razorpay_payment_id,
-                  razorpaySignature: response.razorpay_signature,
-                });
-              } catch (verifyErr) {
-                console.warn("Backend payment signature verification warning:", verifyErr);
-              }
-
-              // Order was already created before Razorpay widget opened — just confirm it
-              setConfirmedOrderTotal(total);
-              try {
-                await api.cart.clearCart();
-              } catch (cartErr) {
-                console.error("Cart clear error", cartErr);
-              }
-              setConfirmedOrderId(backendOrderId);
-              setStep("confirmed");
-              onOrderComplete();
-
-              try {
-                confetti({
-                  particleCount: 100,
-                  spread: 70,
-                  origin: { y: 0.6 }
-                });
-              } catch (confettiErr) {}
-            } catch (err) {
-              console.error("Post-payment confirmation failed: " + err.message);
-              toast.error(err.message || "Failed to confirm order after payment.");
-            } finally {
-              setIsPlacing(false);
-            }
-          },
-          prefill: {
-            name: form.name || (selectedSavedAddress?.fullName) || "",
-            contact: form.phone || (selectedSavedAddress?.phone) || "",
-            email: form.email || (selectedSavedAddress?.email) || "",
-          },
-          theme: {
-            color: "#a61c9b",
-          },
-          modal: {
-            ondismiss: function () {
-              setIsPlacing(false);
-              toast.error("Payment cancelled by user.");
-            }
-          }
-        };
-
-        const rzp = new window.Razorpay(options);
-        rzp.open();
-      } else if (form.paymentMethod === "upi") {
-        // UPI QR Flow: Create order, then display QR screen
-        const mockOrderTotal = total;
-        let orderRes;
-        try {
-          orderRes = await api.orders.createOrder({
-            addressId: finalAddressId,
-            items: items.map(item => ({
-              productId: item.productId || item.id,
-              variantId: item.variantId || undefined,
-              quantity: item.quantity
-            }))
-          });
-          if (!orderRes.success) {
-            throw new Error(orderRes.message || "Failed to create order");
-          }
-        } catch (backendErr) {
-          console.warn("Backend order creation failed, falling back to mock:", backendErr);
-          const mockId = "LH-" + Math.floor(1000 + Math.random() * 9000);
-          orderRes = {
-            success: true,
-            message: "Order placed successfully (Offline Fallback)",
-            data: {
-              id: mockId,
-            }
-          };
-        }
-
-        if (orderRes.success) {
-          setQrPaymentOrder({
-            id: orderRes.data?.id || "LH-" + Math.floor(Math.random() * 10000),
-            total: mockOrderTotal,
-          });
-        } else {
-          throw new Error(orderRes.message || "Failed to place order");
-        }
-      } else {
-        await executeOrderCreation(finalAddressId);
+      const loaded = await loadRazorpayScript();
+      if (!loaded) {
+        toast.error("Failed to load Razorpay SDK. Please check your connection.");
+        setIsPlacing(false);
+        return;
       }
+
+      const orderPayload = {
+        addressId: finalAddressId,
+        items: items.map(item => ({
+          productId: item.productId || item.id,
+          variantId: item.variantId || undefined,
+          quantity: item.quantity
+        }))
+      };
+
+      // Create the backend order first to obtain an orderId
+      let backendOrderId = null;
+      try {
+        const preOrderRes = await api.orders.createOrder(orderPayload);
+
+        if (preOrderRes && preOrderRes.success === false) {
+          throw new Error(preOrderRes.message || "Failed to create order on backend.");
+        }
+
+        backendOrderId = preOrderRes.id || preOrderRes.orderId || preOrderRes.data?.id || preOrderRes.data?.orderId;
+
+        if (!backendOrderId) {
+          throw new Error("Order creation succeeded but orderId is missing from response.");
+        }
+      } catch (preErr) {
+        console.error("Pre-order creation failed before Razorpay widget:", preErr);
+        toast.error(preErr.message || "Failed to create order.");
+        setIsPlacing(false);
+        return;
+      }
+
+      let rzpOrderRes = null;
+      const rzpPayload = {
+        orderId: backendOrderId,
+        amount: Math.round(total * 100),
+        currency: "INR",
+        receipt: `receipt_${backendOrderId}`,
+      };
+
+      try {
+        rzpOrderRes = await api.payments.createRazorpayOrder(rzpPayload);
+      } catch (rzpErr) {
+        console.error("Could not create Razorpay order:", rzpErr);
+        toast.error(rzpErr.message || "Failed to create Razorpay payment order.");
+        setIsPlacing(false);
+        return;
+      }
+
+      const razorpayOrderId = rzpOrderRes?.data?.razorpayOrderId || rzpOrderRes?.razorpayOrderId;
+      const razorpayAmount = rzpOrderRes?.data?.amount || rzpOrderRes?.amount || total;
+      const razorpayCurrency = rzpOrderRes?.data?.currency || rzpOrderRes?.currency || "INR";
+      const razorpayKey = rzpOrderRes?.data?.keyId || rzpOrderRes?.data?.key || rzpOrderRes?.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_live_T0cB0EYllXBVHc";
+
+      if (!razorpayOrderId) {
+        console.error("razorpayOrderId is undefined in backend response:", rzpOrderRes);
+        toast.error("Razorpay order ID missing from backend response.");
+        setIsPlacing(false);
+        return;
+      }
+
+      const amountInPaise = Math.round(razorpayAmount * 100);
+
+      const logoUrl = logoImg?.startsWith("http")
+        ? logoImg
+        : `${window.location.origin}${logoImg?.startsWith("/") ? "" : "/"}${logoImg}`;
+
+      const options = {
+        key: razorpayKey,
+        amount: amountInPaise,
+        currency: razorpayCurrency,
+        order_id: razorpayOrderId,
+        name: "Lemon House",
+        description: "Order Payment",
+        image: logoUrl,
+        handler: async function (response) {
+          try {
+            setIsPlacing(true);
+            try {
+              await api.payments.verifyRazorpayPayment({
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+                internalOrderId: backendOrderId,
+              });
+            } catch (verifyErr) {
+              console.warn("Backend payment signature verification warning:", verifyErr);
+            }
+
+            setConfirmedOrderTotal(total);
+            try {
+              await api.cart.clearCart();
+            } catch (cartErr) {
+              console.error("Cart clear error", cartErr);
+            }
+            setConfirmedOrderId(backendOrderId);
+            setStep("confirmed");
+            onOrderComplete();
+
+            try {
+              confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+              });
+            } catch (confettiErr) {}
+          } catch (err) {
+            console.error("Post-payment confirmation failed: " + err.message);
+            toast.error(err.message || "Failed to confirm order after payment.");
+          } finally {
+            setIsPlacing(false);
+          }
+        },
+        prefill: {
+          name: form.name || (selectedSavedAddress?.fullName) || "",
+          contact: form.phone || (selectedSavedAddress?.phone) || "",
+          email: form.email || (selectedSavedAddress?.email) || "",
+        },
+        theme: {
+          color: "#a61c9b",
+        },
+        modal: {
+          ondismiss: function () {
+            setIsPlacing(false);
+            toast.error("Payment process cancelled. You can try again to complete your order.");
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
     } catch (err) {
       console.error("Order creation failed: " + err.message);
       toast.error(err.message || "Failed to place order.");
@@ -585,149 +365,8 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
       }
     }
 
-
     setStep(STEPS[stepIndex + 1].key);
   };
-
-  if (qrPaymentOrder) {
-    return (
-      <div
-        className="min-h-screen flex items-center justify-center p-4 animate-fade-in"
-        style={{ background: "#FFFDF7" }}
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-3xl border border-border p-6 sm:p-8 max-w-md w-full shadow-lg text-center space-y-6"
-        >
-          <div>
-            <h2
-              className="text-2xl font-bold text-foreground mb-1 animate-pulse"
-              style={{ fontFamily: "Poppins, sans-serif" }}
-            >
-              Complete UPI Payment
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Please scan the QR code to pay <strong>₹{qrPaymentOrder.total}</strong>
-            </p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 border border-border/40 max-w-[220px] mx-auto shadow-sm">
-            {loadingQr ? (
-              <div className="flex flex-col items-center justify-center py-6">
-                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mb-2" />
-                <p className="text-[10px] text-muted-foreground font-semibold">Loading QR Code...</p>
-              </div>
-            ) : (
-              <div>
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=${(qrDetails && qrDetails.upiId) ? qrDetails.upiId : "lemonacademia.in@okaxis"}&pn=${encodeURIComponent((qrDetails && qrDetails.merchantName) ? qrDetails.merchantName : "Lemon House")}&am=${qrPaymentOrder.total}&cu=INR`)}`}
-                  alt="UPI QR Code"
-                  className="w-44 h-44 mx-auto object-contain bg-white p-2 rounded-xl mb-2 shadow-sm border border-border"
-                />
-                <p className="font-bold text-xs mb-0.5">{(qrDetails && qrDetails.merchantName) || "Lemon House"}</p>
-                <p className="text-[10px] text-muted-foreground select-all bg-muted py-0.5 px-2 rounded font-mono inline-block">
-                  {(qrDetails && qrDetails.upiId) || "lemonacademia.in@okaxis"}
-                </p>
-              </div>
-            )}
-          </div>
-
-          <form onSubmit={handleQrSubmit} className="text-left space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Payment Screenshot (Required) *
-                </label>
-                <a
-                  href="https://wa.link/98z5wj"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#25D366] hover:underline"
-                >
-                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-1.002 3.66 3.745-.983zm12.383-7.534c-.287-.143-1.696-.837-1.958-.933-.263-.095-.455-.143-.647.143-.192.286-.743.933-.911 1.124-.168.19-.336.214-.623.071-1.687-.843-2.8-1.5-3.916-3.415-.297-.511.297-.474.848-1.574.096-.19.048-.357-.024-.5-.072-.143-.647-1.557-.887-2.131-.233-.559-.47-.483-.647-.492-.167-.008-.359-.008-.551-.008-.192 0-.503.072-.767.357-.263.286-1.007.984-1.007 2.4 0 1.416 1.031 2.784 1.175 2.975.144.191 2.03 3.103 4.919 4.35.686.297 1.222.474 1.639.607.69.22 1.317.189 1.813.115.553-.083 1.696-.693 1.935-1.362.239-.669.239-1.24.168-1.362-.072-.123-.264-.195-.551-.338z"/>
-                  </svg>
-                  <span>WhatsApp Support</span>
-                </a>
-              </div>
-              <input
-                type="file"
-                accept="image/*"
-                required
-                onChange={(e) => setQrForm(prev => ({ ...prev, screenshotFile: e.target.files[0] }))}
-                className="w-full text-xs text-muted-foreground file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer border border-border rounded-xl p-1 bg-muted/5 focus:outline-none"
-              />
-              <p className="text-[10px] text-yellow-600 font-semibold mt-1.5 flex items-start gap-1">
-                <span>⚠️</span>
-                <span>Please ensure the transaction ID is clearly visible in the screenshot, otherwise your payment will not be confirmed.</span>
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                Transaction ID / UTR (12 digits, Optional)
-              </label>
-              <input
-                type="text"
-                maxLength={20}
-                placeholder="Enter 12-digit UPI UTR"
-                value={qrForm.transactionId}
-                onChange={(e) => setQrForm(prev => ({ ...prev, transactionId: e.target.value }))}
-                className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted/10 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono"
-              />
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setQrPaymentOrder(null)}
-                disabled={submittingQr}
-                className="flex-1 py-3 rounded-2xl text-xs font-semibold border border-border hover:bg-muted transition-all disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submittingQr}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold text-xs disabled:opacity-50 hover:opacity-90 transition-all shadow-md"
-                style={{
-                  background: "linear-gradient(135deg, #a61c9b, #d82a81)",
-                }}
-              >
-                {submittingQr ? (
-                  <>
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  "Submit Payment"
-                )}
-              </button>
-            </div>
-
-            {/* WhatsApp Support Button */}
-            <div className="pt-3 border-t border-border/60 text-center">
-              <p className="text-[11px] text-muted-foreground mb-2 font-medium">
-                Need help with your payment or screenshot?
-              </p>
-              <a
-                href="https://wa.link/98z5wj"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-2xl text-xs font-bold transition-all shadow-sm hover:shadow-md cursor-pointer w-full"
-              >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-1.002 3.66 3.745-.983zm12.383-7.534c-.287-.143-1.696-.837-1.958-.933-.263-.095-.455-.143-.647.143-.192.286-.743.933-.911 1.124-.168.19-.336.214-.623.071-1.687-.843-2.8-1.5-3.916-3.415-.297-.511.297-.474.848-1.574.096-.19.048-.357-.024-.5-.072-.143-.647-1.557-.887-2.131-.233-.559-.47-.483-.647-.492-.167-.008-.359-.008-.551-.008-.192 0-.503.072-.767.357-.263.286-1.007.984-1.007 2.4 0 1.416 1.031 2.784 1.175 2.975.144.191 2.03 3.103 4.919 4.35.686.297 1.222.474 1.639.607.69.22 1.317.189 1.813.115.553-.083 1.696-.693 1.935-1.362.239-.669.239-1.24.168-1.362-.072-.123-.264-.195-.551-.338z"/>
-                </svg>
-                Chat on WhatsApp Support
-              </a>
-            </div>
-          </form>
-        </motion.div>
-      </div>
-    );
-  }
 
   if (step === "confirmed") {
     return (
@@ -1061,57 +700,17 @@ export function CheckoutPage({ items, navigate, onOrderComplete }) {
                     >
                       Payment Method
                     </h2>
-                    <div className="space-y-3">
-                      {[
-                        {
-                          value: "razorpay",
-                          label: "Razorpay (Cards, UPI, Netbanking)",
-                          sub: "Pay securely via Razorpay gateway",
-                          icon: "💳",
-                        },
-                        {
-                          value: "upi",
-                          label: "PhonePe QR / UPI",
-                          sub: "Scan QR code to pay instantly",
-                          icon: "📱",
-                        },
-                      ].map((opt) => (
-                        <div key={opt.value} className="space-y-3">
-                          <label
-                            className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${form.paymentMethod === opt.value
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:border-primary/40"
-                              }`}
-                          >
-                            <input
-                              type="radio"
-                              name="payment"
-                              value={opt.value}
-                              checked={form.paymentMethod === opt.value}
-                              onChange={(e) =>
-                                updateForm("paymentMethod", e.target.value)
-                              }
-                              className="accent-primary"
-                            />
-                            <span className="text-xl">{opt.icon}</span>
-                            <div className="flex-1">
-                              <p className="font-semibold text-sm">{opt.label}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {opt.sub}
-                              </p>
-                            </div>
-                          </label>
-
-                          {opt.value === "upi" && form.paymentMethod === "upi" && (
-                            <div className="border border-border/85 rounded-2xl p-4 bg-card/60 ml-6 transition-all duration-300 shadow-inner">
-                              <p className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium">
-                                <span>📱</span>
-                                <span>You will be shown the UPI QR code to scan and upload your payment screenshot after you click "Place Order".</span>
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                    <div className="p-5 rounded-2xl border-2 border-primary bg-primary/5 flex items-center gap-4 shadow-sm">
+                      <span className="text-3xl">💳</span>
+                      <div className="flex-1">
+                        <p className="font-bold text-sm text-foreground">Razorpay Secure Payment Gateway</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Supports UPI (GPay, PhonePe, Paytm), Credit & Debit Cards, Netbanking, and Wallets
+                        </p>
+                      </div>
+                      <span className="text-xs font-extrabold text-primary px-3 py-1 bg-primary/10 rounded-full uppercase tracking-wider">
+                        Default Gateway
+                      </span>
                     </div>
                   </motion.div>
                 )}
