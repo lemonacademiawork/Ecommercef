@@ -301,6 +301,79 @@ export async function cachedRequest(endpoint, staleTime = DEFAULT_STALE_TIME) {
   return requestPromise;
 }
 
+// Shipping label helper functions
+export const downloadShippingLabel = async (orderId, orderNumber = "") => {
+  const token = getToken();
+  const endpoint = `/admin/shipping/label/${encodeURIComponent(orderId)}/download`;
+  const cleanEndpoint = endpoint.startsWith("/api/") ? endpoint.slice(4) : endpoint;
+  
+  const headers = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${cleanEndpoint}`, {
+    method: "GET",
+    headers,
+  });
+
+  if (!response.ok) {
+    let errorMsg = "Failed to download shipping label. Please ensure the shipment is booked.";
+    try {
+      const errText = await response.text();
+      const parsed = JSON.parse(errText);
+      errorMsg = parsed.message || parsed.error || errorMsg;
+    } catch (_) {}
+    throw new Error(errorMsg);
+  }
+
+  const blob = await response.blob();
+  const fileUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = fileUrl;
+  const fileName = orderNumber ? `shipping-label-${orderNumber}.pdf` : `shipping-label-${orderId}.pdf`;
+  link.setAttribute("download", fileName);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => window.URL.revokeObjectURL(fileUrl), 1000);
+};
+
+export const viewShippingLabelInline = async (orderId) => {
+  const token = getToken();
+  const endpoint = `/admin/shipping/label/${encodeURIComponent(orderId)}/pdf`;
+  const cleanEndpoint = endpoint.startsWith("/api/") ? endpoint.slice(4) : endpoint;
+
+  const headers = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${cleanEndpoint}`, {
+    method: "GET",
+    headers,
+  });
+
+  if (!response.ok) {
+    let errorMsg = "Failed to open shipping label. Please ensure the shipment is booked.";
+    try {
+      const errText = await response.text();
+      const parsed = JSON.parse(errText);
+      errorMsg = parsed.message || parsed.error || errorMsg;
+    } catch (_) {}
+    throw new Error(errorMsg);
+  }
+
+  const blob = await response.blob();
+  const fileUrl = window.URL.createObjectURL(blob);
+  window.open(fileUrl, "_blank");
+  setTimeout(() => window.URL.revokeObjectURL(fileUrl), 60000);
+};
+
+export const getShippingLabelMetadata = async (orderId) => {
+  return request(`/admin/shipping/label/${encodeURIComponent(orderId)}/url`);
+};
+
 export const api = {
   get: (endpoint, options = {}) => request(endpoint, { method: "GET", ...options }),
   auth: {
@@ -821,7 +894,10 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data),
       }),
-    generateLabel: (orderId) => request(`/admin/shipping/label/${orderId}`),
+    downloadLabel: (orderId, orderNumber) => downloadShippingLabel(orderId, orderNumber),
+    previewLabel: (orderId) => viewShippingLabelInline(orderId),
+    getLabelMetadata: (orderId) => getShippingLabelMetadata(orderId),
+    generateLabel: (orderId) => getShippingLabelMetadata(orderId),
     savePickupAddress: (data) =>
       request("/admin/shipping/pickup/address", {
         method: "POST",

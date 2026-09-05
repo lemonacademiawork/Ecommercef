@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router";
-import { ChevronDown, ChevronLeft, ChevronRight, Eye, X, Truck, Calculator, FileText, Calendar, Ban, RefreshCw, Loader2, Info, ShoppingBag } from "lucide-react";
-import { api } from "../../services/api";
+import { ChevronDown, ChevronLeft, ChevronRight, Eye, X, Truck, Calculator, FileText, Calendar, Ban, RefreshCw, Loader2, Info, ShoppingBag, Download } from "lucide-react";
+import { api, downloadShippingLabel, viewShippingLabelInline } from "../../services/api";
 import { toast } from "sonner";
 import { AdminPagination } from "../../components/AdminPagination";
 import SearchInput from "../../components/SearchInput";
@@ -12,6 +12,15 @@ const statusColors = {
   PAID: "bg-green-100 text-green-800 border border-green-200 font-bold",
   PAYMENT_PENDING: "bg-amber-100 text-amber-800 border border-amber-200 font-bold",
   PAYMENT_FAILED: "bg-red-100 text-red-800 border border-red-200 font-bold",
+};
+
+const isShipmentBooked = (order) => {
+  if (!order) return false;
+  const status = (order.shipmentStatus || order.shippingStatus || "").toUpperCase();
+  if (status === "PENDING_BOOKING" || status === "CANCELLED" || status === "UNBOOKED") {
+    return false;
+  }
+  return Boolean(order.awbNumber || order.shipmentId || ["BOOKED", "SHIPPED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED"].includes(status));
 };
 
 const getOrderTotal = (order) => {
@@ -126,6 +135,7 @@ export function AdminOrdersPage() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [cancellingLoading, setCancellingLoading] = useState(false);
   const [labelLoading, setLabelLoading] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [pickupLoading, setPickupLoading] = useState(false);
   const [trackingLoading, setTrackingLoading] = useState(false);
   const [trackingData, setTrackingData] = useState(null);
@@ -359,31 +369,37 @@ export function AdminOrdersPage() {
     }
   };
 
-  const handleDownloadLabel = async (orderId) => {
+  const handleDownloadLabel = async (orderId, orderNumber) => {
+    if (!orderId) {
+      toast.error("Invalid order ID.");
+      return;
+    }
     setLabelLoading(true);
     try {
-      let res;
-      try {
-        res = await api.shipping.generateLabel(orderId);
-      } catch (backendErr) {
-        console.warn("Backend generateLabel failed, falling back to mock:", backendErr);
-        res = {
-          success: true,
-          message: "Label generated successfully (Offline Fallback)",
-          data: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
-        };
-      }
-
-      if (res.success && res.data) {
-        toast.success("Label generated! Opening in a new tab.");
-        window.open(res.data, "_blank");
-      } else {
-        throw new Error(res.message || "Failed to generate label.");
-      }
+      await downloadShippingLabel(orderId, orderNumber || selectedOrder?.orderNumber || selectedOrder?.id);
+      toast.success("Shipping label downloaded successfully.");
     } catch (err) {
-      toast.error(err.message || "Error generating shipping label.");
+      console.error("Failed to download shipping label:", err);
+      toast.error(err.message || "Failed to download shipping label. Please ensure the shipment is booked.");
     } finally {
       setLabelLoading(false);
+    }
+  };
+
+  const handlePreviewLabel = async (orderId) => {
+    if (!orderId) {
+      toast.error("Invalid order ID.");
+      return;
+    }
+    setPreviewLoading(true);
+    try {
+      await viewShippingLabelInline(orderId);
+      toast.success("Shipping label opened in a new tab.");
+    } catch (err) {
+      console.error("Failed to preview shipping label:", err);
+      toast.error(err.message || "Failed to open shipping label. Please ensure the shipment is booked.");
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -683,12 +699,24 @@ export function AdminOrdersPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() => handleViewOrderDetails(order)}
-                      className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-border hover:bg-muted font-medium transition-colors cursor-pointer"
-                    >
-                      <Eye className="w-3.5 h-3.5" /> Details
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleViewOrderDetails(order)}
+                        className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-border hover:bg-muted font-medium transition-colors cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Details
+                      </button>
+                      {isShipmentBooked(order) && (
+                        <button
+                          type="button"
+                          title="Download Shipping Label"
+                          onClick={() => handleDownloadLabel(order.id, order.orderNumber || order.id)}
+                          className="flex items-center gap-1 text-xs px-2 py-1.5 rounded-lg border border-border hover:bg-muted font-medium text-foreground transition-colors cursor-pointer"
+                        >
+                          <Download className="w-3.5 h-3.5 text-primary" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
                 );
@@ -839,6 +867,16 @@ export function AdminOrdersPage() {
                         </button>
                       </div>
 
+                      <button
+                        type="button"
+                        disabled={true}
+                        title="Please book a shipment before downloading the label"
+                        className="w-full flex items-center justify-center gap-1.5 text-[11px] py-1.5 border border-dashed border-border text-muted-foreground bg-muted/40 rounded-lg font-medium opacity-60 cursor-not-allowed"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        Shipping Label (Shipment Not Booked)
+                      </button>
+
                       {showEstimator && (
                         <form onSubmit={handleGetEstimate} className="space-y-3 pt-3 border-t border-border/50">
                           <div className="grid grid-cols-2 gap-2.5">
@@ -968,7 +1006,7 @@ export function AdminOrdersPage() {
                         <div>
                           <p className="text-[10px] text-muted-foreground font-semibold uppercase font-bold">SHIPPING STATUS</p>
                           <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 mt-0.5">
-                            {selectedOrder.shippingStatus || "Booked"}
+                            {selectedOrder.shippingStatus || selectedOrder.shipmentStatus || "Booked"}
                           </span>
                         </div>
                         {selectedOrder.pickupStatus && (
@@ -991,23 +1029,37 @@ export function AdminOrdersPage() {
                         )}
                       </div>
 
-                      {/* Shipping label download and pickup request buttons */}
+                      {/* Shipping label download, preview, and pickup request buttons */}
                       <div className="grid grid-cols-2 gap-2">
                         <button
                           type="button"
-                          disabled={labelLoading}
-                          onClick={() => handleDownloadLabel(selectedOrder.id)}
-                          className="flex items-center justify-center gap-1.5 text-[11px] py-1.5 border border-border text-foreground bg-white hover:bg-muted/50 rounded-lg font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                          disabled={labelLoading || !isShipmentBooked(selectedOrder)}
+                          title={!isShipmentBooked(selectedOrder) ? "Please book a shipment before downloading the label" : "Download shipping label PDF"}
+                          onClick={() => handleDownloadLabel(selectedOrder.id, selectedOrder.orderNumber || selectedOrder.id)}
+                          className="flex items-center justify-center gap-1.5 text-[11px] py-2 border border-border text-foreground bg-white hover:bg-muted/50 rounded-lg font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                         >
-                          {labelLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
-                          Shipping Label
+                          {labelLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" /> : <Download className="w-3.5 h-3.5" />}
+                          Download Label
                         </button>
                         
                         <button
                           type="button"
+                          disabled={previewLoading || !isShipmentBooked(selectedOrder)}
+                          title={!isShipmentBooked(selectedOrder) ? "Please book a shipment before downloading the label" : "Preview shipping label inline"}
+                          onClick={() => handlePreviewLabel(selectedOrder.id)}
+                          className="flex items-center justify-center gap-1.5 text-[11px] py-2 border border-border text-foreground bg-white hover:bg-muted/50 rounded-lg font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                        >
+                          {previewLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" /> : <Eye className="w-3.5 h-3.5" />}
+                          Preview Label
+                        </button>
+                      </div>
+
+                      <div>
+                        <button
+                          type="button"
                           disabled={pickupLoading}
                           onClick={() => handleSchedulePickup(selectedOrder.id)}
-                          className="flex items-center justify-center gap-1.5 text-[11px] py-1.5 border border-border text-foreground bg-white hover:bg-muted/50 rounded-lg font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                          className="w-full flex items-center justify-center gap-1.5 text-[11px] py-2 border border-border text-foreground bg-white hover:bg-muted/50 rounded-lg font-semibold transition-colors cursor-pointer disabled:opacity-50 shadow-sm"
                         >
                           {pickupLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Calendar className="w-3.5 h-3.5" />}
                           Schedule Pickup
