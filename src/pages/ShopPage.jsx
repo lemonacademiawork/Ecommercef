@@ -1,12 +1,13 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation } from "react-router";
-import { SlidersHorizontal, X, ChevronDown, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { SlidersHorizontal, X, ChevronDown, Search, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { ProductCard } from "../components/ProductCard";
 import { api } from "../services/api";
 import { SEO } from "../components/SEO";
 import { BackButton } from "../components/BackButton";
 import { getOptimizedImageUrl } from "../utils/cloudinary";
+import { filterAndRankProducts } from "../utils/search";
 
 const SORT_OPTIONS = [
   { value: "popular", label: "Most Popular" },
@@ -26,7 +27,8 @@ export function ShopPage({
 }) {
   const location = useLocation();
   const productsGridRef = useRef(null);
-  const [products, setProducts] = useState([]);
+  const searchTimeoutRef = useRef(null);
+  const [allProducts, setAllProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchingPage, setFetchingPage] = useState(false);
@@ -36,35 +38,39 @@ export function ShopPage({
   const [onlyInStock, setOnlyInStock] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [localSearch, setLocalSearch] = useState(searchQuery || "");
-
-  // Sync searchQuery prop changes from Navbar
-  useEffect(() => {
-    setLocalSearch(searchQuery || "");
-    setCurrentPage(0);
-  }, [searchQuery]);
+  const [isSearching, setIsSearching] = useState(false);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize] = useState(12);
-  const [pagination, setPagination] = useState({
-    pageNumber: 0,
-    pageSize: 12,
-    totalElements: 0,
-    totalPages: 1,
-    last: true,
-  });
 
-  // Sync category from URL search params
+  // Sync searchQuery prop and URL search params
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const catQuery = searchParams.get("category");
+    const urlSearch = searchParams.get("search") || searchParams.get("q");
+
     if (catQuery) {
       setSelectedCategory(catQuery);
     } else {
       setSelectedCategory("all");
     }
+
+    if (urlSearch !== null && urlSearch !== undefined) {
+      setLocalSearch(urlSearch);
+      if (onSearchChange) onSearchChange(urlSearch);
+    } else if (searchQuery !== undefined) {
+      setLocalSearch(searchQuery || "");
+    }
     setCurrentPage(0);
-  }, [location.search]);
+  }, [location.search, searchQuery]);
+
+  // Clean up search debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, []);
 
   // Load Categories on mount
   useEffect(() => {
@@ -79,6 +85,30 @@ export function ShopPage({
       }
     }
     loadCategories();
+  }, []);
+
+  // Load full product catalog on mount (cached in API service for fast client-side searching across complete dataset)
+  useEffect(() => {
+    let isMounted = true;
+    async function loadCatalog() {
+      try {
+        const prodRes = await api.products.listProducts({ all: true, size: 1000 });
+        if (isMounted && prodRes && Array.isArray(prodRes.data)) {
+          setAllProducts(prodRes.data);
+        }
+      } catch (err) {
+        console.error("Error loading products catalog:", err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+          setFetchingPage(false);
+        }
+      }
+    }
+    loadCatalog();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const activeCategoryObj = useMemo(() => {
@@ -96,153 +126,30 @@ export function ShopPage({
   }, [categories, selectedCategory]);
 
   const maxProductPrice = useMemo(() => {
-    if (products.length === 0) return 2000;
-    const maxVal = Math.max(...products.map((p) => p.price || 0));
+    if (allProducts.length === 0) return 2000;
+    const maxVal = Math.max(...allProducts.map((p) => p.price || 0));
     return maxVal > 2000 ? Math.ceil(maxVal / 1000) * 1000 : 2000;
-  }, [products]);
-
-  // Fetch products with backend pagination parameters
-  useEffect(() => {
-    async function loadProducts() {
-      if (!loading) {
-        setFetchingPage(true);
-      }
-      try {
-        const isUUID = (str) =>
-          typeof str === "string" &&
-          /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
-
-        let catId = undefined;
-        if (selectedCategory !== "all") {
-          if (isUUID(selectedCategory)) {
-            catId = selectedCategory;
-          } else if (activeCategoryObj?.id) {
-            catId = activeCategoryObj.id;
-          }
-        }
-
-        if (selectedCategory === "all") {
-          // Fetch full catalog across all categories using all=true parameter (returns all 481 products)
-          const prodRes = await api.products.listProducts({
-            all: true,
-            size: 1000,
-            search: localSearch,
-            sortBy: sortBy,
-          });
-
-          let fullList = prodRes.data || [];
-          if (!Array.isArray(fullList) || fullList.length === 0) {
-            // Fallback to per-category fetch if general request returns empty
-            let combinedProducts = [];
-            const seenIds = new Set();
-            if (categories && categories.length > 0) {
-              const catResults = await Promise.all(
-                categories.map((c) =>
-                  api.products
-                    .listProducts({
-                      categoryId: c.id,
-                      all: true,
-                      size: 1000,
-                      search: localSearch,
-                      sortBy: sortBy,
-                    })
-                    .catch(() => null)
-                )
-              );
-              for (const res of catResults) {
-                if (res?.success && Array.isArray(res.data)) {
-                  for (const prod of res.data) {
-                    if (prod && prod.id && !seenIds.has(prod.id)) {
-                      seenIds.add(prod.id);
-                      combinedProducts.push(prod);
-                    }
-                  }
-                }
-              }
-            }
-            fullList = combinedProducts;
-          }
-
-          if (sortBy === "price-asc") {
-            fullList.sort((a, b) => (a.price || 0) - (b.price || 0));
-          } else if (sortBy === "price-desc") {
-            fullList.sort((a, b) => (b.price || 0) - (a.price || 0));
-          } else if (sortBy === "newest") {
-            fullList.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
-          } else if (sortBy === "rating") {
-            fullList.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-          }
-
-          const startIdx = currentPage * pageSize;
-          const paginatedSlice = fullList.slice(startIdx, startIdx + pageSize);
-
-          setProducts(paginatedSlice.length > 0 ? paginatedSlice : fullList);
-          setPagination({
-            pageNumber: currentPage,
-            pageSize: pageSize,
-            totalElements: fullList.length,
-            totalPages: Math.max(1, Math.ceil(fullList.length / pageSize)),
-            last: (currentPage + 1) * pageSize >= fullList.length,
-          });
-        } else {
-          // Specific category requested: call GET /api/products?categoryId={catId}
-          const prodRes = await api.products.listProducts({
-            page: currentPage,
-            size: pageSize,
-            categoryId: catId,
-            search: localSearch,
-            sortBy: sortBy,
-          });
-
-          if (prodRes.success && prodRes.data) {
-            setProducts(prodRes.data);
-          }
-          if (prodRes.pagination) {
-            setPagination(prodRes.pagination);
-          } else if (prodRes.data) {
-            setPagination({
-              pageNumber: currentPage,
-              pageSize: pageSize,
-              totalElements: prodRes.data.length,
-              totalPages: Math.max(1, Math.ceil(prodRes.data.length / pageSize)),
-              last: true,
-            });
-          }
-        }
-      } catch (err) {
-        console.error("Error loading shop data:", err);
-      } finally {
-        setLoading(false);
-        setFetchingPage(false);
-      }
-    }
-
-    loadProducts();
-  }, [currentPage, pageSize, selectedCategory, activeCategoryObj, categories, localSearch, sortBy]);
+  }, [allProducts]);
 
   const isCatSelected = (cat) => {
     if (selectedCategory === "all") return false;
-    const selStr = String(selectedCategory).toLowerCase();
-    const catId = String(cat.id || "").toLowerCase();
-    const catName = String(cat.name || "").toLowerCase();
-    const catIdStr = String(cat.idString || "").toLowerCase();
+    const selStr = String(selectedCategory).toLowerCase().trim();
+    const catId = String(cat.id || "").toLowerCase().trim();
+    const catName = String(cat.name || "").toLowerCase().trim();
+    const catIdStr = String(cat.idString || "").toLowerCase().trim();
     return selStr === catId || selStr === catName || selStr === catIdStr;
   };
 
+  // Complete catalog filtering across search, category, price, and stock
   const filtered = useMemo(() => {
-    let list = [...products];
+    let list = [...allProducts];
 
+    // 1. Search Query filtering (multi-keyword, tokenized, spelling-normalized, category-aware)
     if (localSearch && localSearch.trim()) {
-      const q = localSearch.toLowerCase().trim();
-      list = list.filter((p) => {
-        const name = String(p.name || "").toLowerCase();
-        const desc = String(p.description || "").toLowerCase();
-        const cat = String(p.categoryName || p.category || "").toLowerCase();
-        const tags = Array.isArray(p.tags) ? p.tags.join(" ").toLowerCase() : "";
-        return name.includes(q) || desc.includes(q) || cat.includes(q) || tags.includes(q);
-      });
+      list = filterAndRankProducts(list, localSearch);
     }
 
+    // 2. Category filtering
     if (selectedCategory !== "all") {
       const selStr = String(selectedCategory).toLowerCase().trim();
       const activeCatName = activeCategoryObj?.name ? String(activeCategoryObj.name).toLowerCase().trim() : "";
@@ -265,13 +172,41 @@ export function ShopPage({
       });
     }
 
+    // 3. Price range filtering
     list = list.filter(
       (p) => p.price >= priceRange[0] && p.price <= priceRange[1]
     );
-    if (onlyInStock) list = list.filter((p) => p.inStock);
+
+    // 4. Availability filtering
+    if (onlyInStock) {
+      list = list.filter((p) => p.inStock);
+    }
+
+    // 5. Sorting
+    if (sortBy === "price-asc") {
+      list.sort((a, b) => (a.price || 0) - (b.price || 0));
+    } else if (sortBy === "price-desc") {
+      list.sort((a, b) => (b.price || 0) - (a.price || 0));
+    } else if (sortBy === "newest") {
+      list.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
+    } else if (sortBy === "rating") {
+      list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    } else if (sortBy === "popular" && (!localSearch || !localSearch.trim())) {
+      list.sort((a, b) => (b.reviews || 0) - (a.reviews || 0));
+    }
+    // Note: When localSearch is present and sortBy === "popular", list remains sorted by relevance score!
 
     return list;
-  }, [products, localSearch, selectedCategory, activeCategoryObj, priceRange, onlyInStock]);
+  }, [allProducts, localSearch, selectedCategory, activeCategoryObj, priceRange, onlyInStock, sortBy]);
+
+  const totalElem = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalElem / pageSize));
+
+  // Current page items
+  const paginatedProducts = useMemo(() => {
+    const startIdx = currentPage * pageSize;
+    return filtered.slice(startIdx, startIdx + pageSize);
+  }, [filtered, currentPage, pageSize]);
 
   const activeFiltersCount = [
     selectedCategory !== "all",
@@ -285,8 +220,22 @@ export function ShopPage({
   };
 
   const handleSearchChange = (e) => {
-    setLocalSearch(e.target.value);
+    const val = e.target.value;
+    setLocalSearch(val);
     setCurrentPage(0);
+    setIsSearching(true);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => {
+      if (onSearchChange) onSearchChange(val);
+      setIsSearching(false);
+    }, 250);
+  };
+
+  const handleClearSearch = () => {
+    setLocalSearch("");
+    if (onSearchChange) onSearchChange("");
+    setCurrentPage(0);
+    setIsSearching(false);
   };
 
   const handleSortChange = (e) => {
@@ -295,7 +244,7 @@ export function ShopPage({
   };
 
   const handlePageChange = (newPage) => {
-    if (newPage < 0 || newPage >= (pagination.totalPages || 1)) return;
+    if (newPage < 0 || newPage >= totalPages) return;
     setCurrentPage(newPage);
     if (productsGridRef.current) {
       productsGridRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -305,7 +254,7 @@ export function ShopPage({
   };
 
   const getPageNumbers = () => {
-    const total = pagination.totalPages || 1;
+    const total = totalPages || 1;
     const current = currentPage;
     if (total <= 7) {
       return Array.from({ length: total }, (_, i) => i);
@@ -358,7 +307,7 @@ export function ShopPage({
           >
             All Products
             <span className="float-right text-xs text-muted-foreground">
-              {pagination.totalElements || products.length}
+              {allProducts.length}
             </span>
           </button>
           {categories.map((cat) => {
@@ -453,7 +402,6 @@ export function ShopPage({
     </div>
   );
 
-  const totalElem = pagination.totalElements || products.length;
   const startItem = totalElem > 0 ? currentPage * pageSize + 1 : 0;
   const endItem = Math.min((currentPage + 1) * pageSize, totalElem);
 
@@ -516,35 +464,40 @@ export function ShopPage({
             {catName ? catName : "Shop All Products"}
           </h1>
           <p className="text-muted-foreground text-sm">
-
-            {totalElem} products found {pagination.totalPages > 1 ? `(Page ${currentPage + 1} of ${pagination.totalPages})` : ""}
+            {totalElem} products found {totalPages > 1 ? `(Page ${currentPage + 1} of ${totalPages})` : ""}
           </p>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" ref={productsGridRef}>
-        {/* Sort & Active Search bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-          <div className="flex items-center gap-2">
-            {localSearch && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-semibold">
-                <Search className="w-3.5 h-3.5" />
-                <span>Search: <strong>"{localSearch}"</strong></span>
-                <button
-                  onClick={() => {
-                    setLocalSearch("");
-                    if (onSearchChange) onSearchChange("");
-                  }}
-                  className="hover:text-primary/70 cursor-pointer p-0.5 rounded-full hover:bg-primary/20 transition-colors"
-                  title="Clear search filter"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
+        {/* Sort & Search & Filter Bar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6">
+          {/* Shop Page Dedicated Search Input */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={localSearch}
+              onChange={handleSearchChange}
+              placeholder="Search products (e.g. Christmas Mould, Candle, Wax)..."
+              className="w-full pl-9 pr-9 py-2.5 rounded-xl text-xs sm:text-sm border border-border/80 bg-card hover:bg-muted/30 focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all text-foreground"
+            />
+            {isSearching ? (
+              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary animate-spin" />
+            ) : localSearch ? (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                title="Clear search"
+                aria-label="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            ) : null}
           </div>
 
-          <div className="flex items-center gap-3 ml-auto">
+          <div className="flex items-center gap-3 justify-end">
             {/* Sort */}
             <div className="relative">
               <select
@@ -564,7 +517,7 @@ export function ShopPage({
             {/* Filter toggle (mobile) */}
             <button
               onClick={() => setFiltersOpen(true)}
-              className="lg:hidden flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm border border-border/60 bg-card font-medium transition-all cursor-pointer dark:text-foreground"
+              className="lg:hidden flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm border border-border/60 bg-card font-medium transition-all cursor-pointer dark:text-foreground hover:bg-muted/40"
             >
               <SlidersHorizontal className="w-4 h-4" />
               Filters
@@ -576,6 +529,51 @@ export function ShopPage({
             </button>
           </div>
         </div>
+
+        {/* Active Search & Filters Pill Bar */}
+        {(localSearch || activeFiltersCount > 0) && (
+          <div className="flex flex-wrap items-center gap-2 mb-6">
+            {localSearch && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-semibold">
+                <Search className="w-3.5 h-3.5" />
+                <span>Search: <strong>"{localSearch}"</strong> ({totalElem} found)</span>
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="hover:text-primary/70 cursor-pointer p-0.5 rounded-full hover:bg-primary/20 transition-colors"
+                  title="Clear search filter"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+            {selectedCategory !== "all" && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted text-foreground/80 border border-border text-xs font-medium">
+                <span>Category: <strong>{catName}</strong></span>
+                <button
+                  type="button"
+                  onClick={() => handleCategorySelect("all")}
+                  className="hover:text-foreground cursor-pointer p-0.5 rounded-full hover:bg-background transition-colors"
+                  title="Remove category filter"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                handleClearSearch();
+                handleCategorySelect("all");
+                setPriceRange([0, 100000]);
+                setOnlyInStock(false);
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 ml-1 cursor-pointer transition-colors"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
 
         <div className="flex gap-6">
           {/* Desktop Filters Sidebar */}
@@ -604,25 +602,49 @@ export function ShopPage({
               <div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-2xl">
                 <div className="bg-card px-4 py-3 rounded-2xl border border-border shadow-lg flex items-center gap-3">
                   <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-primary"></div>
-                  <span className="text-sm font-medium">Loading page {currentPage + 1}...</span>
+                  <span className="text-sm font-medium">Loading products...</span>
                 </div>
               </div>
             )}
 
-            {filtered.length === 0 ? (
-              <div className="text-center py-20 bg-card rounded-2xl border border-border/60">
+            {paginatedProducts.length === 0 ? (
+              <div className="text-center py-20 bg-card rounded-2xl border border-border/60 p-6">
                 <div className="text-5xl mb-4">🔍</div>
                 <h3 className="text-lg font-semibold mb-2">
-                  No products found
+                  {localSearch ? `No products found matching "${localSearch}"` : "No products found"}
                 </h3>
-                <p className="text-muted-foreground text-sm">
-                  Try adjusting your filters, page number, or search query.
+                <p className="text-muted-foreground text-sm max-w-md mx-auto mb-6">
+                  {localSearch
+                    ? "We couldn't find any products matching your search. Try checking your spelling or using more general terms like 'Christmas', 'Mould', 'Candle', or 'Wax'."
+                    : "Try adjusting your category or filter selections to find what you're looking for."}
                 </p>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  {localSearch && (
+                    <button
+                      onClick={handleClearSearch}
+                      className="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition-colors shadow-sm cursor-pointer"
+                    >
+                      Clear Search
+                    </button>
+                  )}
+                  {activeFiltersCount > 0 && (
+                    <button
+                      onClick={() => {
+                        handleCategorySelect("all");
+                        setPriceRange([0, 100000]);
+                        setOnlyInStock(false);
+                      }}
+                      className="px-4 py-2 border border-border text-xs font-semibold rounded-xl hover:bg-muted transition-colors cursor-pointer"
+                    >
+                      Reset Filters
+                    </button>
+                  )}
+                </div>
               </div>
             ) : (
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {filtered.map((product, i) => (
+                  {paginatedProducts.map((product, i) => (
                     <motion.div
                       key={product.id}
                       initial={{ opacity: 0, y: 15 }}
@@ -641,7 +663,7 @@ export function ShopPage({
                 </div>
 
                 {/* Pagination Controls */}
-                {pagination.totalPages > 1 && (
+                {totalPages > 1 && (
                   <div className="mt-10 pt-6 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <p className="text-xs text-muted-foreground">
                       Showing <span className="font-semibold text-foreground">{startItem}</span> – <span className="font-semibold text-foreground">{endItem}</span> of <span className="font-semibold text-foreground">{totalElem}</span> products
@@ -686,7 +708,7 @@ export function ShopPage({
 
                       <button
                         onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage >= (pagination.totalPages - 1) || pagination.last || fetchingPage}
+                        disabled={currentPage >= (totalPages - 1) || fetchingPage}
                         className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-medium border border-border/60 bg-card hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                       >
                         <span className="hidden xs:inline">Next</span>

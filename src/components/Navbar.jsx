@@ -113,7 +113,15 @@ export function Navbar({
           {/* Right Section (Search Bar + Actions) */}
           <div className="flex items-center gap-2 flex-1 justify-end max-w-xl">
             {/* Desktop Search Bar */}
-            <div className="hidden md:flex items-center relative flex-1 max-w-xs">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (window.location.pathname !== "/shop") {
+                  navigate("shop");
+                }
+              }}
+              className="hidden md:flex items-center relative flex-1 max-w-xs"
+            >
               <Search className="absolute left-3 w-4 h-4 text-muted-foreground pointer-events-none" />
               <input
                 type="text"
@@ -124,6 +132,7 @@ export function Navbar({
               />
               {searchQuery && (
                 <button
+                  type="button"
                   onClick={() => handleSearchInput("")}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
                   title="Clear search"
@@ -131,13 +140,19 @@ export function Navbar({
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
-            </div>
+            </form>
 
             {/* Mobile Search Icon Button */}
             <button
-              onClick={() => setSearchOpen(!searchOpen)}
-              className="md:hidden p-2 rounded-xl hover:bg-muted transition-colors text-foreground/70"
+              onClick={() => {
+                setSearchOpen((prev) => !prev);
+                if (mobileOpen) setMobileOpen(false);
+              }}
+              className={`md:hidden p-2 rounded-xl transition-colors cursor-pointer ${
+                searchOpen ? "bg-primary/10 text-primary" : "hover:bg-muted text-foreground/70"
+              }`}
               title="Search products"
+              aria-label="Search products"
             >
               <Search className="w-5 h-5" />
             </button>
@@ -256,6 +271,57 @@ export function Navbar({
             </button>
           </div>
         </div>
+
+        {/* Mobile Search Bar Expansion */}
+        <AnimatePresence>
+          {searchOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              className="md:hidden overflow-hidden border-t border-border/60 py-3"
+            >
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (window.location.pathname !== "/shop") {
+                    navigate("shop");
+                  }
+                }}
+                className="relative flex items-center gap-2"
+              >
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="Search products, moulds, wax, candle..."
+                    value={searchQuery}
+                    onChange={(e) => handleSearchInput(e.target.value)}
+                    className="w-full pl-9 pr-9 py-2.5 rounded-xl text-sm border border-border bg-muted/40 hover:bg-muted focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all text-foreground"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => handleSearchInput("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                      title="Clear search"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+                <button
+                  type="submit"
+                  className="px-3.5 py-2.5 bg-primary text-white rounded-xl text-xs font-semibold shrink-0 hover:bg-primary/90 transition-colors shadow-sm cursor-pointer"
+                >
+                  Search
+                </button>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Mobile Nav */}
         <AnimatePresence>

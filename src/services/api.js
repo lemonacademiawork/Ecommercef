@@ -1,4 +1,5 @@
 import { getOptimizedImageUrl } from "../utils/cloudinary";
+import { filterAndRankProducts } from "../utils/search";
 
 let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://api.lemonhousecraft.in";
 
@@ -421,19 +422,64 @@ export const api = {
   },
 
   products: {
-    listProducts: (params = {}) => {
+    listProducts: async (params = {}) => {
+      const page = params.page !== undefined ? Number(params.page) : 0;
+      const size = params.size !== undefined 
+        ? Number(params.size) 
+        : (params.limit !== undefined 
+            ? Number(params.limit) 
+            : (params.pageSize !== undefined ? Number(params.pageSize) : (params.all ? 1000 : 12)));
+
+      // If a search query is provided, search across complete dataset with intelligent matching
+      if (params.search && params.search.trim()) {
+        const fullRes = await cachedRequest("/products?all=true&size=1000", 5 * 60 * 1000);
+        let allProducts = mapProductDataArray(fullRes.data);
+
+        // Filter by category if specified
+        if (params.categoryId && params.categoryId !== "all") {
+          const catIdStr = String(params.categoryId).toLowerCase().trim();
+          allProducts = allProducts.filter((p) => {
+            const pCatId = String(p.categoryId || p.category?.id || "").toLowerCase().trim();
+            const pCatName = String(p.categoryName || p.category || "").toLowerCase().trim();
+            return pCatId === catIdStr || pCatName === catIdStr;
+          });
+        }
+
+        // Apply smart multi-keyword, synonym, category search ranking
+        let matching = filterAndRankProducts(allProducts, params.search);
+
+        // Apply sorting if specified
+        if (params.sortBy === "price-asc") {
+          matching.sort((a, b) => (a.price || 0) - (b.price || 0));
+        } else if (params.sortBy === "price-desc") {
+          matching.sort((a, b) => (b.price || 0) - (a.price || 0));
+        } else if (params.sortBy === "newest") {
+          matching.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
+        } else if (params.sortBy === "rating") {
+          matching.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        }
+
+        const totalElements = matching.length;
+        const totalPages = Math.max(1, Math.ceil(totalElements / size));
+        const paginatedSlice = params.all ? matching : matching.slice(page * size, (page + 1) * size);
+
+        return {
+          success: true,
+          data: paginatedSlice,
+          pagination: {
+            pageNumber: page,
+            pageSize: size,
+            totalElements,
+            totalPages,
+            last: page >= totalPages - 1,
+          },
+        };
+      }
+
       const query = new URLSearchParams();
-      if (params.search) query.append("search", params.search);
       if (params.categoryId) query.append("categoryId", params.categoryId);
       if (params.all !== undefined) query.append("all", params.all);
       
-      const page = params.page !== undefined ? params.page : 0;
-      const size = params.size !== undefined 
-        ? params.size 
-        : (params.limit !== undefined 
-            ? params.limit 
-            : (params.pageSize !== undefined ? params.pageSize : (params.all ? 1000 : 12)));
-
       query.append("page", page);
       query.append("size", size);
 
@@ -443,8 +489,8 @@ export const api = {
       const queryString = query.toString();
       const endpoint = `/products${queryString ? `?${queryString}` : ""}`;
 
-      // Bypass cache when search term is present or all=true for real-time accurate results
-      const ttl = (params.search || params.all) ? 0 : 5 * 60 * 1000;
+      // Cache all=true results for 5 minutes, normal requests for 2 minutes
+      const ttl = params.all ? 5 * 60 * 1000 : 2 * 60 * 1000;
 
       return cachedRequest(endpoint, ttl).then((res) => ({
         ...res,
@@ -491,11 +537,15 @@ export const api = {
         data: mappedMap,
       };
     },
-    searchProducts: (keyword) =>
-      cachedRequest(`/products/search?keyword=${encodeURIComponent(keyword)}`).then((res) => ({
-        ...res,
-        data: mapProductDataArray(res.data),
-      })),
+    searchProducts: async (keyword) => {
+      const fullRes = await cachedRequest("/products?all=true&size=1000", 5 * 60 * 1000);
+      const allProducts = mapProductDataArray(fullRes.data);
+      const matching = filterAndRankProducts(allProducts, keyword);
+      return {
+        success: true,
+        data: matching,
+      };
+    },
     filterProducts: (minPrice, maxPrice) =>
       cachedRequest(`/products/filter?minPrice=${minPrice}&maxPrice=${maxPrice}`).then((res) => ({
         ...res,
@@ -714,14 +764,57 @@ export const api = {
         body: JSON.stringify({ email, password }),
       }),
     // Fresh (non-cached) paginated product list for admin management
-    listProducts: (params = {}) => {
+    listProducts: async (params = {}) => {
+      const page = params.page !== undefined ? Number(params.page) : 0;
+      const size = params.size !== undefined ? Number(params.size) : 10;
+
+      if (params.search && params.search.trim()) {
+        const fullRes = await request("/products?all=true&size=1000");
+        let allProducts = mapProductDataArray(fullRes.data);
+
+        if (params.categoryId) {
+          const catIdStr = String(params.categoryId).toLowerCase().trim();
+          allProducts = allProducts.filter((p) => {
+            const pCatId = String(p.categoryId || p.category?.id || "").toLowerCase().trim();
+            const pCatName = String(p.categoryName || p.category || "").toLowerCase().trim();
+            return pCatId === catIdStr || pCatName === catIdStr;
+          });
+        }
+
+        if (params.stockFilter === "OUT_OF_STOCK") {
+          allProducts = allProducts.filter((p) => Number(p.stock) <= 0);
+        } else if (params.stockFilter === "LOW_STOCK") {
+          allProducts = allProducts.filter((p) => Number(p.stock) > 0 && Number(p.stock) < 5);
+        } else if (params.stockFilter === "IN_STOCK") {
+          allProducts = allProducts.filter((p) => Number(p.stock) > 0);
+        }
+
+        let matching = filterAndRankProducts(allProducts, params.search);
+
+        const totalElements = matching.length;
+        const totalPages = Math.max(1, Math.ceil(totalElements / size));
+        const paginatedSlice = matching.slice(page * size, (page + 1) * size);
+
+        return {
+          success: true,
+          data: paginatedSlice,
+          pagination: {
+            pageNumber: page,
+            pageSize: size,
+            totalElements,
+            totalPages,
+            last: page >= totalPages - 1,
+            content: paginatedSlice,
+          },
+        };
+      }
+
       const query = new URLSearchParams();
       query.append("all", "true");
-      query.append("page", params.page !== undefined ? params.page : 0);
-      query.append("size", params.size !== undefined ? params.size : 10);
+      query.append("page", page);
+      query.append("size", size);
       if (params.sortBy) query.append("sortBy", params.sortBy);
       if (params.sortDir) query.append("sortDir", params.sortDir);
-      if (params.search) query.append("search", params.search);
       if (params.categoryId) query.append("categoryId", params.categoryId);
       if (params.stockFilter) query.append("stockFilter", params.stockFilter);
       return request(`/products?${query.toString()}`).then((res) => ({
