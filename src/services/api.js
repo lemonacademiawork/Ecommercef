@@ -186,6 +186,12 @@ export const mapProductDataArray = (data) => {
     arr = data.content;
   } else if (data && Array.isArray(data.items)) {
     arr = data.items;
+  } else if (data && Array.isArray(data.data)) {
+    arr = data.data;
+  } else if (data && Array.isArray(data.products)) {
+    arr = data.products;
+  } else if (data && typeof data === "object" && data.data) {
+    return mapProductDataArray(data.data);
   }
   return arr.map(mapProductData);
 };
@@ -433,7 +439,7 @@ export const api = {
       // If a search query is provided, search across complete dataset with intelligent matching
       if (params.search && params.search.trim()) {
         const fullRes = await cachedRequest("/products?all=true&size=1000", 5 * 60 * 1000);
-        let allProducts = mapProductDataArray(fullRes.data);
+        let allProducts = mapProductDataArray(fullRes?.data || fullRes);
 
         // Filter by category if specified
         if (params.categoryId && params.categoryId !== "all") {
@@ -539,7 +545,7 @@ export const api = {
     },
     searchProducts: async (keyword) => {
       const fullRes = await cachedRequest("/products?all=true&size=1000", 5 * 60 * 1000);
-      const allProducts = mapProductDataArray(fullRes.data);
+      const allProducts = mapProductDataArray(fullRes?.data || fullRes);
       const matching = filterAndRankProducts(allProducts, keyword);
       return {
         success: true,
@@ -770,7 +776,7 @@ export const api = {
 
       if (params.search && params.search.trim()) {
         const fullRes = await request("/products?all=true&size=1000");
-        let allProducts = mapProductDataArray(fullRes.data);
+        let allProducts = mapProductDataArray(fullRes?.data || fullRes);
 
         if (params.categoryId) {
           const catIdStr = String(params.categoryId).toLowerCase().trim();

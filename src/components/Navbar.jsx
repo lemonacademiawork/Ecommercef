@@ -36,7 +36,14 @@ export function Navbar({
 
   const handleSearchInput = (val) => {
     onSearchChange(val);
-    if (window.location.pathname !== "/shop") {
+    if (val && window.location.pathname !== "/shop") {
+      navigate("shop");
+    }
+  };
+
+  const handleSearchSubmit = (e) => {
+    e?.preventDefault();
+    if (window.location.pathname !== "/shop" || window.location.search) {
       navigate("shop");
     }
   };
@@ -114,12 +121,7 @@ export function Navbar({
           <div className="flex items-center gap-2 flex-1 justify-end max-w-xl">
             {/* Desktop Search Bar */}
             <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (window.location.pathname !== "/shop") {
-                  navigate("shop");
-                }
-              }}
+              onSubmit={handleSearchSubmit}
               className="hidden md:flex items-center relative flex-1 max-w-xs"
             >
               <Search className="absolute left-3 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -283,12 +285,7 @@ export function Navbar({
               className="md:hidden overflow-hidden border-t border-border/60 py-3"
             >
               <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (window.location.pathname !== "/shop") {
-                    navigate("shop");
-                  }
-                }}
+                onSubmit={handleSearchSubmit}
                 className="relative flex items-center gap-2"
               >
                 <div className="relative flex-1">

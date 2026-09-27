@@ -1,19 +1,53 @@
 /**
- * Search and product matching utilities for Lemon House Craft.
- * Supports:
- * - Exact and partial product names
- * - Product keywords, description, tags, materials, and category names
- * - Case-insensitive matching
- * - Spelling normalization (mould/mold, colour/color, jewellery/jewelry, etc.)
- * - Multi-word tokenized matching (e.g. "Christmas Mould" matches "Christmas Silicone Mold")
- * - Relevancy scoring and ranking
+ * Stemming & spelling variation normalization for craft e-commerce terms.
  */
+export function normalizeWord(word) {
+  if (!word) return "";
+  let w = word.toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+
+  // Common craft synonyms and spelling variations
+  if (w === "mould" || w === "moulds" || w === "mold" || w === "molds") return "mold";
+  if (w === "colour" || w === "colours" || w === "color" || w === "colors") return "color";
+  if (w === "jewellery" || w === "jewelry" || w === "jewelries" || w === "jewel" || w === "jewels") return "jewelry";
+  if (w === "flavour" || w === "flavours" || w === "flavor" || w === "flavors") return "flavor";
+  if (w === "silicon" || w === "silicone" || w === "silicones") return "silicone";
+  if (w === "fragrance" || w === "fragrances" || w === "scent" || w === "scents" || w === "aroma" || w === "perfume" || w === "perfumes") return "fragrance";
+  if (w === "wax" || w === "waxes") return "wax";
+  if (w === "candle" || w === "candles") return "candle";
+  if (w === "tool" || w === "tools" || w === "tooling") return "tool";
+  if (w === "pigment" || w === "pigments") return "pigment";
+  if (w === "resin" || w === "resins" || w === "epoxy") return "resin";
+  if (w === "bead" || w === "beads") return "bead";
+  if (w === "kit" || w === "kits") return "kit";
+  if (w === "set" || w === "sets") return "set";
+  if (w === "flower" || w === "flowers") return "flower";
+  if (w === "glitter" || w === "glitters") return "glitter";
+  if (w === "ribbon" || w === "ribbons") return "ribbon";
+  if (w === "clay" || w === "clays") return "clay";
+  if (w === "clock" || w === "clocks") return "clock";
+  if (w === "marker" || w === "markers") return "marker";
+  if (w === "number" || w === "numbers") return "number";
+  if (w === "paint" || w === "paints" || w === "painting") return "paint";
+  if (w === "brush" || w === "brushes") return "brush";
+  if (w === "lacquer" || w === "lacquers") return "lacquer";
+  if (w === "varnish" || w === "varnishes") return "varnish";
+  if (w === "jesmonite" || w === "jesmonites") return "jesmonite";
+  if (w === "sticker" || w === "stickers") return "sticker";
+  if (w === "sheet" || w === "sheets") return "sheet";
+
+  // General English singularization rules
+  if (w.endsWith("ies") && w.length > 4) return w.slice(0, -3) + "y";
+  if (w.endsWith("es") && w.length > 4 && (w.endsWith("shes") || w.endsWith("ches") || w.endsWith("sses") || w.endsWith("xes"))) {
+    return w.slice(0, -2);
+  }
+  if (w.endsWith("s") && !w.endsWith("ss") && w.length > 3) {
+    return w.slice(0, -1);
+  }
+  return w;
+}
 
 /**
- * Normalizes a string for search matching:
- * - Converts to lower case
- * - Strips apostrophes and extraneous punctuation
- * - Normalizes British / American spelling variations (mould -> mold, etc.)
+ * Normalizes a full text string for search comparison.
  */
 export function normalizeSearchTerm(str) {
   if (!str) return "";
@@ -24,6 +58,20 @@ export function normalizeSearchTerm(str) {
     .replace(/\bcolours?\b/g, "color")
     .replace(/\bjewellery\b/g, "jewelry")
     .replace(/\bflavours?\b/g, "flavor")
+    .replace(/\bfragrances?\b|\bscents?\b|\baroma\b|\bperfumes?\b/g, "fragrance")
+    .replace(/\bsilicones?\b/g, "silicone")
+    .replace(/\bcandles?\b/g, "candle")
+    .replace(/\bwaxes\b/g, "wax")
+    .replace(/\btools?\b/g, "tool")
+    .replace(/\bpigments?\b/g, "pigment")
+    .replace(/\bresins?\b|\bepoxy\b/g, "resin")
+    .replace(/\bbeads?\b/g, "bead")
+    .replace(/\bclocks?\b/g, "clock")
+    .replace(/\bnumbers?\b/g, "number")
+    .replace(/\bpaints?\b/g, "paint")
+    .replace(/\bstickers?\b/g, "sticker")
+    .replace(/\bsheets?\b/g, "sheet")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -51,7 +99,7 @@ export function scoreProductSearch(product, query) {
   const queryRaw = query.toLowerCase().trim();
   const queryNorm = normalizeSearchTerm(queryRaw);
   const rawTokens = tokenizeQuery(queryRaw);
-  const normTokens = rawTokens.map(normalizeSearchTerm);
+  const normTokens = rawTokens.map(normalizeWord);
 
   if (rawTokens.length === 0) {
     return { matches: true, score: 0 };
@@ -59,6 +107,7 @@ export function scoreProductSearch(product, query) {
 
   const nameRaw = (product.name || "").toLowerCase();
   const nameNorm = normalizeSearchTerm(nameRaw);
+  const nameWords = tokenizeQuery(nameRaw).map(normalizeWord);
 
   const catRaw = (
     product.categoryName ||
@@ -66,82 +115,122 @@ export function scoreProductSearch(product, query) {
     ""
   ).toLowerCase();
   const catNorm = normalizeSearchTerm(catRaw);
+  const catWords = tokenizeQuery(catRaw).map(normalizeWord);
 
   const subCatRaw = (product.subcategory || product.subCategory || "").toLowerCase();
   const subCatNorm = normalizeSearchTerm(subCatRaw);
+  const subCatWords = tokenizeQuery(subCatRaw).map(normalizeWord);
 
   const descRaw = (product.description || product.shortDescription || "").toLowerCase();
   const descNorm = normalizeSearchTerm(descRaw);
+  const descWords = tokenizeQuery(descRaw).map(normalizeWord);
 
   const tagsRaw = (
     Array.isArray(product.tags) ? product.tags.join(" ") : (product.tags || "")
   ).toLowerCase();
-  const tagsNorm = normalizeSearchTerm(tagsRaw);
+  const tagsWords = tokenizeQuery(tagsRaw).map(normalizeWord);
 
   const materialsRaw = (
     Array.isArray(product.materials) ? product.materials.join(" ") : (product.materials || "")
   ).toLowerCase();
-  const materialsNorm = normalizeSearchTerm(materialsRaw);
+  const materialsWords = tokenizeQuery(materialsRaw).map(normalizeWord);
 
   const brandRaw = (product.brand || "").toLowerCase();
 
   // 1. Exact Name Match (Highest priority)
   if (nameRaw === queryRaw || nameNorm === queryNorm) {
-    return { matches: true, score: 1000 };
+    return { matches: true, score: 10000 };
   }
 
-  // 2. Full phrase in Product Name
+  // 2. Name starts with query
+  if (nameRaw.startsWith(queryRaw) || nameNorm.startsWith(queryNorm)) {
+    return { matches: true, score: 8000 };
+  }
+
+  // 3. Full phrase in Product Name
   if (nameRaw.includes(queryRaw) || nameNorm.includes(queryNorm)) {
-    return { matches: true, score: 600 };
+    return { matches: true, score: 6000 };
   }
 
-  // 3. Full phrase in Category or Subcategory
+  // 4. Exact Category or Subcategory Match
   if (catRaw === queryRaw || catNorm === queryNorm) {
-    return { matches: true, score: 450 };
+    return { matches: true, score: 5000 };
   }
+  if (subCatRaw === queryRaw || subCatNorm === queryNorm) {
+    return { matches: true, score: 4500 };
+  }
+
+  // 5. Full phrase in Category or Subcategory
   if (catRaw.includes(queryRaw) || catNorm.includes(queryNorm)) {
-    return { matches: true, score: 400 };
+    return { matches: true, score: 4000 };
   }
   if (subCatRaw.includes(queryRaw) || subCatNorm.includes(queryNorm)) {
-    return { matches: true, score: 380 };
+    return { matches: true, score: 3800 };
   }
 
-  // 4. Token-based matching
-  // Every token must match in at least one attribute
+  // 6. Token matching: ALL query tokens must match the product
   let allTokensMatched = true;
   let tokenScore = 0;
   let nameMatchCount = 0;
   let catMatchCount = 0;
 
   for (let i = 0; i < rawTokens.length; i++) {
-    const t = rawTokens[i];
-    const nt = normTokens[i];
+    const raw = rawTokens[i];
+    const norm = normTokens[i];
 
-    const inName = nameRaw.includes(t) || nameNorm.includes(nt);
-    const inCat =
-      catRaw.includes(t) ||
-      catNorm.includes(nt) ||
-      subCatRaw.includes(t) ||
-      subCatNorm.includes(nt);
-    const inTags = tagsRaw.includes(t) || tagsNorm.includes(nt);
-    const inMaterials = materialsRaw.includes(t) || materialsNorm.includes(nt);
-    const inDesc = descRaw.includes(t) || descNorm.includes(nt);
-    const inBrand = brandRaw.includes(t);
+    const inNameExact = nameWords.includes(norm) || nameWords.includes(raw);
+    const inNamePartial =
+      inNameExact ||
+      (norm.length >= 3 && nameWords.some((w) => w.startsWith(norm))) ||
+      (raw.length >= 3 && nameRaw.includes(raw));
 
-    if (inName) {
+    const inCatExact =
+      catWords.includes(norm) ||
+      catWords.includes(raw) ||
+      subCatWords.includes(norm) ||
+      subCatWords.includes(raw);
+
+    const inCatPartial =
+      inCatExact ||
+      (norm.length >= 3 && (catNorm.includes(norm) || subCatNorm.includes(norm)));
+
+    const inTags =
+      tagsWords.includes(norm) ||
+      tagsWords.includes(raw) ||
+      (norm.length >= 3 && (tagsRaw.includes(raw) || tagsRaw.includes(norm)));
+
+    const inMaterials =
+      materialsWords.includes(norm) ||
+      materialsWords.includes(raw) ||
+      (norm.length >= 3 && (materialsRaw.includes(raw) || materialsRaw.includes(norm)));
+
+    const inDesc =
+      descWords.includes(norm) ||
+      descWords.includes(raw) ||
+      (norm.length >= 4 && descRaw.includes(raw));
+
+    const inBrand = brandRaw.includes(raw) || brandRaw.includes(norm);
+
+    if (inNameExact) {
       nameMatchCount++;
-      tokenScore += 120;
-    } else if (inCat) {
+      tokenScore += 300;
+    } else if (inNamePartial) {
+      nameMatchCount++;
+      tokenScore += 200;
+    } else if (inCatExact) {
       catMatchCount++;
-      tokenScore += 70;
+      tokenScore += 180;
+    } else if (inCatPartial) {
+      catMatchCount++;
+      tokenScore += 120;
     } else if (inTags) {
-      tokenScore += 45;
+      tokenScore += 80;
     } else if (inMaterials) {
-      tokenScore += 35;
+      tokenScore += 60;
     } else if (inDesc) {
-      tokenScore += 20;
+      tokenScore += 30;
     } else if (inBrand) {
-      tokenScore += 15;
+      tokenScore += 20;
     } else {
       allTokensMatched = false;
       break;
@@ -151,33 +240,13 @@ export function scoreProductSearch(product, query) {
   if (allTokensMatched) {
     // Relevance boost if words appear together in title and category
     if (nameMatchCount > 0 && catMatchCount > 0) {
-      tokenScore += 60;
+      tokenScore += 150;
     }
     // Boost if multiple tokens matched in the product title
     if (nameMatchCount >= 2) {
-      tokenScore += 50 * nameMatchCount;
+      tokenScore += 100 * nameMatchCount;
     }
     return { matches: true, score: tokenScore };
-  }
-
-  // For longer queries (3+ tokens), match if at least 70% of tokens match name or category
-  if (rawTokens.length >= 3) {
-    let matchedCount = 0;
-    let partialScore = 0;
-    for (let i = 0; i < rawTokens.length; i++) {
-      const t = rawTokens[i];
-      const nt = normTokens[i];
-      if (nameRaw.includes(t) || nameNorm.includes(nt)) {
-        matchedCount++;
-        partialScore += 40;
-      } else if (catRaw.includes(t) || catNorm.includes(nt)) {
-        matchedCount++;
-        partialScore += 25;
-      }
-    }
-    if (matchedCount >= 2 && matchedCount >= Math.ceil(rawTokens.length * 0.7)) {
-      return { matches: true, score: partialScore };
-    }
   }
 
   return { matches: false, score: 0 };
@@ -193,6 +262,7 @@ export function filterAndRankProducts(products, query) {
   const scored = [];
   for (let i = 0; i < products.length; i++) {
     const p = products[i];
+    if (!p) continue;
     const { matches, score } = scoreProductSearch(p, query);
     if (matches) {
       scored.push({ product: p, score, originalIndex: i });

@@ -44,7 +44,7 @@ export function ShopPage({
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize] = useState(12);
 
-  // Sync searchQuery prop and URL search params
+  // Sync URL search params on navigation/URL change
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const catQuery = searchParams.get("category");
@@ -52,18 +52,24 @@ export function ShopPage({
 
     if (catQuery) {
       setSelectedCategory(catQuery);
-    } else {
-      setSelectedCategory("all");
+    } else if (catQuery === null && !urlSearch) {
+      // If navigating directly without query params, keep existing or default to all
     }
 
     if (urlSearch !== null && urlSearch !== undefined) {
       setLocalSearch(urlSearch);
       if (onSearchChange) onSearchChange(urlSearch);
-    } else if (searchQuery !== undefined) {
-      setLocalSearch(searchQuery || "");
     }
     setCurrentPage(0);
-  }, [location.search, searchQuery]);
+  }, [location.search]);
+
+  // Sync external searchQuery prop (e.g. when user types in Navbar from header)
+  useEffect(() => {
+    if (searchQuery !== undefined && searchQuery !== localSearch) {
+      setLocalSearch(searchQuery || "");
+      setCurrentPage(0);
+    }
+  }, [searchQuery]);
 
   // Clean up search debounce timer on unmount
   useEffect(() => {
@@ -140,14 +146,15 @@ export function ShopPage({
     return selStr === catId || selStr === catName || selStr === catIdStr;
   };
 
+  // Products matching search query across entire catalog
+  const searchMatchingAll = useMemo(() => {
+    if (!localSearch || !localSearch.trim()) return allProducts;
+    return filterAndRankProducts(allProducts, localSearch);
+  }, [allProducts, localSearch]);
+
   // Complete catalog filtering across search, category, price, and stock
   const filtered = useMemo(() => {
-    let list = [...allProducts];
-
-    // 1. Search Query filtering (multi-keyword, tokenized, spelling-normalized, category-aware)
-    if (localSearch && localSearch.trim()) {
-      list = filterAndRankProducts(list, localSearch);
-    }
+    let list = [...searchMatchingAll];
 
     // 2. Category filtering
     if (selectedCategory !== "all") {
@@ -194,10 +201,9 @@ export function ShopPage({
     } else if (sortBy === "popular" && (!localSearch || !localSearch.trim())) {
       list.sort((a, b) => (b.reviews || 0) - (a.reviews || 0));
     }
-    // Note: When localSearch is present and sortBy === "popular", list remains sorted by relevance score!
 
     return list;
-  }, [allProducts, localSearch, selectedCategory, activeCategoryObj, priceRange, onlyInStock, sortBy]);
+  }, [searchMatchingAll, selectedCategory, activeCategoryObj, priceRange, onlyInStock, sortBy, localSearch]);
 
   const totalElem = filtered.length;
   const totalPages = Math.max(1, Math.ceil(totalElem / pageSize));
@@ -536,7 +542,7 @@ export function ShopPage({
             {localSearch && (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-semibold">
                 <Search className="w-3.5 h-3.5" />
-                <span>Search: <strong>"{localSearch}"</strong> ({totalElem} found)</span>
+                <span>Search: <strong>"{localSearch}"</strong> ({totalElem} found{selectedCategory !== "all" && searchMatchingAll.length > totalElem ? ` in ${catName}, ${searchMatchingAll.length} total` : ""})</span>
                 <button
                   type="button"
                   onClick={handleClearSearch}
@@ -559,6 +565,15 @@ export function ShopPage({
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
+            )}
+            {localSearch && selectedCategory !== "all" && searchMatchingAll.length > totalElem && (
+              <button
+                type="button"
+                onClick={() => handleCategorySelect("all")}
+                className="text-xs px-2.5 py-1 rounded-full bg-primary/5 hover:bg-primary/15 text-primary border border-primary/20 transition-colors cursor-pointer font-medium"
+              >
+                View all {searchMatchingAll.length} results in All Categories
+              </button>
             )}
             <button
               type="button"
@@ -611,18 +626,33 @@ export function ShopPage({
               <div className="text-center py-20 bg-card rounded-2xl border border-border/60 p-6">
                 <div className="text-5xl mb-4">🔍</div>
                 <h3 className="text-lg font-semibold mb-2">
-                  {localSearch ? `No products found matching "${localSearch}"` : "No products found"}
+                  {localSearch
+                    ? (selectedCategory !== "all" && searchMatchingAll.length > 0
+                        ? `No products found for "${localSearch}" in ${catName}`
+                        : `No products found matching "${localSearch}"`)
+                    : "No products found"}
                 </h3>
                 <p className="text-muted-foreground text-sm max-w-md mx-auto mb-6">
                   {localSearch
-                    ? "We couldn't find any products matching your search. Try checking your spelling or using more general terms like 'Christmas', 'Mould', 'Candle', or 'Wax'."
+                    ? (selectedCategory !== "all" && searchMatchingAll.length > 0
+                        ? `We found ${searchMatchingAll.length} product${searchMatchingAll.length === 1 ? "" : "s"} matching "${localSearch}" in other categories. Click below to view all results.`
+                        : "We couldn't find any products matching your search. Try checking your spelling or using more general terms like 'Christmas', 'Mould', 'Candle', 'Wax', 'Fragrance', or 'Tools'.")
                     : "Try adjusting your category or filter selections to find what you're looking for."}
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-3">
+                  {localSearch && selectedCategory !== "all" && searchMatchingAll.length > 0 && (
+                    <button
+                      onClick={() => handleCategorySelect("all")}
+                      className="px-4 py-2.5 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition-colors shadow-sm cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Search className="w-3.5 h-3.5" />
+                      Search All Categories ({searchMatchingAll.length} found)
+                    </button>
+                  )}
                   {localSearch && (
                     <button
                       onClick={handleClearSearch}
-                      className="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition-colors shadow-sm cursor-pointer"
+                      className="px-4 py-2.5 bg-primary/10 text-primary border border-primary/20 text-xs font-semibold rounded-xl hover:bg-primary/20 transition-colors cursor-pointer"
                     >
                       Clear Search
                     </button>
@@ -634,7 +664,7 @@ export function ShopPage({
                         setPriceRange([0, 100000]);
                         setOnlyInStock(false);
                       }}
-                      className="px-4 py-2 border border-border text-xs font-semibold rounded-xl hover:bg-muted transition-colors cursor-pointer"
+                      className="px-4 py-2.5 border border-border text-xs font-semibold rounded-xl hover:bg-muted transition-colors cursor-pointer"
                     >
                       Reset Filters
                     </button>
