@@ -8,8 +8,30 @@ export function getOptimizedImageUrl(url, options = {}) {
     return url || "";
   }
 
-  const trimmedUrl = url.trim();
-  if (!trimmedUrl) return "";
+  let trimmedUrl = url.trim();
+  if (
+    !trimmedUrl ||
+    trimmedUrl === "undefined" ||
+    trimmedUrl === "null" ||
+    trimmedUrl === "[object Object]"
+  ) {
+    return "";
+  }
+
+  // Handle local blob or data URLs without modification
+  if (trimmedUrl.startsWith("blob:") || trimmedUrl.startsWith("data:")) {
+    return trimmedUrl;
+  }
+
+  // Handle relative URLs (e.g. /uploads/image.png or uploads/...)
+  if (!trimmedUrl.startsWith("http://") && !trimmedUrl.startsWith("https://")) {
+    const rawApiBase =
+      (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) ||
+      "https://api.lemonhousecraft.in";
+    const apiBase = rawApiBase.replace(/\/api\/?$/, "").replace(/\/$/, "");
+    const cleanPath = trimmedUrl.startsWith("/") ? trimmedUrl : `/${trimmedUrl}`;
+    trimmedUrl = `${apiBase}${cleanPath}`;
+  }
 
   // Handle preset shortcut (string or number)
   let opts = options;

@@ -278,7 +278,10 @@ export function AdminProductsPage() {
   // ── Edit ──────────────────────────────────────────────────────────────────
   const handleEditProductClick = async (product) => {
     setEditProduct(product);
-    let existingImages = Array.isArray(product.images) ? product.images : [product.imageUrl || ""];
+    let existingImages = (Array.isArray(product.images) ? product.images : [product.imageUrl || product.image || ""])
+      .map((img) => (typeof img === "string" ? img.trim() : ""))
+      .filter((img) => img && img !== "undefined" && img !== "null" && img !== "[object Object]");
+
     const paddedImages = [...existingImages];
     while (paddedImages.length < 4) paddedImages.push("");
 
@@ -290,13 +293,14 @@ export function AdminProductsPage() {
       } catch {}
     }
 
+    const firstValidImg = existingImages[0] || product.imageUrl || product.image || "";
     setProductForm({
       name: product.name || "",
       brand: product.brand || "",
       description: product.description || "",
       price: product.price,
       stock: product.stock || 0,
-      imageUrl: product.imageUrl || product.image || "",
+      imageUrl: firstValidImg && firstValidImg !== "undefined" && firstValidImg !== "null" ? firstValidImg : "",
       images: paddedImages.slice(0, 4),
       imageFiles: [],
       active: product.active !== undefined ? product.active : true,
@@ -341,8 +345,36 @@ export function AdminProductsPage() {
 
     setSubmittingProduct(true);
     try {
-      const firstImage = productForm.images.find((img) => img !== "") || productForm.imageUrl || "";
-      const extraImages = productForm.images.filter((img) => img !== "");
+      // 1. Process and upload any pending files that only have blob: preview URLs
+      const currentImages = [...productForm.images];
+      const files = [...(productForm.imageFiles || [])];
+
+      for (let i = 0; i < 4; i++) {
+        const file = files[i];
+        const currentUrl = currentImages[i] || "";
+        if (file instanceof File && (!currentUrl || currentUrl.startsWith("blob:"))) {
+          try {
+            const upRes = await api.admin.uploadImage(file);
+            const upUrl =
+              upRes?.data?.imageUrl ||
+              upRes?.imageUrl ||
+              upRes?.url ||
+              (typeof upRes?.data === "string" ? upRes.data : null);
+            if (upUrl && !upUrl.startsWith("blob:")) {
+              currentImages[i] = upUrl;
+            }
+          } catch (uploadErr) {
+            console.warn(`Upload before save failed for slot ${i + 1}:`, uploadErr);
+          }
+        }
+      }
+
+      // Filter out temporary blob URLs from persistent array
+      const validImages = currentImages.filter(
+        (img) => img && typeof img === "string" && !img.startsWith("blob:") && img !== "undefined" && img !== "null"
+      );
+      const firstImage = validImages[0] || (productForm.imageUrl && !productForm.imageUrl.startsWith("blob:") ? productForm.imageUrl : "");
+      const extraImages = validImages;
 
       let fullDescription = productForm.description || "";
       if (extraImages.length > 0) {
@@ -368,18 +400,27 @@ export function AdminProductsPage() {
       formData.append("description", fullDescription);
       formData.append("brand", productForm.brand || "");
       formData.append("active", productForm.active ? "true" : "false");
-      formData.append("imageUrl", firstImage);
-      formData.append("image", firstImage);
 
-      // Append raw File objects if available
-      if (productForm.imageFiles && Array.isArray(productForm.imageFiles)) {
-        productForm.imageFiles.forEach((file) => {
-          if (file && file instanceof File) {
-            formData.append("images", file);
-            formData.append("imageFiles", file);
-          }
-        });
+      if (firstImage) {
+        formData.append("imageUrl", firstImage);
       }
+
+      // Append raw File objects if available, or fall back to image URL
+      const primaryFile = files.find((f) => f instanceof File);
+      if (primaryFile) {
+        formData.append("image", primaryFile);
+        formData.append("file", primaryFile);
+      } else if (firstImage) {
+        formData.append("image", firstImage);
+      }
+
+      files.forEach((file) => {
+        if (file && file instanceof File) {
+          formData.append("images", file);
+          formData.append("imageFiles", file);
+          formData.append("files", file);
+        }
+      });
 
       if (productForm.subcategoryId) {
         formData.append("subcategoryId", productForm.subcategoryId);
@@ -548,7 +589,7 @@ export function AdminProductsPage() {
 
   // ── Image Upload ──────────────────────────────────────────────────────────
   const handleSlotImageUpload = async (e, index) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
     setUploadingSlotIndex(index);
 
@@ -559,18 +600,44 @@ export function AdminProductsPage() {
       return { ...prev, imageFiles: updatedFiles };
     });
 
+    // Create immediate local preview URL
+    const localPreview = URL.createObjectURL(file);
+    setProductForm((prev) => {
+      const updated = [...prev.images];
+      updated[index] = localPreview;
+      return {
+        ...prev,
+        images: updated,
+        imageUrl: index === 0 ? localPreview : prev.imageUrl,
+      };
+    });
+
     try {
       const res = await api.admin.uploadImage(file);
-      if (res.success && res.data) {
+      const uploadedUrl =
+        res?.data?.imageUrl ||
+        res?.imageUrl ||
+        res?.url ||
+        (typeof res?.data === "string" ? res.data : null) ||
+        (typeof res === "string" ? res : null);
+
+      if (uploadedUrl && typeof uploadedUrl === "string" && !uploadedUrl.startsWith("blob:")) {
         setProductForm((prev) => {
           const updated = [...prev.images];
-          updated[index] = res.data.imageUrl;
-          return { ...prev, images: updated };
+          updated[index] = uploadedUrl;
+          return {
+            ...prev,
+            images: updated,
+            imageUrl: index === 0 ? uploadedUrl : prev.imageUrl,
+          };
         });
-        toast.success(`Image ${index + 1} uploaded!`);
+        toast.success(`Image ${index + 1} uploaded successfully!`);
+      } else {
+        toast.info(`Image ${index + 1} selected (will upload on save)`);
       }
     } catch (err) {
-      toast.error("Image upload failed");
+      console.warn("Direct image upload error, will submit with form:", err);
+      toast.info(`Image ${index + 1} selected (will upload on save)`);
     } finally {
       setUploadingSlotIndex(null);
     }
@@ -578,9 +645,23 @@ export function AdminProductsPage() {
 
   const removeSlotImage = (index) => {
     setProductForm((prev) => {
-      const updated = [...prev.images];
-      updated[index] = "";
-      return { ...prev, images: updated };
+      const updatedImages = [...prev.images];
+      const updatedFiles = [...(prev.imageFiles || [])];
+
+      if (updatedImages[index]?.startsWith("blob:")) {
+        try { URL.revokeObjectURL(updatedImages[index]); } catch {}
+      }
+
+      updatedImages[index] = "";
+      updatedFiles[index] = null;
+
+      const firstValid = updatedImages.find((img) => img && !img.startsWith("blob:")) || "";
+      return {
+        ...prev,
+        images: updatedImages,
+        imageFiles: updatedFiles,
+        imageUrl: index === 0 ? firstValid : prev.imageUrl,
+      };
     });
   };
 
@@ -694,10 +775,14 @@ export function AdminProductsPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <img
-                          src={getOptimizedImageUrl(product.image || product.imageUrl || "https://via.placeholder.com/40", { width: 100 })}
+                          src={getOptimizedImageUrl(product.image || product.imageUrl || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format", { width: 100 })}
                           alt={product.name}
                           loading="lazy"
                           decoding="async"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=100&h=100&fit=crop&auto=format";
+                          }}
                           className="w-10 h-10 rounded-lg object-cover bg-muted flex-shrink-0 border border-border"
                         />
                         <span className="font-medium line-clamp-2 max-w-[200px]">{product.name}</span>
@@ -880,7 +965,10 @@ export function AdminProductsPage() {
 
               {/* Images */}
               <div>
-                <label className="block text-xs font-semibold mb-2">Product Images (up to 4)</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-semibold">Product Images (up to 4)</label>
+                  <span className="text-[11px] text-muted-foreground">Upload file or enter URL below</span>
+                </div>
                 <div className="grid grid-cols-4 gap-2">
                   {productForm.images.map((img, idx) => (
                     <div
@@ -889,22 +977,31 @@ export function AdminProductsPage() {
                     >
                       {img ? (
                         <>
-                          <img src={getOptimizedImageUrl(img, { width: 200 })} alt={`slot-${idx}`} className="w-full h-full object-cover" />
+                          <img
+                            src={img.startsWith("blob:") ? img : getOptimizedImageUrl(img, { width: 200 })}
+                            alt={`slot-${idx}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=200&h=200&fit=crop&auto=format";
+                            }}
+                          />
                           <button
                             type="button"
                             onClick={() => removeSlotImage(idx)}
                             className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            title="Remove image"
                           >
                             <X className="w-3 h-3" />
                           </button>
                         </>
                       ) : (
-                        <label className="flex flex-col items-center gap-1 cursor-pointer w-full h-full justify-center">
+                        <label className="flex flex-col items-center gap-1 cursor-pointer w-full h-full justify-center hover:bg-muted/50 transition-colors">
                           {uploadingSlotIndex === idx
-                            ? <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                            : <Upload className="w-4 h-4 text-muted-foreground" />
+                            ? <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                            : <Upload className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                           }
-                          <span className="text-[10px] text-muted-foreground">{idx === 0 ? "Main" : `Img ${idx + 1}`}</span>
+                          <span className="text-[10px] text-muted-foreground font-medium">{idx === 0 ? "Main" : `Img ${idx + 1}`}</span>
                           <input
                             type="file" accept="image/*" className="hidden"
                             onChange={(e) => handleSlotImageUpload(e, idx)}
@@ -913,6 +1010,26 @@ export function AdminProductsPage() {
                       )}
                     </div>
                   ))}
+                </div>
+
+                {/* Direct image URL input */}
+                <div className="mt-2.5">
+                  <input
+                    type="url"
+                    placeholder="Or enter image URL (e.g. https://...)"
+                    value={productForm.imageUrl || ""}
+                    onChange={(e) => {
+                      const url = e.target.value;
+                      setProductForm((prev) => {
+                        const updated = [...prev.images];
+                        if (!updated[0] || updated[0].startsWith("blob:")) {
+                          updated[0] = url;
+                        }
+                        return { ...prev, imageUrl: url, images: updated };
+                      });
+                    }}
+                    className="w-full px-3 py-1.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-primary/20"
+                  />
                 </div>
               </div>
 

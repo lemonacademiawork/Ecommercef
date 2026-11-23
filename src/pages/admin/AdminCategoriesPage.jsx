@@ -113,19 +113,31 @@ export function AdminCategoriesPage() {
   useEffect(() => { loadData(); }, [loadData]);
 
   const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
     setUploadingImage(true);
+
+    const localPreview = URL.createObjectURL(file);
+    setCategoryForm((prev) => ({ ...prev, imageUrl: localPreview }));
+
     try {
       const res = await api.admin.uploadImage(file);
-      if (res.success && res.data) {
-        setCategoryForm((prev) => ({ ...prev, imageUrl: res.data.imageUrl }));
+      const uploadedUrl =
+        res?.data?.imageUrl ||
+        res?.imageUrl ||
+        res?.url ||
+        (typeof res?.data === "string" ? res.data : null) ||
+        (typeof res === "string" ? res : null);
+
+      if (uploadedUrl && typeof uploadedUrl === "string" && !uploadedUrl.startsWith("blob:")) {
+        setCategoryForm((prev) => ({ ...prev, imageUrl: uploadedUrl }));
         toast.success("Image uploaded!");
       } else {
-        toast.error("Image upload failed");
+        toast.info("Image selected (will be saved with form)");
       }
     } catch (err) {
-      toast.error(err.message || "Image upload failed");
+      console.warn("Category image upload error:", err);
+      toast.info("Image selected (will be saved with form)");
     } finally {
       setUploadingImage(false);
     }

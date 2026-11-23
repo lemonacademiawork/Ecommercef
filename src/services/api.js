@@ -98,6 +98,30 @@ export const mapCategoryData = (cat) => {
   };
 };
 
+export const cleanImageUrl = (url) => {
+  if (!url || typeof url !== "string") return "";
+  const trimmed = url.trim();
+  if (
+    !trimmed ||
+    trimmed === "undefined" ||
+    trimmed === "null" ||
+    trimmed === "[object Object]" ||
+    trimmed.startsWith("blob:")
+  ) {
+    return "";
+  }
+  if (
+    !trimmed.startsWith("http://") &&
+    !trimmed.startsWith("https://") &&
+    !trimmed.startsWith("data:")
+  ) {
+    const base = API_BASE_URL.replace(/\/api\/?$/, "").replace(/\/$/, "");
+    const path = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+    return `${base}${path}`;
+  }
+  return trimmed;
+};
+
 export const mapProductData = (product) => {
   if (!product) return product;
   
@@ -107,7 +131,10 @@ export const mapProductData = (product) => {
   // Extract images from description if present
   const match = desc.match(/\[IMAGES:([\s\S]*?)\]/);
   if (match) {
-    parsedImages = match[1].split(",").map(img => img.trim()).filter(Boolean);
+    parsedImages = match[1]
+      .split(",")
+      .map((img) => cleanImageUrl(img))
+      .filter(Boolean);
     // Remove the metadata from the description
     desc = desc.replace(/\[IMAGES:[\s\S]*?\]/, "").trim();
   }
@@ -115,32 +142,37 @@ export const mapProductData = (product) => {
   // Fallback to product.images if it exists
   if (parsedImages.length === 0 && product.images) {
     if (Array.isArray(product.images)) {
-      parsedImages = product.images;
+      parsedImages = product.images.map(cleanImageUrl).filter(Boolean);
     } else if (typeof product.images === "string") {
       try {
         const parsed = JSON.parse(product.images);
         if (Array.isArray(parsed)) {
-          parsedImages = parsed;
+          parsedImages = parsed.map(cleanImageUrl).filter(Boolean);
         } else {
-          parsedImages = product.images.split(",").map((s) => s.trim());
+          parsedImages = product.images.split(",").map(cleanImageUrl).filter(Boolean);
         }
       } catch (err) {
-        parsedImages = product.images.split(",").map((s) => s.trim());
+        parsedImages = product.images.split(",").map(cleanImageUrl).filter(Boolean);
       }
     }
   }
 
+  const rawMainImage = cleanImageUrl(product.imageUrl || product.image);
+  if (rawMainImage && !parsedImages.includes(rawMainImage)) {
+    parsedImages.unshift(rawMainImage);
+  }
+
   // Filter out any empty strings and optimize Cloudinary delivery URLs
   parsedImages = parsedImages
-    .filter(img => img && img.trim() !== "")
+    .filter(Boolean)
     .map(img => getOptimizedImageUrl(img, { width: 800 }));
 
   if (parsedImages.length === 0) {
-    const rawFallback = product.imageUrl || product.image || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&h=600&fit=crop&auto=format";
+    const rawFallback = rawMainImage || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&h=600&fit=crop&auto=format";
     parsedImages = [getOptimizedImageUrl(rawFallback, { width: 800 })];
   }
 
-  const primaryImage = getOptimizedImageUrl(product.imageUrl || product.image || parsedImages[0], { width: 800 });
+  const primaryImage = getOptimizedImageUrl(rawMainImage || parsedImages[0], { width: 800 });
 
   const mappedVariants = Array.isArray(product.variants)
     ? product.variants.map(v => v ? {
@@ -910,13 +942,36 @@ export const api = {
         method: "PUT",
         body: JSON.stringify({ status }),
       }),
-    uploadImage: (file) => {
+    uploadImage: async (file) => {
       const formData = new FormData();
       formData.append("image", file);
-      return request("/admin/products/upload-image", {
+      formData.append("file", file);
+      const res = await request("/admin/products/upload-image", {
         method: "POST",
         body: formData,
       });
+
+      const rawUrl =
+        (typeof res === "string" ? res : null) ||
+        res?.imageUrl ||
+        res?.url ||
+        res?.secure_url ||
+        res?.image ||
+        res?.data?.imageUrl ||
+        res?.data?.url ||
+        res?.data?.secure_url ||
+        res?.data?.image ||
+        (typeof res?.data === "string" ? res.data : null);
+
+      const url = cleanImageUrl(rawUrl);
+
+      return {
+        success: Boolean(url),
+        data: { imageUrl: url, url },
+        imageUrl: url,
+        url: url,
+        raw: res,
+      };
     },
     // Payment management
     approvePayment: (orderId) =>
