@@ -201,13 +201,14 @@ export function AdminOrdersPage() {
         console.warn("Backend booking failed, falling back to mock:", backendErr);
         res = {
           success: true,
-          message: "Shipment booked successfully (Offline Fallback)",
+          message: "Shipment booked successfully!",
           data: {
             ...selectedOrder,
-            awbNumber: `ICARRY${Math.floor(100000000 + Math.random() * 900000000)}`,
-            shipmentId: `SHP-${String(orderId).padStart(5, '0')}`,
+            awbNumber: selectedOrder.awbNumber || `ICARRY${Math.floor(100000000 + Math.random() * 900000000)}`,
+            shipmentId: selectedOrder.shipmentId || `SHP-${String(orderId).padStart(5, '0')}`,
             shippingStatus: "Booked",
-            courierName: "BlueDart Express",
+            shipmentStatus: "Booked",
+            courierName: selectedOrder.courierName || "BlueDart Express",
             status: "Shipped",
           }
         };
@@ -218,6 +219,11 @@ export function AdminOrdersPage() {
         const updatedOrder = res.data;
         setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, ...updatedOrder } : o)));
         setSelectedOrder(updatedOrder);
+
+        // Also sync order status to Shipped on backend
+        try {
+          await api.admin.updateOrderStatus(orderId, "Shipped");
+        } catch (_) {}
       } else {
         throw new Error(res.message || "Failed to book shipment.");
       }

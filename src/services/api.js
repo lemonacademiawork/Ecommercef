@@ -266,7 +266,13 @@ async function request(endpoint, options = {}) {
   }
 
   if (!response.ok) {
-    if (response.status === 401) {
+    const isNonFatalEndpoint =
+      options.skipAuthRedirect ||
+      cleanEndpoint.includes("/shipping") ||
+      cleanEndpoint.includes("/payments") ||
+      cleanEndpoint.includes("/reviews");
+
+    if (response.status === 401 && !isNonFatalEndpoint) {
       localStorage.removeItem("token");
       localStorage.removeItem("role");
       localStorage.removeItem("user");
@@ -1026,27 +1032,31 @@ export const api = {
   },
 
   shipping: {
-    trackCustomer: (tracking) => request(`/shipping/track/${tracking}`),
-    trackAdmin: (tracking) => request(`/admin/shipping/track/${tracking}`),
+    trackCustomer: (tracking) => request(`/shipping/track/${tracking}`, { skipAuthRedirect: true }),
+    trackAdmin: (tracking) => request(`/admin/shipping/track/${tracking}`, { skipAuthRedirect: true }),
     bookShipment: (orderId) =>
       request("/admin/shipping/book", {
         method: "POST",
         body: JSON.stringify({ orderId }),
+        skipAuthRedirect: true,
       }),
     cancelShipment: (orderId) =>
       request("/admin/shipping/cancel", {
         method: "POST",
         body: JSON.stringify({ orderId }),
+        skipAuthRedirect: true,
       }),
     getEstimate: (data) =>
       request("/admin/shipping/estimate", {
         method: "POST",
         body: JSON.stringify(data),
+        skipAuthRedirect: true,
       }),
     getCustomerEstimate: (data) =>
       request("/shipping/estimate", {
         method: "POST",
         body: JSON.stringify(data),
+        skipAuthRedirect: true,
       }),
     downloadLabel: (orderId, orderNumber) => downloadShippingLabel(orderId, orderNumber),
     previewLabel: (orderId) => viewShippingLabelInline(orderId),
@@ -1056,10 +1066,12 @@ export const api = {
       request("/admin/shipping/pickup/address", {
         method: "POST",
         body: JSON.stringify(data),
+        skipAuthRedirect: true,
       }),
     schedulePickup: (orderId) =>
       request(`/admin/shipping/pickup/request/${orderId}`, {
         method: "POST",
+        skipAuthRedirect: true,
       }),
   },
 
