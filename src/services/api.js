@@ -162,10 +162,15 @@ export const mapProductData = (product) => {
     parsedImages.unshift(rawMainImage);
   }
 
+  // Preserve raw un-transformed images before optimization
+  const rawImagesList = [...parsedImages];
+
   // Filter out any empty strings and optimize Cloudinary delivery URLs
   parsedImages = parsedImages
     .filter(Boolean)
     .map(img => getOptimizedImageUrl(img, { width: 800 }));
+
+  const hasExplicitImage = parsedImages.length > 0 || Boolean(rawMainImage);
 
   if (parsedImages.length === 0) {
     const rawFallback = rawMainImage || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&h=600&fit=crop&auto=format";
@@ -189,6 +194,9 @@ export const mapProductData = (product) => {
     image: primaryImage,
     imageUrl: primaryImage,
     images: parsedImages,
+    rawImages: rawImagesList,
+    rawImageUrl: rawMainImage,
+    hasRealImage: hasExplicitImage,
     subcategoryId: product.subcategoryId || product.sub_category_id || null,
     subcategory: product.subcategory || product.subCategory || null,
     brand: product.brand || "",
@@ -893,21 +901,40 @@ export const api = {
         throw err;
       }
     },
-    // Update product using multipart/form-data with automatic JSON fallback
+    // Update product using multipart/form-data with automatic JSON fallback and dual endpoint sync
     updateProduct: async (id, formData, jsonFallback = null) => {
       clearApiCache();
       try {
-        return await request(`/admin/products/${id}`, {
+        const res = await request(`/admin/products/${id}`, {
           method: "PUT",
           body: formData,
         });
+        // Also sync JSON payload to /products/${id} if available to guarantee entity persistence
+        if (jsonFallback) {
+          try {
+            await request(`/products/${id}`, {
+              method: "PUT",
+              body: JSON.stringify(jsonFallback),
+            });
+          } catch (syncErr) {
+            console.warn("Secondary /products/:id JSON sync skipped:", syncErr?.message);
+          }
+        }
+        return res;
       } catch (err) {
         if (jsonFallback && (err.message?.includes("400") || err.message?.includes("Bad Request") || err.message?.includes("Content-Type") || err.message?.includes("Status: 400"))) {
           console.warn("FormData PUT failed with 400. Retrying with JSON payload...", err);
-          return await request(`/admin/products/${id}`, {
-            method: "PUT",
-            body: JSON.stringify(jsonFallback),
-          });
+          try {
+            return await request(`/admin/products/${id}`, {
+              method: "PUT",
+              body: JSON.stringify(jsonFallback),
+            });
+          } catch (adminJsonErr) {
+            return await request(`/products/${id}`, {
+              method: "PUT",
+              body: JSON.stringify(jsonFallback),
+            });
+          }
         }
         throw err;
       }

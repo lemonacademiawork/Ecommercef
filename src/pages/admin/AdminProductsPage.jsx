@@ -278,9 +278,23 @@ export function AdminProductsPage() {
   // ── Edit ──────────────────────────────────────────────────────────────────
   const handleEditProductClick = async (product) => {
     setEditProduct(product);
-    let existingImages = (Array.isArray(product.images) ? product.images : [product.imageUrl || product.image || ""])
+
+    // Prefer raw/clean image URLs and exclude default Unsplash fallbacks
+    const candidateList = Array.isArray(product.rawImages) && product.rawImages.length > 0
+      ? product.rawImages
+      : (Array.isArray(product.images) ? product.images : [product.rawImageUrl || product.imageUrl || product.image || ""]);
+
+    let existingImages = candidateList
       .map((img) => (typeof img === "string" ? img.trim() : ""))
-      .filter((img) => img && img !== "undefined" && img !== "null" && img !== "[object Object]");
+      .filter((img) => img && img !== "undefined" && img !== "null" && img !== "[object Object]" && !img.includes("images.unsplash.com"));
+
+    // If candidate list only had unsplash fallbacks, check if there's any explicit non-unsplash image URL
+    if (existingImages.length === 0 && (product.rawImageUrl || product.imageUrl || product.image)) {
+      const explicitImg = (product.rawImageUrl || product.imageUrl || product.image).trim();
+      if (explicitImg && !explicitImg.includes("images.unsplash.com")) {
+        existingImages = [explicitImg];
+      }
+    }
 
     const paddedImages = [...existingImages];
     while (paddedImages.length < 4) paddedImages.push("");
@@ -293,11 +307,14 @@ export function AdminProductsPage() {
       } catch {}
     }
 
-    const firstValidImg = existingImages[0] || product.imageUrl || product.image || "";
+    const firstValidImg = existingImages[0] || (product.hasRealImage ? (product.rawImageUrl || product.imageUrl || product.image || "") : "");
+    // Clean existing description of any [IMAGES:...] metadata tags for edit form
+    const cleanDescription = (product.description || "").replace(/\[IMAGES:[\s\S]*?\]/g, "").trim();
+
     setProductForm({
       name: product.name || "",
       brand: product.brand || "",
-      description: product.description || "",
+      description: cleanDescription,
       price: product.price,
       stock: product.stock || 0,
       imageUrl: firstValidImg && firstValidImg !== "undefined" && firstValidImg !== "null" ? firstValidImg : "",
@@ -369,16 +386,33 @@ export function AdminProductsPage() {
         }
       }
 
-      // Filter out temporary blob URLs from persistent array
+      // Filter out temporary blob URLs and fallback images from persistent array
       const validImages = currentImages.filter(
-        (img) => img && typeof img === "string" && !img.startsWith("blob:") && img !== "undefined" && img !== "null"
+        (img) =>
+          img &&
+          typeof img === "string" &&
+          !img.startsWith("blob:") &&
+          img !== "undefined" &&
+          img !== "null" &&
+          img !== "[object Object]" &&
+          !img.includes("images.unsplash.com")
       );
-      const firstImage = validImages[0] || (productForm.imageUrl && !productForm.imageUrl.startsWith("blob:") ? productForm.imageUrl : "");
+      const firstImage =
+        validImages[0] ||
+        (productForm.imageUrl &&
+        !productForm.imageUrl.startsWith("blob:") &&
+        !productForm.imageUrl.includes("images.unsplash.com")
+          ? productForm.imageUrl
+          : "");
       const extraImages = validImages;
 
-      let fullDescription = productForm.description || "";
+      // Clean existing [IMAGES:...] tags and append current images
+      let cleanDescription = (productForm.description || "").replace(/\[IMAGES:[\s\S]*?\]/g, "").trim();
+      let fullDescription = cleanDescription;
       if (extraImages.length > 0) {
-        fullDescription = `${fullDescription}\n\n[IMAGES:${extraImages.join(",")}]`;
+        fullDescription = cleanDescription
+          ? `${cleanDescription}\n\n[IMAGES:${extraImages.join(",")}]`
+          : `[IMAGES:${extraImages.join(",")}]`;
       }
 
       const firstVar = productForm.inlineVariants?.length > 0 ? productForm.inlineVariants[0] : null;
@@ -389,6 +423,25 @@ export function AdminProductsPage() {
 
       const calcPrice = isNaN(rawPrice) || rawPrice < 0 ? 0 : rawPrice;
       const calcStock = isNaN(rawStock) || rawStock < 0 ? 0 : rawStock;
+
+      // Ensure we have a primaryFile object (even on edit) so Spring Boot multipart controller
+      // never receives null and wipes the database image column
+      let primaryFile = files.find((f) => f instanceof File);
+      if (!primaryFile && firstImage && editProduct) {
+        try {
+          const imgBlobRes = await fetch(firstImage, { mode: "cors" });
+          if (imgBlobRes.ok) {
+            const blob = await imgBlobRes.blob();
+            const ext = blob.type?.includes("png") ? "png" : "jpg";
+            primaryFile = new File([blob], `product_${editProduct.id}_existing.${ext}`, {
+              type: blob.type || "image/jpeg",
+            });
+            files[0] = primaryFile;
+          }
+        } catch (fetchErr) {
+          console.warn("Could not fetch existing image as file:", fetchErr);
+        }
+      }
 
       // Build FormData according to Spring Boot backend contract
       const formData = new FormData();
@@ -403,15 +456,16 @@ export function AdminProductsPage() {
 
       if (firstImage) {
         formData.append("imageUrl", firstImage);
+        formData.append("image_url", firstImage);
       }
 
       // Append raw File objects if available, or fall back to image URL
-      const primaryFile = files.find((f) => f instanceof File);
       if (primaryFile) {
         formData.append("image", primaryFile);
         formData.append("file", primaryFile);
       } else if (firstImage) {
         formData.append("image", firstImage);
+        formData.append("imageUrl", firstImage);
       }
 
       files.forEach((file) => {
@@ -421,6 +475,14 @@ export function AdminProductsPage() {
           formData.append("files", file);
         }
       });
+
+      if (!files.some((f) => f instanceof File) && extraImages.length > 0) {
+        extraImages.forEach((imgUrl) => {
+          formData.append("images", imgUrl);
+          formData.append("imageUrls", imgUrl);
+        });
+        formData.append("imageList", JSON.stringify(extraImages));
+      }
 
       if (productForm.subcategoryId) {
         formData.append("subcategoryId", productForm.subcategoryId);
@@ -449,8 +511,10 @@ export function AdminProductsPage() {
         brand: productForm.brand || "",
         active: Boolean(productForm.active),
         imageUrl: firstImage,
+        image_url: firstImage,
         image: firstImage,
         images: extraImages,
+        imageUrls: extraImages,
         subcategoryId: productForm.subcategoryId || null,
         weight: productForm.weight !== "" ? Number(productForm.weight) : null,
         length: productForm.length !== "" ? Number(productForm.length) : null,
