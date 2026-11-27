@@ -94,9 +94,10 @@ export function CustomerLayout({
 
       {/* Floating WhatsApp Support Button */}
       <a
-        href="https://wa.link/98z5wj"
+        href="https://wa.me/919450860884?text="
         target="_blank"
         rel="noopener noreferrer"
+        aria-label="Chat on WhatsApp Support"
         className="fixed bottom-20 md:bottom-6 right-5 z-50 flex items-center gap-2 px-3.5 py-2.5 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-full shadow-xl transition-all duration-300 hover:scale-105 group cursor-pointer"
         title="Chat on WhatsApp Support"
       >
